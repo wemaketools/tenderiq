@@ -255,50 +255,63 @@ function StrategyWorkspace({
               stacked
               items={[
                 {
-                  label: t('requests.strategyFields.intendedOutcome'),
+                  label:
+                    strategy.eventType === 'rfi'
+                      ? t('requests.strategyForm.rfiIntendedOutcome')
+                      : t('requests.strategyFields.intendedOutcome'),
                   value: strategy.intendedOutcome,
                 },
                 {
                   label: t('requests.strategyFields.procedure'),
                   value: `${tEnum('procurement_strategies.procedure', strategy.procedure)} · ${tEnum('procurement_strategies.event_type', strategy.eventType)}`,
                 },
-                {
-                  label: t('requests.strategyFields.competitionRationale'),
-                  value: strategy.competitionRationale,
-                },
-                ...(strategy.procedure === 'direct'
+                ...(strategy.eventType === 'rfi'
                   ? [
                       {
-                        label: t('requests.strategyFields.directAwardGrounds'),
-                        value: strategy.directAwardGrounds,
+                        label: t('requests.strategyFields.supplierInformationUse'),
+                        value: strategy.supplierInformationUse,
+                      },
+                      {
+                        label: t('requests.strategyFields.awardModel'),
+                        value: t('requests.strategyForm.notApplicableRfi'),
                       },
                     ]
-                  : []),
-                { label: t('requests.strategyFields.lotStrategy'), value: strategy.lotStrategy },
-                {
-                  label: t('requests.strategyFields.awardModel'),
-                  value:
-                    strategy.eventType === 'rfi'
-                      ? t('requests.strategyForm.notApplicableRfi')
-                      : tEnum('procurement_strategies.award_model', strategy.awardModel),
-                },
-                {
-                  label: t('requests.strategyFields.qualificationApproach'),
-                  value: strategy.qualificationApproach,
-                },
-                {
-                  label: t('requests.strategyFields.evaluationApproach'),
-                  value: strategy.evaluationApproach,
-                },
-                {
-                  label: t('requests.strategyFields.negotiationPermitted'),
-                  value:
-                    strategy.eventType === 'rfi'
-                      ? t('requests.strategyForm.notApplicableRfi')
-                      : strategy.negotiationPermitted
-                        ? t('requests.common.yes')
-                        : t('requests.common.no'),
-                },
+                  : [
+                      {
+                        label: t('requests.strategyFields.competitionRationale'),
+                        value: strategy.competitionRationale,
+                      },
+                      ...(strategy.procedure === 'direct'
+                        ? [
+                            {
+                              label: t('requests.strategyFields.directAwardGrounds'),
+                              value: strategy.directAwardGrounds,
+                            },
+                          ]
+                        : []),
+                      {
+                        label: t('requests.strategyFields.lotStrategy'),
+                        value: strategy.lotStrategy,
+                      },
+                      {
+                        label: t('requests.strategyFields.awardModel'),
+                        value: tEnum('procurement_strategies.award_model', strategy.awardModel),
+                      },
+                      {
+                        label: t('requests.strategyFields.qualificationApproach'),
+                        value: strategy.qualificationApproach,
+                      },
+                      {
+                        label: t('requests.strategyFields.evaluationApproach'),
+                        value: strategy.evaluationApproach,
+                      },
+                      {
+                        label: t('requests.strategyFields.negotiationPermitted'),
+                        value: strategy.negotiationPermitted
+                          ? t('requests.common.yes')
+                          : t('requests.common.no'),
+                      },
+                    ]),
                 { label: t('requests.strategyFields.risks'), value: strategy.risks },
                 {
                   label: t('requests.strategyFields.timetableSummary'),

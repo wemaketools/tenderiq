@@ -6,7 +6,10 @@
  *   The policy profile version decides which procedures are permitted (`PROCEDURE_NOT_PERMITTED`), and the value
  *   thresholds say whether the chosen procedure fits the estimate.
  * - A `direct` procedure needs the exception grounds (`DIRECT_AWARD_GROUNDS_REQUIRED`); an `rfi` event uses the
- *   `rfi` procedure and never leads to an award by itself (`EVENT_TYPE_PROCEDURE_MISMATCH`).
+ *   `rfi` procedure and never leads to an award by itself (`EVENT_TYPE_PROCEDURE_MISMATCH`). An RFI states how the
+ *   information suppliers share will be used and that taking part creates no award entitlement
+ *   (`supplierInformationUse`, `SUPPLIER_INFORMATION_USE_REQUIRED`); competition-only fields (rationale, lots,
+ *   qualification, evaluation, award model, negotiation) do not apply to an RFI.
  * - Market research records its source and distinguishes an unverified estimate from a supplier commitment.
  *   Prior supplier involvement in shaping the specification opens a fairness review, and a strategy cannot be
  *   submitted while one is `pending` (`FAIRNESS_REVIEW_PENDING`).
@@ -174,6 +177,8 @@ export const StrategyDetail = StrategyRow.extend({
   negotiationPermitted: z.boolean(),
   timetableSummary: z.string().nullable(),
   externalOversight: z.string().nullable(),
+  /** RFI only (FR-05): no award entitlement and how the information suppliers share may be used later. */
+  supplierInformationUse: z.string().nullable(),
   policy: PolicyProcedureCheck,
   procedureDistinctions: z.array(ProcedureDistinction),
   marketResearch: z.array(MarketResearchEntry),
@@ -244,6 +249,7 @@ const StrategyFields = z.object({
   negotiationPermitted: z.boolean().default(false),
   timetableSummary: StrategyText,
   externalOversight: StrategyText,
+  supplierInformationUse: StrategyText,
 });
 
 function checkStrategy(body: z.output<typeof StrategyFields>, ctx: z.RefinementCtx): void {
@@ -252,6 +258,19 @@ function checkStrategy(body: z.output<typeof StrategyFields>, ctx: z.RefinementC
       code: 'custom',
       path: ['procedure'],
       message: issue('EVENT_TYPE_PROCEDURE_MISMATCH', 'An RFI uses the RFI procedure, and only an RFI does.'),
+    });
+  }
+  if (
+    body.eventType === 'rfi' &&
+    (body.supplierInformationUse === null || body.supplierInformationUse === undefined || body.supplierInformationUse === '')
+  ) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['supplierInformationUse'],
+      message: issue(
+        'SUPPLIER_INFORMATION_USE_REQUIRED',
+        'State how the information suppliers share will be used and that taking part creates no award entitlement.',
+      ),
     });
   }
   if (body.procedure === 'direct' && (body.directAwardGrounds === null || body.directAwardGrounds === undefined || body.directAwardGrounds === '')) {

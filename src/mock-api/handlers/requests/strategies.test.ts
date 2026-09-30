@@ -185,4 +185,43 @@ describe('strategy commands (BUY-06)', () => {
     expect(Problem.parse(invalid.body).errors?.map((error) => error.code)).toContain('DIRECT_AWARD_GROUNDS_REQUIRED');
     await expectError(call(ODC_OFFICER, e.updateStrategy, { params: { strategyId: 601 }, body: UPDATE }), 409, 'STRATEGY_NOT_EDITABLE');
   });
+
+  it('requires an RFI to state the use of supplier information and drops competition-only fields from it', async () => {
+    const rfiBody = {
+      ...UPDATE,
+      eventType: 'rfi',
+      procedure: 'rfi',
+      competitionRationale: 'Should not be kept.',
+      lotStrategy: 'Should not be kept.',
+      qualificationApproach: 'Should not be kept.',
+      evaluationApproach: 'Should not be kept.',
+      negotiationPermitted: true,
+    };
+    const missing = await call(TEBOGO, e.updateStrategy, { params: { strategyId: 506 }, body: rfiBody });
+    expect(missing.status).toBe(422);
+    expect(Problem.parse(missing.body).errors?.map((error) => error.code)).toContain('SUPPLIER_INFORMATION_USE_REQUIRED');
+
+    const saved = StrategyDetail.parse(
+      (await call(TEBOGO, e.updateStrategy, { params: { strategyId: 506 }, body: { ...rfiBody, supplierInformationUse: 'No award entitlement; responses shape the later tender only.' } })).body,
+    );
+    expect(saved).toMatchObject({
+      supplierInformationUse: 'No award entitlement; responses shape the later tender only.',
+      competitionRationale: null,
+      lotStrategy: null,
+      qualificationApproach: null,
+      evaluationApproach: null,
+      negotiationPermitted: false,
+    });
+    expect(saved.submissionReadiness.map((item) => item.id)).toEqual(expect.arrayContaining(['intendedOutcome', 'supplierInformationUse', 'risks', 'timetableSummary']));
+    expect(saved.submissionReadiness.map((item) => item.id)).not.toContain('lotStrategy');
+  });
+
+  it('satisfies the RFI distinctions from the recorded use of supplier information', async () => {
+    const rfi = await strategy(TEBOGO, 503);
+    expect(rfi.supplierInformationUse).toContain('no right to an award');
+    expect(rfi.procedureDistinctions.map((distinction) => [distinction.id, distinction.satisfied])).toEqual([
+      ['no_award_entitlement', true],
+      ['information_use', true],
+    ]);
+  });
 });

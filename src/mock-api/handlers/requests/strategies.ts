@@ -99,8 +99,8 @@ function distinctions(strategy: FixtureStrategy, policy: PolicyProcedureCheck): 
     return [];
   }
   const source: Record<string, string | null> = {
-    no_award_entitlement: strategy.competitionRationale,
-    information_use: strategy.risks,
+    no_award_entitlement: strategy.supplierInformationUse,
+    information_use: strategy.supplierInformationUse,
     public_discovery: policy.requiresPublicNotice ? 'A public notice is required by policy.' : null,
     consistent_access: strategy.qualificationApproach,
     objective_eligibility: strategy.qualificationApproach,
@@ -126,15 +126,24 @@ function reviewsOf(strategy: FixtureStrategy): FixtureFairnessReview[] {
 }
 
 function readiness(strategy: FixtureStrategy, policy: PolicyProcedureCheck): ReadinessItem[] {
-  const fields: [string, string, string | null][] = [
-    ['intendedOutcome', 'Intended procurement outcome', strategy.intendedOutcome],
-    ['competitionRationale', 'Competition rationale', strategy.competitionRationale],
-    ['risks', 'Risks', strategy.risks],
-    ['qualificationApproach', 'Qualification approach', strategy.qualificationApproach],
-    ['lotStrategy', 'Lot structure', strategy.lotStrategy],
-    ['evaluationApproach', 'Evaluation method', strategy.evaluationApproach],
-    ['timetableSummary', 'Timetable', strategy.timetableSummary],
-  ];
+  // An RFI runs no competition: rationale, lots, qualification and evaluation do not apply to it (FR-05).
+  const fields: [string, string, string | null][] =
+    strategy.eventType === 'rfi'
+      ? [
+          ['intendedOutcome', 'What the RFI should learn', strategy.intendedOutcome],
+          ['supplierInformationUse', 'Use of supplier information', strategy.supplierInformationUse],
+          ['risks', 'Risks', strategy.risks],
+          ['timetableSummary', 'Timetable', strategy.timetableSummary],
+        ]
+      : [
+          ['intendedOutcome', 'Intended procurement outcome', strategy.intendedOutcome],
+          ['competitionRationale', 'Competition rationale', strategy.competitionRationale],
+          ['risks', 'Risks', strategy.risks],
+          ['qualificationApproach', 'Qualification approach', strategy.qualificationApproach],
+          ['lotStrategy', 'Lot structure', strategy.lotStrategy],
+          ['evaluationApproach', 'Evaluation method', strategy.evaluationApproach],
+          ['timetableSummary', 'Timetable', strategy.timetableSummary],
+        ];
   const items: ReadinessItem[] = fields.map(([id, label, value]) => ({
     id,
     label,
@@ -274,6 +283,7 @@ function strategyDetailOf(strategy: FixtureStrategy, viewer: Viewer, extras: { r
     negotiationPermitted: strategy.negotiationPermitted,
     timetableSummary: strategy.timetableSummary,
     externalOversight: strategy.externalOversight,
+    supplierInformationUse: strategy.supplierInformationUse,
     policy,
     procedureDistinctions: distinctions(strategy, policy),
     marketResearch: [
@@ -340,6 +350,7 @@ interface StrategyInput {
   readonly negotiationPermitted: boolean;
   readonly timetableSummary?: string | null | undefined;
   readonly externalOversight?: string | null | undefined;
+  readonly supplierInformationUse?: string | null | undefined;
 }
 
 function text(value: string | null | undefined): string | null {
@@ -347,21 +358,24 @@ function text(value: string | null | undefined): string | null {
 }
 
 function applyStrategyInput(strategy: FixtureStrategy, body: StrategyInput): FixtureStrategy {
+  const rfi = body.eventType === 'rfi';
+  // Competition-only fields never apply to an RFI, and the RFI-only field never applies to a competition.
   return {
     ...strategy,
     eventType: body.eventType,
     procedure: body.procedure,
     awardModel: body.awardModel,
     intendedOutcome: text(body.intendedOutcome),
-    competitionRationale: text(body.competitionRationale),
+    competitionRationale: rfi ? null : text(body.competitionRationale),
     directAwardGrounds: text(body.directAwardGrounds),
     risks: text(body.risks),
-    qualificationApproach: text(body.qualificationApproach),
-    lotStrategy: text(body.lotStrategy),
-    evaluationApproach: text(body.evaluationApproach),
-    negotiationPermitted: body.negotiationPermitted,
+    qualificationApproach: rfi ? null : text(body.qualificationApproach),
+    lotStrategy: rfi ? null : text(body.lotStrategy),
+    evaluationApproach: rfi ? null : text(body.evaluationApproach),
+    negotiationPermitted: rfi ? false : body.negotiationPermitted,
     timetableSummary: text(body.timetableSummary),
     externalOversight: text(body.externalOversight),
+    supplierInformationUse: rfi ? text(body.supplierInformationUse) : null,
   };
 }
 
@@ -429,6 +443,7 @@ export function registerStrategies(app: MockApp): void {
       negotiationPermitted: false,
       timetableSummary: null,
       externalOversight: null,
+      supplierInformationUse: null,
       status: 'draft',
       ownerUserId: viewer.userId,
       estimatedValue: null,

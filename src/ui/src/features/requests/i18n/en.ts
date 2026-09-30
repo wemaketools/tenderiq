@@ -722,6 +722,7 @@ export default {
     negotiationPermitted: 'Negotiation permitted',
     timetableSummary: 'Timetable',
     externalOversight: 'External oversight and funding-body approvals',
+    supplierInformationUse: 'Use of supplier information',
   },
   procedures: {
     rfi: 'Understand suppliers and the market. Participation creates no award entitlement.',
@@ -768,6 +769,11 @@ export default {
     directBody:
       'Only one supplier is approached. This needs an approved exception: state the grounds, and the strategy approval will review them.',
     notApplicableRfi: 'Not applicable (RFI)',
+    rfiIntendedOutcome: 'What do you want to learn, and what decision will it inform?',
+    supplierInformationUseHint:
+      'Tell suppliers that taking part creates no right to an award, and how the information they share may be used later. Edit the default statement as needed.',
+    supplierInformationUseDefault:
+      'Taking part in this RFI creates no right to an award and is not required to bid in any later competition. Suppliers that do not take part are not disadvantaged, and participants are not excluded from later competitions. Responses are used only to plan the related procurement. Information a supplier marks as commercially sensitive will not be disclosed to other suppliers, except where the law requires it.',
   },
   eventTypes: {
     rfi: 'Request for information: learn what the market offers. No purchase is promised.',
@@ -815,6 +821,8 @@ export default {
     STRATEGY_INCOMPLETE: 'The strategy has blocking items. Complete them before submitting.',
     FAIRNESS_REVIEW_PENDING: 'Decide the pending fairness reviews before submitting.',
     DIRECT_AWARD_GROUNDS_REQUIRED: 'State the approved exception grounds for a direct procurement.',
+    SUPPLIER_INFORMATION_USE_REQUIRED:
+      'State how the information suppliers share will be used and that taking part creates no award entitlement.',
     PROCEDURE_THRESHOLD_EXCEEDED:
       'The estimated value is above the policy threshold of this procedure.',
     EVENT_TYPE_PROCEDURE_MISMATCH: 'An RFI uses the RFI procedure, and only an RFI does.',

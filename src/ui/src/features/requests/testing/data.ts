@@ -666,6 +666,7 @@ export const strategy: StrategyDetail = {
   negotiationPermitted: false,
   timetableSummary: 'Release November 2026, award February 2027.',
   externalOversight: null,
+  supplierInformationUse: null,
   policy: {
     policyProfileVersion: {
       id: 3,

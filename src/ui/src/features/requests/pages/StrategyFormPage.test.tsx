@@ -73,7 +73,61 @@ describe('StrategyFormPage (BUY-06 form)', () => {
     await userEvent.click(screen.getAllByRole('button', { name: 'Save draft' })[0] as HTMLElement);
     await waitFor(() => expect(requests.find((item) => item.method === 'POST')).toBeDefined());
     const body = requests.find((item) => item.method === 'POST')?.body as Record<string, unknown>;
-    expect(body).toMatchObject({ eventType: 'rfi', procedure: 'rfi', negotiationPermitted: false });
+    expect(body).toMatchObject({
+      eventType: 'rfi',
+      procedure: 'rfi',
+      negotiationPermitted: false,
+      competitionRationale: null,
+      lotStrategy: null,
+      qualificationApproach: null,
+      evaluationApproach: null,
+    });
+    expect(String(body.supplierInformationUse)).toContain('creates no right to an award');
+  });
+
+  it('shows only the fields an RFI needs, with the supplier-information statement prefilled', async () => {
+    render();
+
+    await userEvent.selectOptions(await screen.findByLabelText(/^Event type/), 'rfi');
+
+    for (const hidden of [
+      /^Competition rationale/,
+      /^Lot structure/,
+      /^Qualification approach/,
+      /^Evaluation approach/,
+    ]) {
+      expect(screen.queryByLabelText(hidden)).not.toBeInTheDocument();
+    }
+    expect(screen.getByLabelText(/^What do you want to learn/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^Risks/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^Timetable/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^External oversight/)).toBeInTheDocument();
+    expect(
+      (screen.getByLabelText(/^Use of supplier information/) as HTMLTextAreaElement).value,
+    ).toContain('creates no right to an award');
+  });
+
+  it('requires the supplier-information statement for an RFI', async () => {
+    const { requests } = render();
+
+    await userEvent.selectOptions(await screen.findByLabelText(/^Event type/), 'rfi');
+    await userEvent.clear(screen.getByLabelText(/^Use of supplier information/));
+    await userEvent.click(screen.getAllByRole('button', { name: 'Save draft' })[0] as HTMLElement);
+
+    expect(
+      await screen.findAllByText(
+        'State how the information suppliers share will be used and that taking part creates no award entitlement.',
+      ),
+    ).not.toHaveLength(0);
+    expect(requests.some((item) => item.method === 'POST')).toBe(false);
+  });
+
+  it('shows the competition fields again for a competitive event type', async () => {
+    render();
+
+    expect(await screen.findByLabelText(/^Competition rationale/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^Intended outcome/)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/^Use of supplier information/)).not.toBeInTheDocument();
   });
 
   it('moves an RFI procedure back to open when the event type changes to a competition', async () => {

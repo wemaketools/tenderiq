@@ -56,6 +56,7 @@ interface FormState {
   readonly negotiationPermitted: boolean;
   readonly timetableSummary: string;
   readonly externalOversight: string;
+  readonly supplierInformationUse: string;
 }
 
 const TEXT_FIELDS = [
@@ -77,8 +78,17 @@ const FIELD_NAMES = [
   'awardModel',
   'directAwardGrounds',
   'negotiationPermitted',
+  'supplierInformationUse',
   ...TEXT_FIELDS,
 ];
+
+/** Competition-only fields: an RFI runs no competition, so they do not apply to it (FR-05). */
+const COMPETITION_ONLY = new Set<string>([
+  'competitionRationale',
+  'lotStrategy',
+  'qualificationApproach',
+  'evaluationApproach',
+]);
 
 function stateOf(strategy: StrategyDetail | null, requestId: string): FormState {
   const procedure =
@@ -101,6 +111,7 @@ function stateOf(strategy: StrategyDetail | null, requestId: string): FormState 
     negotiationPermitted: strategy?.negotiationPermitted ?? false,
     timetableSummary: strategy?.timetableSummary ?? '',
     externalOversight: strategy?.externalOversight ?? '',
+    supplierInformationUse: strategy?.supplierInformationUse ?? '',
   };
 }
 
@@ -108,6 +119,9 @@ function clientErrors(form: FormState, isNew: boolean): Record<string, string> {
   const errors: Record<string, string> = {};
   if ((form.eventType === 'rfi') !== (form.procedure === 'rfi')) {
     errors.procedure = t('requests.errors.EVENT_TYPE_PROCEDURE_MISMATCH');
+  }
+  if (form.eventType === 'rfi' && form.supplierInformationUse.trim() === '') {
+    errors.supplierInformationUse = t('requests.errors.SUPPLIER_INFORMATION_USE_REQUIRED');
   }
   if (form.procedure === 'direct' && form.directAwardGrounds.trim() === '') {
     errors.directAwardGrounds = t('requests.errors.DIRECT_AWARD_GROUNDS_REQUIRED');
@@ -237,6 +251,10 @@ function StrategyForm({
           procedure: 'rfi',
           awardModel: 'single',
           negotiationPermitted: false,
+          supplierInformationUse:
+            previous.supplierInformationUse.trim() === ''
+              ? t('requests.strategyForm.supplierInformationUseDefault')
+              : previous.supplierInformationUse,
         };
       }
       return {
@@ -258,15 +276,16 @@ function StrategyForm({
     procedure: form.procedure,
     awardModel: form.awardModel,
     intendedOutcome: textOrNull(form.intendedOutcome),
-    competitionRationale: textOrNull(form.competitionRationale),
+    competitionRationale: isRfi ? null : textOrNull(form.competitionRationale),
     directAwardGrounds: form.procedure === 'direct' ? textOrNull(form.directAwardGrounds) : null,
     risks: textOrNull(form.risks),
-    qualificationApproach: textOrNull(form.qualificationApproach),
-    lotStrategy: textOrNull(form.lotStrategy),
-    evaluationApproach: textOrNull(form.evaluationApproach),
-    negotiationPermitted: form.negotiationPermitted,
+    qualificationApproach: isRfi ? null : textOrNull(form.qualificationApproach),
+    lotStrategy: isRfi ? null : textOrNull(form.lotStrategy),
+    evaluationApproach: isRfi ? null : textOrNull(form.evaluationApproach),
+    negotiationPermitted: isRfi ? false : form.negotiationPermitted,
     timetableSummary: textOrNull(form.timetableSummary),
     externalOversight: textOrNull(form.externalOversight),
+    supplierInformationUse: isRfi ? textOrNull(form.supplierInformationUse) : null,
   };
 
   const onSave = async (): Promise<void> => {
@@ -298,17 +317,22 @@ function StrategyForm({
     }
   };
 
-  const textArea = (field: (typeof TEXT_FIELDS)[number]) => (
-    <TextArea
-      key={field}
-      label={t(`requests.strategyFields.${field}`)}
-      fieldClassName="tiq-form-full"
-      rows={3}
-      value={form[field]}
-      onChange={(value) => set(field, value)}
-      error={errorOf(field)}
-    />
-  );
+  const textArea = (field: (typeof TEXT_FIELDS)[number]) =>
+    isRfi && COMPETITION_ONLY.has(field) ? null : (
+      <TextArea
+        key={field}
+        label={
+          isRfi && field === 'intendedOutcome'
+            ? t('requests.strategyForm.rfiIntendedOutcome')
+            : t(`requests.strategyFields.${field}`)
+        }
+        fieldClassName="tiq-form-full"
+        rows={3}
+        value={form[field]}
+        onChange={(value) => set(field, value)}
+        error={errorOf(field)}
+      />
+    );
 
   return (
     <>
@@ -503,6 +527,18 @@ function StrategyForm({
             />
           )}
           {TEXT_FIELDS.slice(0, 5).map(textArea)}
+          {isRfi && (
+            <TextArea
+              label={t('requests.strategyFields.supplierInformationUse')}
+              required
+              fieldClassName="tiq-form-full"
+              hint={t('requests.strategyForm.supplierInformationUseHint')}
+              rows={4}
+              value={form.supplierInformationUse}
+              onChange={(value) => set('supplierInformationUse', value)}
+              error={errorOf('supplierInformationUse')}
+            />
+          )}
           {!isRfi && (
             <Checkbox
               label={t('requests.strategyFields.negotiationPermitted')}

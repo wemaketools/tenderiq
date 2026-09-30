@@ -321442,6 +321442,12 @@
                         "null"
                       ]
                     },
+                    "supplierInformationUse": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
                     "policy": {
                       "type": "object",
                       "properties": {
@@ -322344,6 +322350,7 @@
                     "negotiationPermitted",
                     "timetableSummary",
                     "externalOversight",
+                    "supplierInformationUse",
                     "policy",
                     "procedureDistinctions",
                     "marketResearch",
@@ -322563,6 +322570,17 @@
                     ]
                   },
                   "externalOversight": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 8000
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "supplierInformationUse": {
                     "anyOf": [
                       {
                         "type": "string",
@@ -322981,6 +322999,12 @@
                         "null"
                       ]
                     },
+                    "supplierInformationUse": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
                     "policy": {
                       "type": "object",
                       "properties": {
@@ -323883,6 +323907,7 @@
                     "negotiationPermitted",
                     "timetableSummary",
                     "externalOversight",
+                    "supplierInformationUse",
                     "policy",
                     "procedureDistinctions",
                     "marketResearch",
@@ -324333,6 +324358,12 @@
                         "null"
                       ]
                     },
+                    "supplierInformationUse": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
                     "policy": {
                       "type": "object",
                       "properties": {
@@ -325235,6 +325266,7 @@
                     "negotiationPermitted",
                     "timetableSummary",
                     "externalOversight",
+                    "supplierInformationUse",
                     "policy",
                     "procedureDistinctions",
                     "marketResearch",
@@ -325453,6 +325485,17 @@
                     ]
                   },
                   "externalOversight": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 8000
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "supplierInformationUse": {
                     "anyOf": [
                       {
                         "type": "string",
@@ -325853,6 +325896,12 @@
                         "null"
                       ]
                     },
+                    "supplierInformationUse": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
                     "policy": {
                       "type": "object",
                       "properties": {
@@ -326755,6 +326804,7 @@
                     "negotiationPermitted",
                     "timetableSummary",
                     "externalOversight",
+                    "supplierInformationUse",
                     "policy",
                     "procedureDistinctions",
                     "marketResearch",
@@ -328202,6 +328252,12 @@
                         "null"
                       ]
                     },
+                    "supplierInformationUse": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
                     "policy": {
                       "type": "object",
                       "properties": {
@@ -329104,6 +329160,7 @@
                     "negotiationPermitted",
                     "timetableSummary",
                     "externalOversight",
+                    "supplierInformationUse",
                     "policy",
                     "procedureDistinctions",
                     "marketResearch",

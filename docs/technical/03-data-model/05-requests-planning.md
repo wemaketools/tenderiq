@@ -398,6 +398,7 @@ The dotted edge is the cross-domain write permitted by architecture-plan §4. Wh
 | negotiation_permitted | *boolean* | n/s | | Negotiation permission. |
 | timetable_summary | *text* | n/s | | Timetable. |
 | external_oversight | *text* | n/s | | External oversight or funding-body approvals (FR-05). |
+| supplier_information_use | *text* | n/s | required when event_type = rfi (service rule) | RFI only (FR-05): states that taking part creates no award entitlement and how the information suppliers share may be used later. Null for competitive events. Added by owner decision 2026-09-30. |
 | status | text | n/s | CHECK (draft, awaiting_approval, approved, returned, superseded) | Strategy state. |
 | approval_request_id | bigint | yes | FK → approval_requests | Approval (subject type `strategy`). |
 | policy_profile_version_id | bigint | n/s | FK → policy_profile_versions | Policy profile version applied (BR-09). |
