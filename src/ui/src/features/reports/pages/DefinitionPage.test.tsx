@@ -122,6 +122,24 @@ describe('DefinitionPage (REP-02)', () => {
     expect(screen.getAllByText('Authorized').length).toBeGreaterThan(0);
   });
 
+  it('links a run’s export only when the viewer may open it, and names another user’s export without a link', async () => {
+    routes();
+    renderExisting();
+
+    expect(
+      await screen.findByRole('link', { name: 'pipeline-2026-09-28.csv' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('pipeline-2026-09-21.csv')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: /pipeline-2026-09-21\.csv/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Requested by another user; only its requester and report managers can open it',
+      ),
+    ).toBeInTheDocument();
+  });
+
   it('deactivates a definition after confirmation with a reason', async () => {
     const { requests } = routes();
     renderExisting();

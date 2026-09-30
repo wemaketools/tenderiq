@@ -43,7 +43,7 @@ export const CLAIM_INVITATIONS: readonly FixtureClaimInvitation[] = Object.freez
     state: 'pending',
     sentAt: '2026-09-03T10:00:00Z',
     sentCount: 2,
-    expiresAt: '2026-10-03T15:00:00Z',
+    expiresAt: '2026-10-13T15:00:00Z',
     revokedReason: null,
   },
   {

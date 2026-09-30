@@ -56,7 +56,7 @@ export function contractRow(overrides: Partial<ContractRow> = {}): ContractRow {
     legalEntity: {
       legalEntityId: 1,
       name: 'Kalahari Water Utilities Corporation',
-      registrationNumber: 'BW00001234567',
+      registrationNumber: 'BW-PE-2004-0117',
     },
     tender: { tenderId: 10, reference: 'T-2026-0010', title: 'Fleet vehicle maintenance' },
     owner: person(5, 'Tebogo Molefe'),
@@ -780,7 +780,7 @@ export function awardSources(): AwardSourcesResponse {
       {
         legalEntityId: 1,
         name: 'Kalahari Water Utilities Corporation',
-        registrationNumber: 'BW00001234567',
+        registrationNumber: 'BW-PE-2004-0117',
       },
     ],
   };

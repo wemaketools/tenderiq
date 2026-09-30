@@ -33,6 +33,8 @@ export default {
     moderate: 'Moderate divergences and finalize the agreed scores.',
     release_price_gate: 'Release the price gate.',
     await_comparison: 'Wait for the commercial comparison to be approved.',
+    resolve_blockers:
+      'Resolve the blocking items in the readiness check (missing scores, conflict reviews, commercial comparison), then submit the report for sign-off.',
     validate_ranking: 'Validate the ranking and submit the report for sign-off.',
     sign_report: 'Sign or decline the evaluation report.',
     collect_signoffs: 'Collect the committee sign-offs on the report.',
@@ -81,11 +83,11 @@ export default {
       closed:
         'Commercial prices stay unavailable until the non-price review is complete and the chair releases the gate.',
       released:
-        'The non-price review was confirmed complete and prices are available for the commercial comparison.',
+        'The chair confirmed the non-price moderation complete and released prices for the commercial comparison. Any outstanding individual score is recorded in the note and tracked until sign-off.',
     },
     releasedAt: 'Released',
     releasedBy: 'Released by',
-    nonPriceConfirmed: 'Non-price review confirmed complete',
+    nonPriceConfirmed: 'Non-price moderation confirmed complete',
     note: 'Note',
     release: 'Release price gate',
     releaseTitle: 'Release the price gate',
@@ -392,6 +394,8 @@ export default {
     deviation: 'Deviation declared',
     evidenceDocs: 'Evidence documents',
     rating: 'Rating (0–{max})',
+    fieldContext: '{label} for {criterion}, {bid}',
+    cellGroup: 'Score for {criterion}, {bid}',
     points: 'Weighted: {points} points',
     pointsNone: 'Weighted points appear once rated.',
     weighted: 'Weighted points',
@@ -402,6 +406,23 @@ export default {
     evidenceHint: 'One reference per line, for example “Technical proposal §3.2”.',
     clarify: 'Request clarification',
     clarifyQuestion: 'Clarification needed',
+    raise: {
+      action: 'Send to the chair',
+      title: 'Send a clarification question to the chair',
+      consequence:
+        'A draft clarification (stage: evaluation) joins the chair’s coordination queue. The chair consolidates, approves and issues it; the supplier sees nothing until then.',
+      confirm: 'Create draft for the chair',
+      br22Title: 'A clarification never changes the offer',
+      br22: 'State exactly what the supplier may clarify. The answer cannot add, remove or improve anything in the bid (BR-22).',
+      question: 'Question to the supplier',
+      scope: 'Permitted scope',
+      scopeHint: 'For example “Confirmation of the project scope only; no change to the offer.”',
+      dueAt: 'Response deadline',
+      done: 'Draft clarification CL-{id} sent to the chair.',
+      doneBody:
+        'The chair consolidates questions from every assessor and issues the approved ones. You receive the answer when it is distributed.',
+      open: 'Open bid clarifications',
+    },
     correct: 'Correct score',
     corrections: 'Correction history',
     correctionLine: '{from} → {to} by {by}, {at}',
@@ -458,6 +479,17 @@ export default {
     noCommittee: 'No committee members assigned',
     bidsTitle: 'Bids in evaluation',
     bidEvaluation: 'Evaluation',
+    detail: {
+      own_assessment_pending: {
+        title: 'Committee details are hidden until you submit',
+        body: 'Committee scores, moderation outcomes and the ranking stay hidden until you submit your own assessment (independent evaluation).',
+      },
+      conflict_pending_review: {
+        title: 'Access suspended while your conflict declaration is reviewed',
+        body: 'The chair is reviewing your conflict declaration. Bids, committee scores and the ranking stay hidden until the review is complete.',
+      },
+    },
+    bidsWithheld: 'Bids are hidden while your conflict declaration is reviewed.',
     planTitle: 'Evaluation plan',
     planVersion: 'Version {version}',
     scale: 'Rating scale',

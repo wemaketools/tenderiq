@@ -277,8 +277,11 @@ export function registerSupplierRoutes(app: MockApp): void {
     if (fixture.core.lots.every((lot) => NO_DEBRIEF_RESULTS.includes(lot.result))) {
       return fail(409, 'DEBRIEF_NOT_AVAILABLE', 'Debriefings are offered on unsuccessful or cancelled lots once the outcome is notified.');
     }
+    // An open request (requested or scheduled) is reported first; once the window has closed, a finished request
+    // (provided or declined) no longer matters and the closed window is the reason for the refusal.
     const existing = debriefFor(fixture);
-    if (existing !== null) {
+    const open = existing !== null && (existing.status === 'requested' || existing.status === 'scheduled');
+    if (existing !== null && (open || (fixture.core.canRequestDebrief && fixture.core.debriefDeadline !== null))) {
       return fail(409, 'DEBRIEF_ALREADY_REQUESTED', `A debrief was requested on ${existing.requestedAt} and is ${existing.status}.`);
     }
     if (!fixture.core.canRequestDebrief || fixture.core.debriefDeadline === null) {

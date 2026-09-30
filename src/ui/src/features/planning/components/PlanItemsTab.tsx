@@ -2,7 +2,7 @@
  * BUY-05 plan items: planned events with their owner, budget period, expected value, planned release and award,
  * resource demand, priority, dependency, expiring contract, advance notice and scheduling warnings.
  */
-import { Link, useNavigate } from 'react-router';
+import { Link } from 'react-router';
 
 import { requestEndpoints } from '@contracts/requests';
 import type { PlanItemRow } from '@contracts/requests';
@@ -44,7 +44,6 @@ type SortField =
   'title' | 'plannedReleaseDate' | 'plannedAwardDate' | 'expectedValue' | 'priority' | 'status';
 
 export function PlanItemsTab() {
-  const navigate = useNavigate();
   const options = useApiQuery(requestEndpoints.getRequestOptions, {});
   const [filters, setFilters, clearFilters] = useScreenFilters('BUY-05.items', DEFAULT_FILTERS);
   const query = {
@@ -141,7 +140,7 @@ export function PlanItemsTab() {
           onRetry={items.reload}
           sort={sort}
           onSortChange={(next) => setFilters({ sort: next.key, dir: next.dir, page: 1 })}
-          onRowClick={(row) => navigate(planningPaths.item(row.id))}
+          rowHref={(row) => planningPaths.item(row.id)}
           rowLabel={(row) => row.title}
           empty={
             <EmptyState

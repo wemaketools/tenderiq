@@ -11,6 +11,26 @@
     "bids: BID_ADDENDA/BID_ACKNOWLEDGMENTS date T-2026-0001 Addendum 11 on 11 Jun ('Lot 3 rising main quantity'); clarifications (owner) issues it on 3 Jul 2026 as 'Corrected pump duty points for lot 1' after the 15 Jun release. Bids response 29 (Makgadikgadi, T-0011) is created 15 Sep, before the 16 Sep release.",
     "bids: T-2026-0009 initial round deadline is 30 Jun 2026 while the tenders timetable submission deadline is 14 Aug 2026.",
     "blueprint: add table opportunity_dismissals [T] (supplier tenant_id, user_id, tender_id, dismissed_at; unique (tenant_id, user_id, tender_id); own-rows RLS) backing supplier.opportunities.dismiss/restore.",
-    "contracts: new endpoint supplier.opportunities.restore (DELETE /api/v1/supplier/opportunities/:tenderId/dismiss); publication endpoint count is now 62 (docs:api regeneration)."
-  ]
+    "contracts: new endpoint supplier.opportunities.restore (DELETE /api/v1/supplier/opportunities/:tenderId/dismiss); publication endpoint count is now 62 (docs:api regeneration).",
+    "tasks: add task 190 (kwu, tebogo.officer, delivery_exception, \"Reconcile the failed Gazette notice of T-2026-0002 version 2\", source publication 222 link /buyer/tenders/2/publication) so exception #901 links to it",
+    "tenders: tenders.ts:125 T-2026-0002 summary says 6,000 meters; align with lot 201 (12,000 domestic + 180 bulk meters)",
+    "clarifications: Question.responseDueAt should be OfficialDeadline (DD-33) like WorkspaceSession.registrationDeadline",
+    "bids: T-2026-0010 round deadline 2026-02-03 disagrees with the tenders timetable 2026-04-03",
+    "docs: regenerate docs/technical/api/openapi.json (npm run docs:api) after the publication contract change"
+  ],
+  "qaFixes": {
+    "date": "2026-09-30",
+    "fixed": [
+      "confidentiality: invitation-only/restricted events visible only to invited or admitted organizations (authorizesVisibility); pending/denied requesters get 404 on workspace, documents, list and filters; InvitationDetail.opportunityPath nullable; denied applicants may still request access again",
+      "SUP-08: capabilities.canViewClarifications gates the Questions button and briefing links; restricted note otherwise",
+      "lots: single bid-domain lots published as Lot 1 (T-0002/0003/0004/0006/0007/0009/0010); addendum affected lots resolve; single-lot participants select the lot; T-0002 summary quantity aligned",
+      "acknowledgments: required only of participants holding the earlier version (registered before issue) so BUY-15 counts equal BUY-17 recipients",
+      "release approval: decision time and version derived from tenders RELEASE_APPROVALS (#202 12 Sep, #201 13 Jun)",
+      "exception task: taskId exposed only when the task exists in fixtures/tasks.ts; link goes to the /me/tasks inbox",
+      "qualification gate: declared condition decides (before-award = warning); Makgadikgadi T-0001 gate pending",
+      "publicNoticePath null for unreleased tenders",
+      "WorkspaceSession.registrationDeadline is an OfficialDeadline rendered with OfficialDeadline",
+      "PursuitPage assessment subtitle derived from decision state"
+    ]
+  }
 }

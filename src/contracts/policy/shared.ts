@@ -42,6 +42,7 @@ export const CUSTOM_FIELD_FORM_READ: EndpointPermission = [
   'tender.create',
   'tender.edit',
   'qualification.review',
+  'qualification.financial_review',
   'qualification.decide',
   'contract.view',
   'contract.prepare',

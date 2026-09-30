@@ -39,7 +39,7 @@ export default function PublicClarificationsPage() {
   const [q, setQ] = useState('');
   const [lot, setLot] = useState('');
   const edition = useApiQuery(clarificationsEndpoints.publicEdition, {
-    params: { buyerSlug, ref },
+    params: { buyerSlug, reference: ref },
     query: {
       ...(q.trim() === '' ? {} : { q: q.trim() }),
       ...(lot === '' ? {} : { lotId: Number(lot) }),

@@ -10,7 +10,7 @@ import type { ImportBatchesRecordType, ImportBatchesStatus, ImportRecordsDecisio
 import type { ImportCreatedEntityType } from '../../../contracts/operations.js';
 import { CONTRACTS, CONTRACT_IDS } from '../contracts/index.js';
 import { TENANTS, TENANT_IDS } from '../platform.js';
-import { OPS_USERS } from './customers.js';
+import { OPS_USERS } from './users.js';
 
 export interface FixtureImportBatch {
   readonly id: number;

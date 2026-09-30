@@ -42,8 +42,8 @@ describe('AssessmentsPage', () => {
     expect(requests.some((request) => request.search.includes('tenderId=9'))).toBe(true);
   });
 
-  it('omits the tender filter and the plan action for an evaluator without selection access', async () => {
-    installFetch({
+  it('omits the tender filter and the plan action for an evaluator without selection access and never requests the register', async () => {
+    const { requests } = installFetch({
       'GET /api/v1/buyer/selection/assessment-sessions': () => ({ body: page([sessionRow()]) }),
       'GET /api/v1/buyer/selection/tenders': () => problem(403, 'Forbidden', { code: 'FORBIDDEN' }),
     });
@@ -51,5 +51,8 @@ describe('AssessmentsPage', () => {
     await screen.findByRole('table', { name: 'Assessment sessions' });
     expect(screen.queryByRole('link', { name: 'Plan session' })).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Tender')).not.toBeInTheDocument();
+    expect(requests.some((request) => request.path === '/api/v1/buyer/selection/tenders')).toBe(
+      false,
+    );
   });
 });

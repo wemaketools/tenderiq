@@ -47,6 +47,8 @@ import { scopeWidening } from '../../handlers/org-admin/authority.js';
 import { STRUCTURE_PROJECTIONS, organizationOf, settingsOf } from '../../handlers/org-admin/organization.js';
 import { OrganizationSettings } from '../../../contracts/org-admin.js';
 import { PERSONAS, TENANTS, TENANT_IDS } from '../platform.js';
+import { PURSUITS } from '../publication/pursuits.js';
+import { MILESTONES, TENDERS } from '../tenders/index.js';
 import {
   ACCESS_GRANTS,
   ACCESS_RESTRICTIONS,
@@ -60,7 +62,10 @@ import {
   INVITATIONS,
   MEMBERS,
   ROLE_ASSIGNMENTS,
+  ASSIGNABLE_TENDER_IDS,
+  FIXTURE_AS_OF,
   TENDER_ASSIGNMENTS,
+  TENDER_REFS,
   WORK_ITEMS,
   administratorOf,
   findTenantRoleByCode,
@@ -238,5 +243,78 @@ describe('org-admin fixtures are consistent with the storyline', () => {
     const sam = PERSONAS.find((persona) => persona.email === 'sam.dual@tenderiq.local');
     const pending = CONFLICT_DECLARATIONS.filter((declaration) => declaration.userId === sam?.userId && declaration.disposition === 'pending_review');
     expect(pending.map((declaration) => declaration.subjectReference)).toEqual(['T-2026-0003']);
+  });
+});
+
+describe('org-admin tender references agree with the tender register (DD-33, SUP-04)', () => {
+  const officialDeadline = (tenderId: number) =>
+    MILESTONES.find((row) => row.tenderId === tenderId && row.lotId === null && row.milestone === 'submission_deadline')?.at ?? null;
+
+  it.each([
+    ['T-2026-0001', '2026-07-24T08:00:00Z'],
+    ['T-2026-0002', '2026-10-21T10:00:00Z'],
+    ['T-2026-0003', '2026-08-28T08:00:00Z'],
+    ['T-2026-0006', '2026-10-14T10:00:00Z'],
+    ['T-2026-0007', '2026-06-26T08:00:00Z'],
+    ['T-2026-0008', '2026-09-25T08:00:00Z'],
+    ['T-2026-0010', '2026-02-03T08:00:00Z'],
+  ])('shows %s with the official submission deadline %s of its timetable', (reference, deadline) => {
+    // Arrange
+    const ref = TENDER_REFS.find((row) => row.reference === reference);
+
+    // Assert
+    expect(ref?.submissionDeadline).toBe(deadline);
+    expect(ref?.officialTimeZone).toBe('Africa/Gaborone');
+  });
+
+  it('keeps the title, buyer, deadline and zone of every referenced tender identical to the tender fixtures', () => {
+    for (const ref of TENDER_REFS) {
+      const tender = TENDERS.find((row) => row.id === ref.tenderId);
+      expect(tender, ref.reference).toBeDefined();
+      expect(ref, ref.reference).toEqual({
+        tenderId: tender?.id,
+        buyerTenantId: tender?.tenantId,
+        reference: tender?.reference,
+        title: tender?.title,
+        submissionDeadline: officialDeadline(ref.tenderId),
+        officialTimeZone: tender?.officialTimeZone,
+      });
+    }
+  });
+
+  it('projects every assignable tender with its official deadline and time zone', () => {
+    for (const assignment of TENDER_ASSIGNMENTS) {
+      const row = assignmentRow(assignment);
+      const tender = TENDERS.find((candidate) => candidate.id === assignment.tenderId);
+      const deadline = officialDeadline(assignment.tenderId);
+      expect(row.tender.submissionDeadline, `assignment ${assignment.assignmentId}`).toEqual(
+        deadline === null ? null : { at: deadline, timeZone: tender?.officialTimeZone },
+      );
+    }
+  });
+
+  it('assigns every member of an open multi-member pursuit team to that tender with the same responsibility (SUP-09)', () => {
+    // Arrange
+    const openTeams = PURSUITS.filter((pursuit) => {
+      const deadline = officialDeadline(pursuit.tenderId);
+      return pursuit.decision === 'bid' && pursuit.team.length > 1 && deadline !== null && deadline > FIXTURE_AS_OF;
+    });
+
+    // Assert
+    expect(openTeams.map((pursuit) => pursuit.id).sort()).toEqual(expect.arrayContaining([4002, 4006]));
+    for (const pursuit of openTeams) {
+      expect(ASSIGNABLE_TENDER_IDS[pursuit.tenantId], `pursuit ${pursuit.id}`).toContain(pursuit.tenderId);
+      for (const member of pursuit.team) {
+        const assigned = TENDER_ASSIGNMENTS.some(
+          (row) =>
+            row.tenantId === pursuit.tenantId &&
+            row.tenderId === pursuit.tenderId &&
+            row.userId === member.userId &&
+            row.responsibility === member.responsibility &&
+            row.endedAt === null,
+        );
+        expect(assigned, `pursuit ${pursuit.id} member ${member.userId} (${member.responsibility})`).toBe(true);
+      }
+    }
   });
 });

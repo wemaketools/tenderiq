@@ -31,6 +31,7 @@ import {
 } from '../../../components/ui';
 import { t } from '../../../lib/i18n';
 import { useIdParam } from '../lib/hooks';
+import { versionChipText } from '../lib/lifecycle';
 import { nextActionOf } from '../lib/nextAction';
 import { tenderPaths } from '../lib/paths';
 import { RELEASE_REVIEW, TENDER_EDIT, TENDER_RELEASE_APPROVE } from '../lib/permissions';
@@ -200,7 +201,7 @@ export function TenderHeader({ context, section, primaryAction, actions }: Tende
             <Reference value={tender.reference} />
             <StatusChip enum="tenders.status" value={tender.status} />
             <Chip tone="neutral" size="sm">
-              {t('tender-authoring.workspace.revision', { revision: tender.draftRevision })}
+              {versionChipText(tender)}
             </Chip>
             {approval === null ? (
               <Chip tone="neutral-outlined" size="sm">

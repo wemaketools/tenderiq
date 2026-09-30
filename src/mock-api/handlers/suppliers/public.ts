@@ -189,13 +189,13 @@ export function registerPublic(app: MockApp): void {
     }
     const state = claimStateAt(invitation, now);
     if (state === 'expired') {
-      return fail(410, 'INVITATION_EXPIRED', CLAIM_STATE_NOTES.expired);
+      return fail(409, 'INVITATION_EXPIRED', CLAIM_STATE_NOTES.expired);
     }
     if (state === 'claimed') {
       return fail(409, 'INVITATION_ALREADY_CLAIMED', CLAIM_STATE_NOTES.claimed);
     }
     if (state === 'revoked') {
-      return fail(410, 'INVITATION_REVOKED', CLAIM_STATE_NOTES.revoked);
+      return fail(409, 'INVITATION_REVOKED', CLAIM_STATE_NOTES.revoked);
     }
     if (body.email.toLowerCase() !== contact.email.toLowerCase()) {
       return fail(422, 'CLAIM_EMAIL_MISMATCH', 'Use the e-mail address the invitation was sent to. The verification e-mail goes only there.');

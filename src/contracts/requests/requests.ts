@@ -195,6 +195,11 @@ export const RequestDecisionRecord = z.object({
       reason: z.string().min(1),
     })
     .nullable(),
+  /**
+   * The approver the open decision waits on when that is someone other than the caller (the request was routed or
+   * escalated above the caller's authority, AC-05); `null` when no approval is pending or the caller is the approver.
+   */
+  awaitingDecisionFrom: PersonRef.nullable(),
 });
 export type RequestDecisionRecord = z.infer<typeof RequestDecisionRecord>;
 
@@ -600,6 +605,8 @@ export const RequestDecisionView = z.object({
   routedToNextLevel: z.boolean(),
   skippedLevel: EligibleApprover.nullable(),
   route: ApprovalRouteState,
+  /** `route.currentApprover` when the pending decision waits on someone other than the caller (AC-05); else `null`. */
+  awaitingDecisionFrom: PersonRef.nullable(),
   funding: FundingConfirmation,
   comments: z.array(RequestComment),
   conditions: z.string().nullable(),

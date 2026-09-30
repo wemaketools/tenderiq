@@ -26,6 +26,8 @@ import type {
   QueryValue,
 } from '@contracts/endpoint';
 
+import { syncServerClock } from '../lib/clock';
+
 /** Hooks the client needs from the auth layer and the store. */
 export interface ApiClientAdapters {
   /** The current access token, read per request (supabase-js refreshes it). `null` when signed out. */
@@ -71,7 +73,8 @@ function kindOfStatus(status: number): ApiErrorKind {
   if (status === 403) return 'forbidden';
   if (status === 404) return 'not_found';
   if (status === 422 || status === 400) return 'validation';
-  if (status === 409 || status === 412) return 'conflict';
+  // 410: a time-limited artefact (upload slot, signed download link) is gone; the user repeats the step.
+  if (status === 409 || status === 410 || status === 412) return 'conflict';
   if (status === 429) return 'rate_limited';
   return 'server';
 }
@@ -248,6 +251,12 @@ export async function call<E extends AnyEndpoint>(
       title: 'The service could not be reached.',
       endpointId: endpoint.id,
     });
+  }
+
+  // The API reports its clock on every response; countdowns run from it (in prototype mode, the storyline clock).
+  const serverTime = response.headers.get('x-server-time');
+  if (serverTime !== null) {
+    syncServerClock(serverTime);
   }
 
   if (!response.ok) {

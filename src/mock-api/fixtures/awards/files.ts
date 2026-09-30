@@ -152,7 +152,7 @@ const T1_PUBLIC_CONTENT =
   'Kalahari Water Utilities awarded lot 1 (Submersible borehole pumps — Central District) of tender T-2026-0001 to Tsodilo Engineering (Pty) Ltd on 4 Sep 2026 for BWP 5,340,000.00, as the highest-ranked compliant offer under the published evaluation method. Lot 2 was cancelled because no compliant offer was received; it will be re-tendered. Lot 3 is still under evaluation and will be reported separately. Publication of this award does not mean that a contract has been signed or that work has started.';
 
 const T10_PUBLIC_CONTENT =
-  'Kalahari Water Utilities awarded tender T-2026-0010 (fleet vehicle maintenance, three-year term) to Tsodilo Engineering (Pty) Ltd on 6 Mar 2026 for BWP 1,850,000.00, as the highest-ranked compliant quotation. Two quotations were received. Publication of this award does not mean that a contract has been signed or that work has started.';
+  'Kalahari Water Utilities awarded tender T-2026-0010 (fleet vehicle maintenance, twelve-month term with renewal and extension options) to Tsodilo Engineering (Pty) Ltd on 6 Mar 2026 for BWP 1,850,000.00, as the highest-ranked compliant quotation. Two quotations were received. Publication of this award does not mean that a contract has been signed or that work has started.';
 
 /** Every public award notice. */
 export const PUBLIC_NOTICES: readonly PublicNoticeFixture[] = Object.freeze([
@@ -248,7 +248,7 @@ export const PUBLIC_NOTICES: readonly PublicNoticeFixture[] = Object.freeze([
       lots: [
         {
           lotNo: 1,
-          title: 'Fleet vehicle maintenance (light and heavy vehicles)',
+          title: 'Fleet vehicle maintenance',
           outcome: 'award',
           supplierName: 'Tsodilo Engineering',
           awardedValue: bwp('1850000.00'),

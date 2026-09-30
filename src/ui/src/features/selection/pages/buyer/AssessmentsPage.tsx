@@ -3,7 +3,6 @@
  * presentations, samples, site inspections, reference checks) with their declared basis, equal-treatment state,
  * invitations and findings (FR-15, AC-21).
  */
-import { useNavigate } from 'react-router';
 
 import {
   ASSESSMENT_SESSIONS_ASSESSMENT_BASIS,
@@ -61,7 +60,6 @@ const DEFAULTS = {
 };
 
 export default function AssessmentsPage() {
-  const navigate = useNavigate();
   const timeZone = useOfficialTimeZone();
   const canManage = usePermission(SELECTION_MANAGE);
   const [filters, setFilters, clearFilters] = useScreenFilters('BUY-22', DEFAULTS);
@@ -333,7 +331,7 @@ export default function AssessmentsPage() {
           rowLabel={(row) =>
             `${tEnum('assessment_sessions.session_type', row.sessionType)} ${row.tender.reference}`
           }
-          onRowClick={(row) => void navigate(selectionPaths.session(row.sessionId))}
+          rowHref={(row) => selectionPaths.session(row.sessionId)}
           loading={query.isFetching}
           error={query.error}
           onRetry={query.reload}

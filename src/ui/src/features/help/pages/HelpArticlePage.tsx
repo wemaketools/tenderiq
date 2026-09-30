@@ -2,7 +2,7 @@
  * COM-09 guidance article: the article text with its topic and audience, the reminder that general guidance never
  * overrides a tender's binding conditions, and related articles.
  */
-import { useNavigate, useParams } from 'react-router';
+import { useParams } from 'react-router';
 
 import { operationsEndpoints } from '@contracts/operations';
 import type { MyHelpArticle } from '@contracts/operations';
@@ -24,7 +24,6 @@ import { ArticleBody } from '../components/ArticleBody';
 import { helpPaths } from '../lib/paths';
 
 export default function HelpArticlePage() {
-  const navigate = useNavigate();
   const { articleSlug } = useParams();
   const tenant = useActiveTenant();
   const timeZone = tenant?.officialTimeZone ?? 'UTC';
@@ -68,7 +67,7 @@ export default function HelpArticlePage() {
                   caption={t('help.article.related')}
                   rows={data.related}
                   rowKey={(row) => String(row.id)}
-                  onRowClick={(row) => navigate(helpPaths.article(row.slug))}
+                  rowHref={(row) => helpPaths.article(row.slug)}
                   rowLabel={(row) => t('help.guidance.rowLabel', { title: row.title })}
                   empty={<EmptyState compact title={t('help.article.noRelated')} />}
                   columns={[

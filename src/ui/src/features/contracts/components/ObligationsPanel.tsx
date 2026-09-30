@@ -3,7 +3,6 @@
  * owners, official due dates, overdue flags, evidence and the latest decision, with assign / evidence / escalate
  * actions for contract managers.
  */
-import { useNavigate } from 'react-router';
 
 import { OBLIGATION_SORT_FIELDS, contractsEndpoints } from '@contracts/contracts';
 import type { ObligationRow } from '@contracts/contracts';
@@ -87,7 +86,6 @@ export function ObligationsPanel({
   creating,
   onCreateClose,
 }: ObligationsPanelProps) {
-  const navigate = useNavigate();
   const [filters, setFilters, clearFilters] = useScreenFilters(`${screen}-obligations`, DEFAULTS);
   const owners = useAssigneeOptions('obligation_owner');
   const dialog = useDialog<DialogKind, ObligationRow>();
@@ -389,7 +387,7 @@ export function ObligationsPanel({
           rows={query.data?.items}
           rowKey={(row) => String(row.id)}
           rowLabel={(row) => row.title}
-          onRowClick={(row) => void navigate(contractPaths.obligation(contractId, row.id))}
+          rowHref={(row) => contractPaths.obligation(contractId, row.id)}
           loading={query.isFetching}
           error={query.error}
           onRetry={query.reload}

@@ -31,11 +31,7 @@ export function DeadlineList({
     return <EmptyState compact icon="calendar" title={empty ?? t('dashboard.deadlines.empty')} />;
   }
   return (
-    <ul
-      className="tiq-stack"
-      style={{ listStyle: 'none', margin: 0, padding: 0 }}
-      aria-label={label}
-    >
+    <ul className="tiq-stack" aria-label={label}>
       {items.map((item) => (
         <li key={item.id} className="tiq-stack" style={{ gap: 'var(--tiq-space-1)' }}>
           <span className="tiq-inline">

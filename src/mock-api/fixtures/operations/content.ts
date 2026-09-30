@@ -8,7 +8,7 @@
  */
 import type { AnnouncementsAudience, AnnouncementsStatus, HelpArticlesAudience, HelpArticlesStatus, HelpArticlesTopic } from '../../../contracts/enums.js';
 import { HELP_ARTICLES } from '../publication/catalog.js';
-import { OPS_USERS } from './customers.js';
+import { OPS_USERS } from './users.js';
 
 export interface FixtureAnnouncement {
   readonly id: number;

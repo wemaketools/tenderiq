@@ -193,7 +193,10 @@ export function buyerQuestionRow(question: QuestionFixture): BuyerQuestionRow {
     owner: personOrNull(question.ownerUserId),
     status: question.status,
     audience: question.audience,
-    responseDueAt: isClosedQuestion(question.status) ? null : question.responseDueAt,
+    responseDueAt:
+      isClosedQuestion(question.status) || question.responseDueAt === null
+        ? null
+        : { at: question.responseDueAt, timeZone: tender.officialTimeZone },
     publishedAt: question.publishedAt,
     addendumId: question.addendumId,
     addendumNumber: addendum?.number ?? null,

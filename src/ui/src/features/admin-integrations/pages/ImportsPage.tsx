@@ -179,7 +179,7 @@ export default function ImportsPage() {
           onRetry={batches.reload}
           sort={{ key: filters.sort, dir: filters.dir as 'asc' | 'desc' }}
           onSortChange={(next) => setFilters({ sort: next.key, dir: next.dir, page: 1 })}
-          onRowClick={(row) => navigate(servicePaths.importBatch(row.id))}
+          rowHref={(row) => servicePaths.importBatch(row.id)}
           rowLabel={(row) => t('admin-integrations.imports.rowLabel', { origin: row.origin })}
           empty={
             <EmptyState

@@ -4,7 +4,7 @@
  * (COM-09), and the slot for the page's ONE primary action. Counts cover all the user's memberships (DD-21).
  */
 import { useState } from 'react';
-import type { FormEvent } from 'react';
+import type { FormEvent, Ref } from 'react';
 import { useNavigate } from 'react-router';
 
 import { useAppSelector } from '../../app/hooks';
@@ -21,9 +21,24 @@ export interface TopbarProps {
   readonly onOpenMenu: () => void;
   readonly menuOpen: boolean;
   readonly sidebarId: string;
+  /** Receives the menu button, so the drawer can return focus to it. */
+  readonly menuButtonRef?: Ref<HTMLButtonElement>;
+  /**
+   * False below 768px: the top bar has no room for the primary action, so no slot is rendered and PageHeader shows
+   * the action in the page head instead (default true).
+   */
+  readonly showPrimaryAction?: boolean;
 }
 
-export function Topbar({ titleRef, actionRef, onOpenMenu, menuOpen, sidebarId }: TopbarProps) {
+export function Topbar({
+  titleRef,
+  actionRef,
+  onOpenMenu,
+  menuOpen,
+  sidebarId,
+  menuButtonRef,
+  showPrimaryAction = true,
+}: TopbarProps) {
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const unread = useAppSelector((state) => state.badges.me.notificationsUnread);
@@ -47,6 +62,7 @@ export function Topbar({ titleRef, actionRef, onOpenMenu, menuOpen, sidebarId }:
   return (
     <header className="tiq-topbar">
       <IconButton
+        ref={menuButtonRef}
         icon="menu"
         label={t('shell.topbar.openMenu')}
         className="tiq-topbar-menu-btn"
@@ -73,7 +89,7 @@ export function Topbar({ titleRef, actionRef, onOpenMenu, menuOpen, sidebarId }:
         <IconLink to="/me/tasks" icon="checkSquare" label={tasksLabel} count={openTasks} />
         <IconLink to="/me/notifications" icon="bell" label={notificationsLabel} count={unread} />
         <IconLink to="/me/help" icon="help" label={t('shell.topbar.help')} />
-        <div className="tiq-topbar-actions" ref={actionRef} />
+        {showPrimaryAction && <div className="tiq-topbar-actions" ref={actionRef} />}
       </div>
     </header>
   );

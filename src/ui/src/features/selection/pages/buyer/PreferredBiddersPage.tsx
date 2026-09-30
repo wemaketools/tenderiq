@@ -2,7 +2,6 @@
  * BUY-24 — Preferred bidders: every conditional preferred-bidder recommendation with scope, proposed value, decision
  * owner, approval, diligence state and fallback. Preferred status is conditional and never an award (BR-31).
  */
-import { useNavigate } from 'react-router';
 
 import { PREFERRED_BIDDERS_STATUS } from '@contracts/enums';
 import { selectionEndpoints } from '@contracts/selection';
@@ -53,7 +52,6 @@ const DEFAULTS = {
 };
 
 export default function PreferredBiddersPage() {
-  const navigate = useNavigate();
   const timeZone = useOfficialTimeZone();
   const canManage = usePermission(SELECTION_MANAGE);
   const [filters, setFilters, clearFilters] = useScreenFilters('BUY-24', DEFAULTS);
@@ -289,7 +287,7 @@ export default function PreferredBiddersPage() {
           rows={query.data?.items}
           rowKey={(row) => String(row.preferredBidderId)}
           rowLabel={(row) => `${row.tender.reference} ${row.bid.supplierName}`}
-          onRowClick={(row) => void navigate(selectionPaths.preferredBidder(row.preferredBidderId))}
+          rowHref={(row) => selectionPaths.preferredBidder(row.preferredBidderId)}
           loading={query.isFetching}
           error={query.error}
           onRetry={query.reload}

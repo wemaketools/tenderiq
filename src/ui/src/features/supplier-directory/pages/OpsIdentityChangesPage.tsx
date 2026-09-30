@@ -2,7 +2,6 @@
  * Operator — legal-identity change review queue (FR-02): legal name, registration, ownership, merger, succession,
  * representation transfer and administrator recovery requests from supplier organizations, with evidence.
  */
-import { useNavigate } from 'react-router';
 
 import {
   SUPPLIER_IDENTITY_CHANGES_CHANGE_TYPE,
@@ -56,7 +55,6 @@ const DEFAULTS = {
 };
 
 export default function OpsIdentityChangesPage() {
-  const navigate = useNavigate();
   const zone = useOfficialTimeZone();
   const [filters, setFilters, clearFilters] = useScreenFilters('OPS-01-identity', DEFAULTS);
   const query = useApiQuery(suppliersEndpoints.listOpsIdentityChanges, {
@@ -230,7 +228,7 @@ export default function OpsIdentityChangesPage() {
           rowLabel={(row) =>
             `${row.supplier.legalName}: ${tEnum('supplier_identity_changes.change_type', row.changeType)}`
           }
-          onRowClick={(row) => void navigate(directoryPaths.identityChange(row.id))}
+          rowHref={(row) => directoryPaths.identityChange(row.id)}
           loading={query.isFetching}
           error={query.error}
           onRetry={query.reload}

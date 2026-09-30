@@ -106,6 +106,7 @@ function ResponseForm({
         open={confirming}
         title={t('opening.respond.confirmTitle')}
         scope={t('opening.respond.scope', {
+          request: request.reference,
           reference: request.tenderReference,
           buyer: request.buyer.name,
         })}
@@ -162,7 +163,7 @@ function RequestView({ requestId }: { readonly requestId: number }) {
             <PageHeader
               title={t('opening.supplier.detailTitle', {
                 type: tEnum('bid_clarifications.source', request.source),
-                reference: request.tenderReference,
+                reference: request.reference,
               })}
               subtitle={request.tenderTitle}
               back={back}

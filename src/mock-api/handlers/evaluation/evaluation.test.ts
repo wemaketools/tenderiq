@@ -85,7 +85,8 @@ describe('buyer.evaluation.list', () => {
     const page = listEvaluations.response.parse(response.body);
     expect(page.items.map((row) => row.myNextAction)).toEqual([
       'follow_up_assessments',
-      'validate_ranking',
+      // T-2026-0003: ranking computed, but a missing score, a conflict review and the comparison still block it.
+      'resolve_blockers',
       'collect_signoffs',
       'hand_off_report',
       'validate_ranking',
@@ -115,6 +116,68 @@ describe('buyer.evaluation.list', () => {
     const page = listEvaluations.response.parse(response.body);
     expect(page.items.map((row) => row.tender.reference)).toEqual(['T-2026-0003']);
     expect(page.total).toBe(1);
+  });
+
+  it('withholds committee scores, moderation outcomes and the gate note from an evaluator who has not submitted (PRD §4.3)', async () => {
+    // Act
+    const response = await api.callAs(email('amantle.eval'), getEvaluation, { tenant: 'kwu', params: { tenderId: 3 } });
+
+    // Assert
+    expect(response.status).toBe(200);
+    const view = getEvaluation.response.parse(response.body);
+    expect(view.detailLevel).toBe('own_assessment_pending');
+    const text = JSON.stringify(view);
+    expect(text).not.toContain('88.00');
+    expect(text).not.toContain('One score changed');
+    expect(text).not.toContain('Bid preparation for Tsodilo Engineering');
+    expect(view.priceGate.note).toBeNull();
+    expect(view.timeline.find((event) => event.title === 'Results computed (draft)')?.detail).toBeNull();
+    expect(view.bids.length).toBeGreaterThan(0);
+  });
+
+  it('withholds bids, scores and other declarations from an evaluator whose conflict awaits review (DD-25)', async () => {
+    // Act
+    const response = await api.callAs(email('sam.dual'), getEvaluation, { tenant: 'kwu', params: { tenderId: 3 } });
+
+    // Assert
+    expect(response.status).toBe(200);
+    const view = getEvaluation.response.parse(response.body);
+    expect(view.detailLevel).toBe('conflict_pending_review');
+    expect(view.bids).toEqual([]);
+    const text = JSON.stringify(view);
+    expect(text).not.toContain('88.00');
+    expect(text).not.toContain('Makgadikgadi');
+    expect(text).not.toContain('non_compliant');
+    expect(view.priceGate.note).toBeNull();
+    // The declarant still sees their own declaration.
+    expect(view.timeline.find((event) => event.title === 'Conflict declared')?.detail).toContain('Tsodilo');
+  });
+
+  it('keeps full committee detail for the chair and for an evaluator who has submitted', async () => {
+    // Act
+    const chair = await api.callAs(email('boitumelo.chair'), getEvaluation, { tenant: 'kwu', params: { tenderId: 3 } });
+    const thato = await api.callAs(email('thato.eval'), getEvaluation, { tenant: 'kwu', params: { tenderId: 3 } });
+
+    // Assert
+    const chairView = getEvaluation.response.parse(chair.body);
+    const thatoView = getEvaluation.response.parse(thato.body);
+    expect(chairView.detailLevel).toBe('full');
+    expect(chairView.myNextAction).toBe('resolve_blockers');
+    // The gate note records the outstanding score rather than implying every assessment is complete (AC-16, AC-18).
+    expect(chairView.priceGate.note).toContain('Confirmed complete except A. Segwai’s C3 Relevant experience score');
+    expect(chairView.timeline.find((event) => event.title === 'Results computed (draft)')?.detail).toContain('88.00');
+    expect(chairView.timeline.find((event) => event.title === 'Conflict declared')?.detail).toContain('Tsodilo');
+    expect(thatoView.detailLevel).toBe('full');
+    expect(thatoView.priceGate.note).not.toBeNull();
+    // A conflict's nature is for the chair and the declarant only.
+    expect(thatoView.timeline.find((event) => event.title === 'Conflict declared')?.detail).toBeNull();
+  });
+
+  it('withholds the gate note from the list row of an evaluator who has not submitted', async () => {
+    const response = await api.callAs(email('amantle.eval'), listEvaluations, { tenant: 'kwu' });
+
+    const page = listEvaluations.response.parse(response.body);
+    expect(page.items.every((row) => row.priceGate.note === null)).toBe(true);
   });
 
   it('asks for a lot on T-2026-0014, which is evaluated per lot', async () => {
@@ -567,6 +630,14 @@ describe('buyer.evaluation.moderation (EVA-05)', () => {
     expect(divergent).toHaveLength(1);
     expect(divergent[0]?.individual.map((row) => row.score)).toContain('3');
     expect(divergent[0]?.current?.finalScore).toBe('4');
+  });
+
+  it('returns every score spread at one decimal place, whatever scale the ratings carry', async () => {
+    const response = await api.callAs(email('boitumelo.chair'), getModeration, { tenant: 'kwu', params: { tenderId: 3 } });
+
+    const spreads = getModeration.response.parse(response.body).cells.flatMap((cell) => (cell.spread === null ? [] : [cell.spread]));
+    expect(spreads.length).toBeGreaterThan(0);
+    expect(spreads.every((spread) => /^\d+\.\d$/.test(spread))).toBe(true);
   });
 
   it('shows only submitted individual scores: a draft is marked not submitted and its content withheld', async () => {

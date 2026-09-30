@@ -103,6 +103,46 @@ describe('SupplierOutcomePage (SUP-21)', () => {
     expect(screen.getByText(/Acknowledged .* by Mothusi Limpopo/)).toBeInTheDocument();
   });
 
+  it('offers term acceptance only to the authorized signatory, never to a finance member', async () => {
+    const base = supplierOutcome();
+    const notice = base.notices[0];
+    if (notice === undefined) throw new Error('test data');
+    const withTerms = supplierOutcome({
+      notices: [
+        {
+          ...notice,
+          hasTerms: true,
+          acknowledgedAt: '2026-09-22T09:00:00Z',
+          acknowledgedBy: { userId: 41, fullName: 'Mothusi Limpopo' },
+        },
+      ],
+    });
+    installFetch({ [GET]: () => ({ body: withTerms }) });
+    const finance = renderSupplier(<SupplierOutcomePage />, {
+      ...OPTIONS,
+      permissions: ['supplier.outcomes.view', 'supplier.contract.participate'],
+    });
+    expect(await screen.findByText('Intention to award — not a final award')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Accept terms' })).not.toBeInTheDocument();
+    finance.unmount();
+
+    renderSupplier(<SupplierOutcomePage />, {
+      ...OPTIONS,
+      permissions: ['supplier.outcomes.view', 'supplier.response.submit'],
+    });
+    expect(await screen.findByRole('button', { name: 'Accept terms' })).toBeInTheDocument();
+  });
+
+  it('lays the outcome register sections out in a spaced page', async () => {
+    installFetch({ 'GET /api/v1/supplier/outcomes': () => ({ body: supplierOutcomePage() }) });
+    renderSupplier(<SupplierOutcomesPage />, {
+      route: '/supplier/outcomes',
+      path: '/supplier/outcomes',
+    });
+    const heading = await screen.findByRole('heading', { level: 1 });
+    expect(heading.closest('.tiq-page')).not.toBeNull();
+  });
+
   it('requests a debrief and then shows only the supplier’s own result (AC-27)', async () => {
     const provided = debrief({ status: 'provided', writtenResponse: 'Your offer ranked third.' });
     installFetch({

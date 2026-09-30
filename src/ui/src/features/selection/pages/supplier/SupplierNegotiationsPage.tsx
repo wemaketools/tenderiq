@@ -3,7 +3,6 @@
  * topics, rounds and whether a response is awaited, and the final-offer rounds it is invited to with their official
  * deadlines. Other suppliers' negotiation records are never shown.
  */
-import { useNavigate } from 'react-router';
 
 import { FINAL_OFFER_ROUNDS_STATUS, NEGOTIATIONS_STATUS } from '@contracts/enums';
 import { selectionEndpoints } from '@contracts/selection';
@@ -45,7 +44,6 @@ const DEFAULTS = {
 };
 
 export default function SupplierNegotiationsPage() {
-  const navigate = useNavigate();
   const [filters, setFilters, clearFilters] = useScreenFilters('SUP-19', DEFAULTS);
   const query = useApiQuery(selectionEndpoints.listSupplierNegotiations, {
     query: compact({
@@ -269,7 +267,7 @@ export default function SupplierNegotiationsPage() {
           rows={query.data?.items}
           rowKey={(row) => String(row.negotiationId)}
           rowLabel={(row) => `${row.tender.reference} ${row.buyer.name}`}
-          onRowClick={(row) => void navigate(selectionPaths.supplierNegotiation(row.negotiationId))}
+          rowHref={(row) => selectionPaths.supplierNegotiation(row.negotiationId)}
           loading={query.isFetching}
           error={query.error}
           onRetry={query.reload}
@@ -310,7 +308,7 @@ export default function SupplierNegotiationsPage() {
           rows={rounds.data?.items}
           rowKey={(row) => String(row.roundId)}
           rowLabel={(row) => `${row.tender.reference} ${t('selection.finalOffers.round')}`}
-          onRowClick={(row) => void navigate(selectionPaths.supplierFinalOffer(row.roundId))}
+          rowHref={(row) => selectionPaths.supplierFinalOffer(row.roundId)}
           loading={rounds.isFetching}
           error={rounds.error}
           onRetry={rounds.reload}

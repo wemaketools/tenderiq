@@ -3,7 +3,6 @@
  * disposition, eligibility check and status. A request whose records are under an active hold is BLOCKED, even when
  * the ordinary retention period has ended; approvers act on each request from its page.
  */
-import { useNavigate } from 'react-router';
 
 import { DISPOSAL_REQUESTS_STATUS, RETENTION_CLASSES_RECORD_CLASS } from '@contracts/enums';
 import { DISPOSAL_SORT_FIELDS, recordsEndpoints } from '@contracts/records';
@@ -40,7 +39,6 @@ const DEFAULTS = {
 };
 
 export default function DisposalsPage() {
-  const navigate = useNavigate();
   const tenant = useActiveTenant();
   const timeZone = tenant?.officialTimeZone ?? 'UTC';
   const [filters, setFilters, clearFilters] = useScreenFilters('ADM-14:disposals', DEFAULTS);
@@ -169,7 +167,7 @@ export default function DisposalsPage() {
           rows={data?.items}
           rowKey={(row) => String(row.id)}
           rowLabel={(row) => t('records.disposals.openNamed', { scope: row.scopeLabel })}
-          onRowClick={(row) => void navigate(recordsPaths.disposal(row.id))}
+          rowHref={(row) => recordsPaths.disposal(row.id)}
           loading={query.isFetching}
           error={query.error}
           onRetry={query.reload}

@@ -14,7 +14,7 @@ import type { IntegrationConnectionsStatus, IntegrationConnectionsSystemType, In
 import type { IntegrationRecordType } from '../../../contracts/operations.js';
 import { TENANT_IDS } from '../platform.js';
 import { EXTERNAL_CHANNEL_NAME, INTEGRATION_EXCEPTIONS as PUBLICATION_EXCEPTIONS } from '../publication.js';
-import { OPS_USERS } from './customers.js';
+import { OPS_USERS } from './users.js';
 
 export interface FixtureIntegrationContact {
   readonly role: string;

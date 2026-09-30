@@ -48,6 +48,7 @@ import { formatDateTime } from '../../../lib/format';
 import { t, tEnum } from '../../../lib/i18n';
 import { PackagePreviewCard } from '../components/PackagePreview';
 import { GateBanner } from '../components/ReadinessCard';
+import { approvalCoverageText } from '../lib/lifecycle';
 import { CheckDialog, CorrectionDialog } from '../components/ReleaseDialogs';
 import { TenderHeader, TenderWorkspace } from '../components/TenderWorkspace';
 import type { TenderWorkspaceContext } from '../components/TenderWorkspace';
@@ -283,7 +284,7 @@ function Release({ context }: { readonly context: TenderWorkspaceContext }) {
     const history = data.approvalHistory;
     return (
       <>
-        <GateBanner gate={currentGate} approval={approval} />
+        <GateBanner gate={currentGate} approval={approval} tender={tender} />
         <KpiGrid>
           <KpiCard
             label={t('tender-authoring.release.kpi.checks')}
@@ -427,16 +428,7 @@ function Release({ context }: { readonly context: TenderWorkspaceContext }) {
                       ) : (
                         <span className="tiq-inline">
                           <StatusChip enum="approval_requests.status" value={approval.status} />
-                          <span>
-                            {approval.coversCurrentRevision
-                              ? t('tender-authoring.release.approval.coversCurrent', {
-                                  revision: approval.subjectVersion,
-                                })
-                              : t('tender-authoring.release.approval.coversOld', {
-                                  revision: approval.subjectVersion,
-                                  current: tender.draftRevision,
-                                })}
-                          </span>
+                          <span>{approvalCoverageText(approval, tender)}</span>
                         </span>
                       ),
                   },

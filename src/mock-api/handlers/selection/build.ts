@@ -1216,7 +1216,8 @@ export function supplierFinalOfferView(round: FixtureFinalOfferRound, supplierTe
     evaluationTreatment: round.evaluationTreatment,
     notifiedAt: invitee?.notifiedAt ?? null,
     finalOfferReceivedAt: invitee?.finalOfferReceivedAt ?? null,
-    responseWorkspaceLink: `/supplier/responses/${round.tenderId}?round=bafo&finalOfferRoundId=${round.roundId}`,
+    responseWorkspaceLink:
+      invitee === undefined || invitee.responseBidId === null ? '/supplier/responses' : `/supplier/responses/${invitee.responseBidId}`,
   };
 }
 

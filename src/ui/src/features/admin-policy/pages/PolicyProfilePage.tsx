@@ -258,7 +258,7 @@ function ProfileView({ profile, onUpdated }: ProfileViewProps) {
           rows={profile.versions}
           rowKey={(row) => String(row.id)}
           rowLabel={(row) => t('admin-policy.common.versionNo', { no: row.versionNo })}
-          onRowClick={(row) => void navigate(policyPaths.version(profile.id, row.id))}
+          rowHref={(row) => policyPaths.version(profile.id, row.id)}
           empty={<EmptyState compact title={t('admin-policy.profile.noVersions')} />}
         />
       </Card>

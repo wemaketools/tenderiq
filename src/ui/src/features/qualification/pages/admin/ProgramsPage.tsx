@@ -3,7 +3,6 @@
  * scope, current and draft criteria versions, validity, owner, open applications and qualified suppliers. Program
  * managers establish new programs; everyone who applies the criteria can read them.
  */
-import { useNavigate } from 'react-router';
 
 import { PROGRAM_SORT_FIELDS, qualificationEndpoints as api } from '@contracts/qualification';
 import type { ProgramRow } from '@contracts/qualification';
@@ -50,7 +49,6 @@ const DEFAULTS = {
 };
 
 export default function ProgramsPage() {
-  const navigate = useNavigate();
   const timeZone = useOfficialTimeZone();
   const canManage = usePermission('qualification.program.manage');
   const [filters, setFilters, clearFilters] = useScreenFilters('ADM-09', DEFAULTS);
@@ -284,7 +282,7 @@ export default function ProgramsPage() {
           rows={query.data?.items}
           rowKey={(row) => String(row.id)}
           rowLabel={(row) => row.name}
-          onRowClick={(row) => void navigate(buyerQualificationPaths.program(row.id))}
+          rowHref={(row) => buyerQualificationPaths.program(row.id)}
           loading={query.isFetching}
           error={query.error}
           onRetry={query.reload}

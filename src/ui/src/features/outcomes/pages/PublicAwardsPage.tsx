@@ -3,7 +3,6 @@
  * supplier names, disclosed values and publication date. Only approved public notices appear; unpublished contract
  * schedules and losing bids are never exposed (BR-34).
  */
-import { useNavigate } from 'react-router';
 
 import { PUBLIC_AWARD_SORT_FIELDS, listPublicAwards } from '@contracts/awards';
 import type { PublicAwardRow } from '@contracts/awards';
@@ -44,7 +43,6 @@ const DEFAULTS = {
 };
 
 export default function PublicAwardsPage() {
-  const navigate = useNavigate();
   const zone = browserTimeZone();
   const [filters, setFilters, clearFilters] = useScreenFilters('PUB-05', DEFAULTS);
 
@@ -186,9 +184,7 @@ export default function PublicAwardsPage() {
           rows={query.data?.items}
           rowKey={(row) => `${row.buyer.slug}-${row.reference}`}
           rowLabel={(row) => `${row.reference} ${row.title}`}
-          onRowClick={(row) =>
-            void navigate(outcomePaths.publicAward(row.buyer.slug, row.reference))
-          }
+          rowHref={(row) => outcomePaths.publicAward(row.buyer.slug, row.reference)}
           loading={query.isFetching}
           error={query.error}
           onRetry={query.reload}

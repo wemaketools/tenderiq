@@ -314,8 +314,9 @@ const evaluation: FixtureEvaluation = {
     releasedByUserId: USERS.boitumelo,
     nonPriceCompleteConfirmed: true,
     note:
-      'Non-price moderation finalized on 23 September 2026; one technical score changed by consensus. A. Segwai’s ' +
-      'outstanding individual score is recorded as not scored and tracked for completion before sign-off.',
+      'Released on the non-price moderation finalized on 23 September 2026 (one technical score changed by consensus). ' +
+      'Confirmed complete except A. Segwai’s C3 Relevant experience score for Supplier A, which awaits a clarification: ' +
+      'recorded as not scored, never as zero, and tracked for completion before sign-off.',
   },
   divergenceThreshold: '1',
   moderation: {
@@ -570,12 +571,12 @@ const evaluation: FixtureEvaluation = {
     { at: '2026-08-28T08:00:00Z', title: 'Submission deadline passed', actorUserId: null, detail: '3 effective submissions received.' },
     { at: '2026-09-10T07:02:18Z', title: 'Technical envelopes opened', actorUserId: null, detail: 'Opening session with quorum.' },
     { at: '2026-09-10T09:30:00Z', title: 'Evaluators assigned', actorUserId: USERS.boitumelo, detail: 'Four technical evaluators; one commercial reviewer after the price gate.' },
-    { at: '2026-09-11T11:20:00Z', title: 'Conflict declared', actorUserId: USERS.sam, detail: 'Bid preparation for Tsodilo Engineering; awaiting the chair’s review.' },
+    { at: '2026-09-11T11:20:00Z', title: 'Conflict declared', actorUserId: USERS.sam, detail: 'Bid preparation for Tsodilo Engineering; awaiting the chair’s review.', sensitivity: 'conflict_detail', subjectUserId: USERS.sam },
     { at: '2026-09-18T09:05:00Z', title: 'Two technical assessments submitted', actorUserId: null, detail: null },
-    { at: '2026-09-23T15:00:00Z', title: 'Moderation finalized (consensus)', actorUserId: USERS.boitumelo, detail: 'One score changed with recorded reasons.' },
+    { at: '2026-09-23T15:00:00Z', title: 'Moderation finalized (consensus)', actorUserId: USERS.boitumelo, detail: 'One score changed with recorded reasons.', sensitivity: 'committee_results' },
     { at: '2026-09-24T12:00:00Z', title: 'Price gate released', actorUserId: USERS.boitumelo, detail: 'Commercial envelopes of eligible bids may be opened.' },
     { at: '2026-09-25T07:07:02Z', title: 'Commercial envelopes opened', actorUserId: null, detail: 'Supplier C’s envelope stays sealed.' },
-    { at: '2026-09-29T08:00:00Z', title: 'Results computed (draft)', actorUserId: USERS.boitumelo, detail: 'Supplier B 88.00, Supplier A 86.00.' },
+    { at: '2026-09-29T08:00:00Z', title: 'Results computed (draft)', actorUserId: USERS.boitumelo, detail: 'Supplier B 88.00, Supplier A 86.00.', sensitivity: 'committee_results' },
   ],
 };
 

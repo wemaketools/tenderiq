@@ -3,19 +3,21 @@
  * - uppercase headers; sortable headers are buttons with a fixed arrow slot and `aria-sort`;
  * - optional selection column (select all on the page, per-row checkboxes, a bulk-action toolbar);
  * - numeric columns right-aligned with tabular numerals; references use `Reference` (monospace accent);
- * - rows can open a record on click or Enter/Space when `onRowClick` is given (interactive cells keep their own
- *   behaviour);
+ * - rows that open a record (`rowHref` or `onRowClick`) end with an "open" cell holding a real link (`rowHref`) or
+ *   button (`onRowClick`) named by `rowLabel`, so keyboard and screen reader users get link/button semantics; a click
+ *   anywhere else on the row is a mouse convenience (interactive cells keep their own behaviour);
  * - loading skeleton rows, an error state with retry, the restricted state (never a zero, BR-43), and an empty state;
  * - the table scrolls horizontally inside its card (DD-36); pagination below.
  *
  * Sorting and paging are server-side: the table reports the requested sort/page and renders what it is given.
  */
-import type { KeyboardEvent, MouseEvent, ReactNode } from 'react';
+import type { MouseEvent, ReactNode } from 'react';
 
 import type { SortDirection } from '@contracts/common';
 
 import type { ApiError } from '../../api/client';
 import { t } from '../../lib/i18n';
+import { IconButton, IconLink } from './Button';
 import { EmptyState, ErrorState, RestrictedState } from './EmptyState';
 import { Pagination } from './Pagination';
 import type { PaginationProps } from './Pagination';
@@ -56,8 +58,14 @@ export interface DataTableProps<T> {
   readonly sort?: DataTableSort | null;
   readonly onSortChange?: (sort: DataTableSort) => void;
   readonly selection?: DataTableSelection;
+  /** Opens a row in place (for example a side panel); rendered as an "open" button per row. */
   readonly onRowClick?: (row: T) => void;
-  /** Accessible label of a row for selection and row actions. */
+  /** The record a row opens; rendered as an "open" link per row (preferred for navigation). */
+  readonly rowHref?: (row: T) => string;
+  /**
+   * Accessible label of a row for selection and row actions (the name of the row's open link or button). Phrase it
+   * as the record ("T-2026-0003 SCADA telemetry upgrade") or as the action ("Open T-2026-0003").
+   */
   readonly rowLabel?: (row: T) => string;
   readonly loading?: boolean;
   readonly error?: ApiError | null;
@@ -101,6 +109,7 @@ export function DataTable<T>({
   onSortChange,
   selection,
   onRowClick,
+  rowHref,
   rowLabel,
   loading = false,
   error = null,
@@ -110,7 +119,8 @@ export function DataTable<T>({
   pagination,
   skeletonRows = 5,
 }: DataTableProps<T>) {
-  const columnCount = columns.length + (selection === undefined ? 0 : 1);
+  const opens = onRowClick !== undefined || rowHref !== undefined;
+  const columnCount = columns.length + (selection === undefined ? 0 : 1) + (opens ? 1 : 0);
   const visibleRows = rows ?? [];
   const pageKeys = visibleRows.map(rowKey);
   const allSelected =
@@ -222,6 +232,11 @@ export function DataTable<T>({
                   </th>
                 );
               })}
+              {opens && (
+                <th scope="col" className="tiq-table-open">
+                  <span className="tiq-visually-hidden">{t('ui.table.openColumn')}</span>
+                </th>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -237,39 +252,32 @@ export function DataTable<T>({
                 </tr>
               ))}
             {showBody &&
-              visibleRows.map((row) => {
+              visibleRows.map((row, index) => {
                 const key = rowKey(row);
                 const selected = selection?.selected.has(key) === true;
-                const clickable = onRowClick !== undefined;
-                const onClick = clickable
+                const label = rowLabel?.(row);
+                const openLabel = label ?? t('ui.table.openRowNumber', { number: index + 1 });
+                const href = rowHref?.(row);
+                const onClick = opens
                   ? (event: MouseEvent<HTMLTableRowElement>) => {
-                      if (!isInteractiveTarget(event.target, event.currentTarget)) onRowClick(row);
-                    }
-                  : undefined;
-                const onKeyDown = clickable
-                  ? (event: KeyboardEvent<HTMLTableRowElement>) => {
-                      if (event.target !== event.currentTarget) return;
-                      if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault();
-                        onRowClick(row);
-                      }
+                      if (isInteractiveTarget(event.target, event.currentTarget)) return;
+                      if (onRowClick !== undefined) onRowClick(row);
+                      else event.currentTarget.querySelector<HTMLElement>('.tiq-row-open')?.click();
                     }
                   : undefined;
                 return (
                   <tr
                     key={key}
-                    className={clickable ? 'tiq-row-clickable' : undefined}
+                    className={opens ? 'tiq-row-clickable' : undefined}
                     aria-selected={selection === undefined ? undefined : selected}
-                    tabIndex={clickable ? 0 : undefined}
-                    aria-label={clickable && rowLabel !== undefined ? rowLabel(row) : undefined}
+                    aria-label={opens ? label : undefined}
                     onClick={onClick}
-                    onKeyDown={onKeyDown}
                   >
                     {selection !== undefined && (
                       <td className="tiq-table-select">
                         <input
                           type="checkbox"
-                          aria-label={t('ui.table.selectRow', { row: rowLabel?.(row) ?? key })}
+                          aria-label={t('ui.table.selectRow', { row: label ?? key })}
                           checked={selected}
                           onChange={(event) => toggleRow(key, event.target.checked)}
                         />
@@ -283,6 +291,27 @@ export function DataTable<T>({
                         {column.cell(row)}
                       </td>
                     ))}
+                    {opens && (
+                      <td className="tiq-table-open">
+                        {href !== undefined ? (
+                          <IconLink
+                            to={href}
+                            icon="chevronRight"
+                            label={openLabel}
+                            className="tiq-icon-btn--ghost tiq-icon-btn--sm tiq-row-open"
+                          />
+                        ) : (
+                          <IconButton
+                            icon="chevronRight"
+                            label={openLabel}
+                            variant="ghost"
+                            size="sm"
+                            className="tiq-row-open"
+                            onClick={() => onRowClick?.(row)}
+                          />
+                        )}
+                      </td>
+                    )}
                   </tr>
                 );
               })}

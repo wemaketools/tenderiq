@@ -1,11 +1,14 @@
 /**
  * A tender picker over the selection register (`buyer.selection.tenders`). As a filter it offers "All tenders"; in a
- * form it is required. When the register cannot be read (for example an evaluator without selection access), the
- * filter is omitted instead of failing the page.
+ * form it is required. Whether the register can be read is decided from the active membership's permissions: a
+ * caller without selection access (for example an evaluator or the evaluation chair) gets no picker and the register
+ * is never requested, so no 403 is provoked. A forbidden answer (permissions changed server side) still hides it.
  */
+import { usePermission } from '../../../auth/permissions';
 import { Select } from '../../../components/ui';
 import { t } from '../../../lib/i18n';
 import { useSelectionTenders } from '../lib/hooks';
+import { SELECTION_READ } from '../lib/permissions';
 
 export interface TenderSelectProps {
   readonly value: string;
@@ -15,7 +18,13 @@ export interface TenderSelectProps {
   readonly fieldClassName?: string;
 }
 
-export function TenderSelect({ value, onChange, mode, error, fieldClassName }: TenderSelectProps) {
+export function TenderSelect(props: TenderSelectProps) {
+  const canRead = usePermission(SELECTION_READ);
+  if (!canRead) return null;
+  return <TenderSelectField {...props} />;
+}
+
+function TenderSelectField({ value, onChange, mode, error, fieldClassName }: TenderSelectProps) {
   const tenders = useSelectionTenders();
   if (tenders.error?.kind === 'forbidden') return null;
   const options = (tenders.data?.items ?? []).map((row) => ({

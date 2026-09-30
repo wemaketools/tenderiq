@@ -45,6 +45,57 @@ describe('TenderOverviewPage (BUY-08)', () => {
     expect(screen.getByText('0 blocking')).toBeInTheDocument();
   });
 
+  it('reports a released tender as released with its issued version, not as a publishable draft', async () => {
+    const releasedGate = {
+      canRequestReleaseApproval: false,
+      publicationBlocked: false,
+      blockedReasons: [],
+    };
+    const released = {
+      ...tender5,
+      status: 'open',
+      releasedAt: '2026-09-14T07:00:00Z',
+      currentVersionNo: 2,
+      releaseApproval: {
+        ...tender5.releaseApproval,
+        status: 'approved',
+        invalidatedAt: null,
+        invalidationReason: null,
+      },
+      gate: releasedGate,
+      editability: {
+        editable: false,
+        editInvalidatesApproval: false,
+        lockedReason: 'released_use_addendum',
+      },
+    };
+    installFetch({
+      ...routes(),
+      [`GET ${API}/5`]: () => ({ body: released }),
+      [`GET ${API}/5/readiness`]: () => ({ body: { ...readiness5, gate: releasedGate } }),
+    });
+
+    renderPage(<TenderOverviewPage />, { route: '/buyer/tenders/5', path: PATH });
+
+    const meta = await screen.findByTestId('tender-meta');
+    expect(within(meta).getByText('Issued version 2')).toBeInTheDocument();
+    expect(within(meta).queryByText('Draft revision 3')).not.toBeInTheDocument();
+    expect(await screen.findByText('Released')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Released on 14 Sep 2026, 09:00 (UTC+02:00) Africa/Gaborone. Issued version 2 is live; changes now go through an addendum (BR-16).',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Ready for publication')).not.toBeInTheDocument();
+    expect(screen.queryByText('Saved, not submitted')).not.toBeInTheDocument();
+    expect(screen.getByText('Package revision')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Covered revision 2, the package approved for release; later changes are issued by addendum',
+      ),
+    ).toBeInTheDocument();
+  });
+
   it('removes a team member only with a reason through the confirmation dialog', async () => {
     const member = team5.members.find((row) => row.teamRole !== 'owner');
     expect(member).toBeDefined();

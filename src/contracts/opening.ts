@@ -846,6 +846,8 @@ export const AssessmentRequestParams = z.object({ requestId: IdParam });
 /** A supplier's own issued clarification. Never shows internal assessors, consolidation or the recorded effect. */
 export const AssessmentRequestRow = z.object({
   id: Id,
+  /** The request's own reference (`CL-<id>`), distinct from the tender reference: two requests on one tender differ here. */
+  reference: Reference,
   buyer: z.object({ tenantId: Id, name: z.string().min(1) }),
   tenderId: Id,
   tenderReference: Reference,

@@ -49,7 +49,7 @@ describe('bids fixtures parse against the contract', () => {
       expect(() => BidDeclarations.parse(declarationsPackOf(bid, tender, revision, false))).not.toThrow();
       expect(() => BidReadiness.parse(readinessOf(bid, tender, revision, SIGNATORY, NOW))).not.toThrow();
       expect(() =>
-        InternalReview.parse(internalReviewOf(bid, tender, revision, new Map(revisionsOf(bid.id).map((row) => [row.id, row])), SIGNATORY, NOW)),
+        InternalReview.parse(internalReviewOf(bid, tender, revision, new Map(revisionsOf(bid).map((row) => [row.id, row])), SIGNATORY, NOW)),
       ).not.toThrow();
       expect(() => SubmissionPreview.parse(submissionPreviewOf(bid, tender, 27, 'Managing Director', SIGNATORY, NOW))).not.toThrow();
     }

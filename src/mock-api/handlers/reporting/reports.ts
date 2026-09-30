@@ -147,15 +147,30 @@ function toRow(definition: FixtureReportDefinition): ReportDefinitionRow {
   };
 }
 
-function exportSummary(exportId: number | null): ReportRun['export'] {
+/** The run's export as the caller may see it: always named, linkable only when the caller may open it. */
+function exportSummary(exportId: number | null, viewer: ExportViewer): ReportRun['export'] {
   if (exportId === null) {
     return null;
   }
   const record = EXPORTS.find((row) => row.id === exportId);
-  return record === undefined ? null : { id: record.id, format: record.format, status: record.status, fileName: record.fileName };
+  return record === undefined
+    ? null
+    : {
+        id: record.id,
+        format: record.format,
+        status: record.status,
+        fileName: record.fileName,
+        accessible: exportVisible(record, viewer.userId, viewer.permissions),
+      };
 }
 
-function toDetail(definition: FixtureReportDefinition, now: Date): ReportDefinition {
+/** Who reads a definition: the export links of its run history depend on it. */
+interface ExportViewer {
+  readonly userId: number;
+  readonly permissions: readonly PermissionCode[];
+}
+
+function toDetail(definition: FixtureReportDefinition, now: Date, viewer: ExportViewer): ReportDefinition {
   return {
     ...toRow(definition),
     fields: [...definition.fields],
@@ -170,7 +185,7 @@ function toDetail(definition: FixtureReportDefinition, now: Date): ReportDefinit
         runBy: run.runBy === null ? null : personRef(run.runBy),
         runAt: run.runAt,
         rowCount: run.rowCount,
-        export: exportSummary(run.exportId),
+        export: exportSummary(run.exportId, viewer),
         recipients: run.recipientUserIds.map((userId) => personRef(userId)),
         excludedRecipients: run.excluded.map((item) => ({ user: personRef(item.userId), reason: item.reason })),
       })),
@@ -378,17 +393,18 @@ export function registerReports(app: MockApp): void {
     return fixtures.page(sortRows(rows, query.sort === undefined ? keys.name : keys[query.sort], query.dir));
   });
 
-  mockRoute(app, getReportDefinition, ({ requireTenant, params, now, notFound }) => {
+  mockRoute(app, getReportDefinition, ({ requireTenant, requirePersona, params, now, notFound }) => {
     const { tenant, permissions } = requireTenant();
+    const viewer = { userId: requirePersona().userId, permissions };
     const definition = REPORT_DEFINITIONS.find((row) => row.id === params.definitionId && row.tenantId === tenant.id);
     if (definition === undefined || !definitionVisible(definition, permissions)) {
       return notFound('No such report definition.');
     }
-    return toDetail(definition, now);
+    return toDetail(definition, now, viewer);
   });
 
   mockRoute(app, createReportDefinition, ({ requireTenant, requirePersona, body, now, fail }) => {
-    const { tenant } = requireTenant();
+    const { tenant, permissions } = requireTenant();
     const persona = requirePersona();
     validateDefinition(body, tenant.defaultCurrency ?? 'BWP', fail);
     if (REPORT_DEFINITIONS.some((row) => row.tenantId === tenant.id && row.name.toLowerCase() === body.name.toLowerCase())) {
@@ -401,11 +417,12 @@ export function registerReports(app: MockApp): void {
       fail(422, 'RECIPIENT_NOT_AUTHORIZED', `Not authorized for ${body.audiencePermission}: ${unauthorized.map((item) => item.user.fullName).join(', ')}.`);
     }
     const at = now.toISOString().replace(/\.\d{3}Z$/, 'Z');
-    return toDetail(definitionFromBody(900, tenant.id, persona.userId, body, at, at, true), now);
+    return toDetail(definitionFromBody(900, tenant.id, persona.userId, body, at, at, true), now, { userId: persona.userId, permissions });
   });
 
-  mockRoute(app, updateReportDefinition, ({ requireTenant, params, body, now, fail, notFound }) => {
+  mockRoute(app, updateReportDefinition, ({ requireTenant, requirePersona, params, body, now, fail, notFound }) => {
     const { tenant, permissions } = requireTenant();
+    const viewer = { userId: requirePersona().userId, permissions };
     const existing = REPORT_DEFINITIONS.find((row) => row.id === params.definitionId && row.tenantId === tenant.id);
     if (existing === undefined || !definitionVisible(existing, permissions)) {
       return notFound('No such report definition.');
@@ -424,7 +441,7 @@ export function registerReports(app: MockApp): void {
       fail(422, 'RECIPIENT_NOT_AUTHORIZED', `Not authorized for ${body.audiencePermission}: ${unauthorized.map((item) => item.user.fullName).join(', ')}.`);
     }
     const at = now.toISOString().replace(/\.\d{3}Z$/, 'Z');
-    return toDetail(definitionFromBody(existing.id, tenant.id, existing.ownerUserId, body, existing.createdAt, at, true), now);
+    return toDetail(definitionFromBody(existing.id, tenant.id, existing.ownerUserId, body, existing.createdAt, at, true), now, viewer);
   });
 
   mockRoute(app, previewReportDefinition, ({ requireTenant, body, now, fail }) => {
@@ -471,8 +488,9 @@ export function registerReports(app: MockApp): void {
     };
   });
 
-  mockRoute(app, setReportDefinitionActive, ({ requireTenant, params, body, now, fail, notFound }) => {
-    const { tenant } = requireTenant();
+  mockRoute(app, setReportDefinitionActive, ({ requireTenant, requirePersona, params, body, now, fail, notFound }) => {
+    const { tenant, permissions } = requireTenant();
+    const viewer = { userId: requirePersona().userId, permissions };
     const existing = REPORT_DEFINITIONS.find((row) => row.id === params.definitionId && row.tenantId === tenant.id);
     if (existing === undefined) {
       return notFound('No such report definition.');
@@ -480,7 +498,7 @@ export function registerReports(app: MockApp): void {
     if (existing.active === body.active) {
       fail(409, 'DEFINITION_ALREADY_IN_STATE', body.active ? 'The definition is already active.' : 'The definition is already inactive.');
     }
-    return toDetail({ ...existing, active: body.active, updatedAt: now.toISOString().replace(/\.\d{3}Z$/, 'Z') }, now);
+    return toDetail({ ...existing, active: body.active, updatedAt: now.toISOString().replace(/\.\d{3}Z$/, 'Z') }, now, viewer);
   });
 
   mockRoute(app, runReportDefinition, ({ requireTenant, requirePersona, params, body, now, fail, notFound }) => {
@@ -507,7 +525,7 @@ export function registerReports(app: MockApp): void {
       runBy: personRef(persona.userId),
       runAt: now.toISOString().replace(/\.\d{3}Z$/, 'Z'),
       rowCount: rows.length,
-      export: { id: exportId, format: body.format, status: body.format === 'xlsx' ? 'queued' : 'ready', fileName: body.format === 'xlsx' ? null : `${fileStem(definition.name)}.${body.format}` },
+      export: { id: exportId, format: body.format, status: body.format === 'xlsx' ? 'queued' : 'ready', fileName: body.format === 'xlsx' ? null : `${fileStem(definition.name)}.${body.format}`, accessible: true },
       recipients: recipients.filter((item) => item.authorized).map((item) => item.user),
       excludedRecipients: recipients.filter((item) => !item.authorized).map((item) => ({ user: item.user, reason: item.reason ?? 'Not authorized.' })),
     };

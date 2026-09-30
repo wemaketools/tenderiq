@@ -94,6 +94,7 @@ export const EVALUATION_NEXT_ACTIONS = [
   'moderate',
   'release_price_gate',
   'await_comparison',
+  'resolve_blockers',
   'validate_ranking',
   'sign_report',
   'collect_signoffs',

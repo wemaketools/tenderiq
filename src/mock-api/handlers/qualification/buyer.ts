@@ -56,6 +56,7 @@ import {
   QUALIFICATION_PROGRAMS,
   QUALIFICATION_RELATIONSHIPS,
   REASSESSMENT_TRIGGERS,
+  RECONSIDERATION_WINDOW_DAYS,
   activityOf,
   categoryWithDescendants,
   criteriaOf,
@@ -314,6 +315,7 @@ export function registerBuyer(app: MockApp): void {
       maxContractValue: body.maxContractValue,
       validityMonths: body.validityMonths,
       renewalNoticeDays: body.renewalNoticeDays,
+      reconsiderationWindowDays: RECONSIDERATION_WINDOW_DAYS,
       decisionRoleCode: body.decisionRoleCode,
       requiresIndependentApproval: body.requiresIndependentApproval,
       status: 'draft',
@@ -1023,7 +1025,7 @@ export function registerBuyer(app: MockApp): void {
     }
     const category = findCategory(tenant.id, query.categoryId);
     if (category === undefined) {
-      return fail(404, 'CATEGORY_NOT_FOUND', 'No such category.');
+      return fail(422, 'CATEGORY_NOT_FOUND', 'No such category.');
     }
     const supplier = supplierRef(query.supplierTenantId);
     const programs = QUALIFICATION_PROGRAMS.filter(
@@ -1340,7 +1342,7 @@ export function registerBuyer(app: MockApp): void {
       (row.impactedBids.length > 0 && !body.activeBidsReviewed) ||
       (row.impactedContracts.length > 0 && !body.activeContractsReviewed)
     ) {
-      fail(422, 'IMPACT_REVIEW_REQUIRED', 'Confirm the review of every impacted active bid and contract (AC-09).');
+      fail(409, 'IMPACT_REVIEW_REQUIRED', 'Confirm the review of every impacted active bid and contract (AC-09).');
     }
     if (body.resultingStatus === 'action_taken' && body.resultingDecisionId === null) {
       fail(422, 'RESULTING_DECISION_REQUIRED', 'Record the decision taken before closing the trigger as action taken.');

@@ -3,7 +3,6 @@
  * related record, classification, status, current version and whether download is permitted. Released originals
  * stay distinguishable from redacted copies (PRD §14.1); sealed content is metadata only.
  */
-import { useNavigate } from 'react-router';
 
 import { MY_DOCUMENT_SORT_FIELDS, listMyDocuments } from '@contracts/documents';
 import type { MyDocumentItem } from '@contracts/documents';
@@ -73,7 +72,6 @@ function sortField(value: string): SortField {
 }
 
 export default function MyDocumentsPage() {
-  const navigate = useNavigate();
   const timeZone = useDisplayTimeZone();
   const organizations = useOrganizationOptions();
   const [filters, setFilters, clearFilters] = useScreenFilters('COM-07', DEFAULTS);
@@ -300,7 +298,7 @@ export default function MyDocumentsPage() {
           rows={query.data?.items}
           rowKey={(row) => String(row.id)}
           rowLabel={(row) => row.title}
-          onRowClick={(row) => void navigate(documentPaths.document(row.id))}
+          rowHref={(row) => documentPaths.document(row.id)}
           loading={query.isFetching}
           error={query.error}
           onRetry={query.reload}

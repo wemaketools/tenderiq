@@ -72,6 +72,42 @@ describe('ApprovalInboxPage (COM-04 approvals)', () => {
     await waitFor(() => expect(router.state.location.pathname).toBe('/me/approvals/33'));
   });
 
+  it('shows short record codes as references and wraps anything longer as normal text', async () => {
+    routeCalls({
+      'me.tasks.summary': () => taskSummary(),
+      'me.approvals.list': () =>
+        page([
+          myApproval({
+            id: 40,
+            subjectReference: 'T-2026-0009',
+            subjectLinkPath: '/buyer/tenders/9',
+          }),
+          myApproval({
+            id: 41,
+            title: 'Approve the procurement strategy',
+            subjectReference: 'Leak-detection market consultation',
+            subjectLinkPath: null,
+          }),
+          myApproval({
+            id: 42,
+            title: 'Approve the strategy without a request',
+            subjectReference: null,
+            subjectLinkPath: '/buyer/strategies/504',
+          }),
+        ]),
+    });
+    renderPage(<ApprovalInboxPage />, PATH);
+    const code = await screen.findByRole('link', { name: 'T-2026-0009' });
+    expect(code).toHaveClass('tiq-ref');
+    const label = screen.getByText('Leak-detection market consultation');
+    expect(label).not.toHaveClass('tiq-ref');
+    expect(label.closest('a')).toBeNull();
+    expect(screen.getByRole('link', { name: 'Open the record' })).toHaveAttribute(
+      'href',
+      '/buyer/strategies/504',
+    );
+  });
+
   it('shows an empty state without approvals', async () => {
     routeCalls({ 'me.tasks.summary': () => taskSummary(), 'me.approvals.list': () => page([]) });
     renderPage(<ApprovalInboxPage />, PATH);

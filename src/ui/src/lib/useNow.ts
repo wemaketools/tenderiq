@@ -1,15 +1,23 @@
 /**
- * The current time for rendering, refreshed on an interval. Components never call `Date.now()` during render
- * (React Compiler purity rule); they read it from here. The client clock is display help only: deadline logic is
- * always the server's (docs/technical/09-frontend.md §13 rule 7).
+ * The current time for rendering, refreshed on an interval and whenever the application clock is aligned with the
+ * server (`./clock.ts`). Components never call `Date.now()` during render (React Compiler purity rule); they read
+ * it from here. The client clock is display help only: deadline logic is always the server's
+ * (docs/technical/09-frontend.md §13 rule 7).
  */
 import { useEffect, useState } from 'react';
 
+import { clockNow, subscribeClock } from './clock';
+
 export function useNow(intervalMs = 60_000): number {
-  const [now, setNow] = useState(() => Date.now());
+  const [now, setNow] = useState(() => clockNow());
   useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), intervalMs);
-    return () => window.clearInterval(timer);
+    const tick = (): void => setNow(clockNow());
+    const timer = window.setInterval(tick, intervalMs);
+    const unsubscribe = subscribeClock(tick);
+    return () => {
+      window.clearInterval(timer);
+      unsubscribe();
+    };
   }, [intervalMs]);
   return now;
 }

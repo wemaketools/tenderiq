@@ -2,7 +2,7 @@
  * BUY-05 advance notices: drafts, published and withdrawn notices of planned procurements. Publishing (on the notice
  * page) puts a notice on the public plans page (PUB-06), where it is shown as a forecast, never an invitation.
  */
-import { Link, useNavigate } from 'react-router';
+import { Link } from 'react-router';
 
 import { requestEndpoints } from '@contracts/requests';
 import type { AdvanceNoticeRow } from '@contracts/requests';
@@ -30,7 +30,6 @@ const DEFAULT_FILTERS = { q: '', status: '', page: 1, sort: 'updatedAt', dir: 'd
 type SortField = 'title' | 'publishedAt' | 'status' | 'updatedAt';
 
 export function NoticesTab() {
-  const navigate = useNavigate();
   const tenant = useActiveTenant();
   const timeZone = tenant?.officialTimeZone ?? 'UTC';
   const [filters, setFilters, clearFilters] = useScreenFilters('BUY-05.notices', DEFAULT_FILTERS);
@@ -74,7 +73,7 @@ export function NoticesTab() {
           onRetry={notices.reload}
           sort={sort}
           onSortChange={(next) => setFilters({ sort: next.key, dir: next.dir, page: 1 })}
-          onRowClick={(row) => navigate(planningPaths.notice(row.id))}
+          rowHref={(row) => planningPaths.notice(row.id)}
           rowLabel={(row) => row.title}
           empty={
             <EmptyState

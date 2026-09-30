@@ -23,6 +23,7 @@ const KAGISO = 'kagiso.requester@tenderiq.local';
 const OFFICER_ODC = 'officer.odc@tenderiq.local';
 const TSODILO_BID = 'tsodilo.bidmanager@tenderiq.local';
 const TSODILO_CONTRIBUTOR = 'tsodilo.contributor@tenderiq.local';
+const TSODILO_SIGNATORY = 'tsodilo.signatory@tenderiq.local';
 const CHOBE_BID = 'chobe-pipe.bidmanager@tenderiq.local';
 const LIMPOPO = 'limpopo-env.admin@tenderiq.local';
 const MAKGADIKGADI = 'makgadikgadi.admin@tenderiq.local';
@@ -98,6 +99,35 @@ describe('buyer award register and overview (BUY-26)', () => {
       (await call(TEBOGO, api.listAwards, { tenant: 'kwu', query: { nextStep: 'close_event' } })).body,
     );
     expect(closing.items.map((row) => row.tender.reference)).toEqual(['T-2026-0010']);
+  });
+
+  it('lists every file the closeout KPIs count, including the blocked T-2026-0001, in the closeout view (AC-29)', async () => {
+    const all = api.listAwards.response.parse(
+      (await call(TEBOGO, api.listAwards, { tenant: 'kwu', query: { pageSize: '100' } })).body,
+    );
+    const closeout = api.listAwards.response.parse(
+      (await call(TEBOGO, api.listAwards, { tenant: 'kwu', query: { view: 'closeout', pageSize: '100' } })).body,
+    );
+    const listed = closeout.items.map((row) => row.tender.reference);
+    const counted = all.items
+      .filter(
+        (row) =>
+          row.nextStep === 'close_event' ||
+          row.closeoutStatus === 'blocked' ||
+          row.closeoutStatus === 'closed' ||
+          row.closeoutStatus === 'archived',
+      )
+      .map((row) => row.tender.reference);
+    expect(listed).toEqual(expect.arrayContaining(counted));
+    expect(listed).not.toContain('T-2026-0003');
+    expect(listed).toContain('T-2026-0001');
+    expect(closeout.items.find((row) => row.tender.reference === 'T-2026-0001')?.closeoutStatus).toBe('blocked');
+
+    const blocked = api.listAwards.response.parse(
+      (await call(TEBOGO, api.listAwards, { tenant: 'kwu', query: { view: 'closeout', closeoutStatus: 'blocked' } }))
+        .body,
+    );
+    expect(blocked.items.map((row) => row.tender.reference)).toEqual(['T-2026-0001']);
   });
 
   it('returns an empty register for ODC, whose only tender is open', async () => {
@@ -355,7 +385,7 @@ describe('final award, notices and standstill (BUY-28, AC-25)', () => {
     );
     expect(page.items.map((row) => row.noticeId).sort()).toEqual([57, 58, 59]);
     expect(page.items.find((row) => row.noticeId === 57)?.failedCount).toBe(1);
-    const resent = await call(TEBOGO, api.resendOutcomeNotice, { tenant: 'kwu', params: { noticeId: 57, recipientId: 5704 } });
+    const resent = await call(TEBOGO, api.resendOutcomeNotice, { tenant: 'kwu', params: { noticeId: 57, recipientId: 5702 } });
     expect(api.resendOutcomeNotice.response.parse(resent.body).recipient.deliveryStatus).toBe('pending');
     const delivered = await call(TEBOGO, api.resendOutcomeNotice, { tenant: 'kwu', params: { noticeId: 57, recipientId: 5701 } });
     expect(code(delivered)).toBe('RECIPIENT_NOT_FAILED');
@@ -588,13 +618,13 @@ describe('supplier outcomes and debriefs (SUP-21)', () => {
     expect(detail.debrief).toMatchObject({ status: 'scheduled', ownResult: null });
   });
 
-  it('refuses Chobe a debrief after the window of the outcome notice closed and refuses a second request from Tsodilo', async () => {
+  it('refuses a debrief after the window of the outcome notice closed and refuses a second request from Tsodilo', async () => {
     const detail = api.getSupplierOutcome.response.parse(
-      (await call(CHOBE_BID, api.getSupplierOutcome, { tenant: 'chobe-pipe', params: { tenderId: 7 } })).body,
+      (await call(LIMPOPO, api.getSupplierOutcome, { tenant: 'limpopo-env', params: { tenderId: 7 } })).body,
     );
     expect(detail).toMatchObject({ canRequestDebrief: false, debriefDeadline: { at: '2026-09-29T15:00:00Z' } });
     expect(detail.complaintDeadline?.at).toBe('2026-10-08T15:00:00Z');
-    const late = await call(CHOBE_BID, api.requestDebrief, { tenant: 'chobe-pipe', params: { tenderId: 7 }, body: {} });
+    const late = await call(LIMPOPO, api.requestDebrief, { tenant: 'limpopo-env', params: { tenderId: 7 }, body: {} });
     expect(late.status).toBe(409);
     expect(code(late)).toBe('DEBRIEF_WINDOW_CLOSED');
     const again = await call(TSODILO_BID, api.requestDebrief, { tenant: 'tsodilo', params: { tenderId: 7 }, body: {} });
@@ -647,6 +677,16 @@ describe('supplier outcomes and debriefs (SUP-21)', () => {
   it('refuses term acceptance to a bid manager without contract authority', async () => {
     const response = await call(TSODILO_BID, api.acceptOutcomeNoticeTerms, { tenant: 'tsodilo', params: { noticeId: 56 }, body: { confirmation: true } });
     expect(response.status).toBe(403);
+  });
+
+  it('lets the authorized signatory reach the term acceptance rules, which report the terms already accepted', async () => {
+    const response = await call(TSODILO_SIGNATORY, api.acceptOutcomeNoticeTerms, {
+      tenant: 'tsodilo',
+      params: { noticeId: 56 },
+      body: { confirmation: true },
+    });
+    expect(response.status).toBe(409);
+    expect(code(response)).toBe('TERMS_ALREADY_ACCEPTED');
   });
 });
 
@@ -759,5 +799,7 @@ describe('every read endpoint answers with a contract-valid body', () => {
       expect((await call(email, api.getSupplierOutcome, { tenant, params: { tenderId } })).status).toBe(200);
     }
     expect((await call(CHOBE_BID, api.getSupplierOutcome, { tenant: 'chobe-pipe', params: { tenderId: 10 } })).status).toBe(404);
+    // Chobe made no offer on T-2026-0007 (bids fixtures), so it has no outcome there.
+    expect((await call(CHOBE_BID, api.getSupplierOutcome, { tenant: 'chobe-pipe', params: { tenderId: 7 } })).status).toBe(404);
   });
 });

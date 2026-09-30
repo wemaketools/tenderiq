@@ -3,7 +3,7 @@
  * approval status, pending fairness reviews and the events it led to; the strategy page holds the research,
  * procedure comparison, consultations, exceptions and approval (FR-05, AC-39).
  */
-import { Link, useNavigate } from 'react-router';
+import { Link } from 'react-router';
 
 import { requestEndpoints } from '@contracts/requests';
 import type { StrategyRow } from '@contracts/requests';
@@ -54,7 +54,6 @@ type SortField = 'title' | 'status' | 'procedure' | 'updatedAt' | 'estimatedValu
 const ALL_REQUEST = { query: { pageSize: 100 } } as const;
 
 export default function StrategiesPage() {
-  const navigate = useNavigate();
   const tenant = useActiveTenant();
   const timeZone = tenant?.officialTimeZone ?? 'UTC';
   const canManage = usePermission('strategy.manage');
@@ -197,7 +196,7 @@ export default function StrategiesPage() {
           onRetry={strategies.reload}
           sort={sort}
           onSortChange={(next) => setFilters({ sort: next.key, dir: next.dir, page: 1 })}
-          onRowClick={(row) => navigate(requestPaths.strategy(row.id))}
+          rowHref={(row) => requestPaths.strategy(row.id)}
           rowLabel={(row) => row.title}
           empty={
             <EmptyState

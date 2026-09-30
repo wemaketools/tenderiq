@@ -358,6 +358,7 @@ export function assessmentRequest(
 ): AssessmentRequestDetail {
   return openingEndpoints.getAssessmentRequest.response.parse({
     id: 4109,
+    reference: 'CL-4109',
     buyer: { tenantId: 2, name: 'Kalahari Water Utilities (Pilot)' },
     tenderId: 1,
     tenderReference: 'T-2026-0001',

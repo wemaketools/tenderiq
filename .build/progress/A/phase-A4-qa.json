@@ -1,0 +1,13 @@
+{
+  "stage": "A",
+  "unit": "phase-A4-qa",
+  "message": "prototype: QA fixes (style, accessibility, completeness, PRD screens, contracts, confidentiality, journeys)",
+  "report": {
+    "qa": {
+      "raw": 106,
+      "unique": 106,
+      "confirmed": 104
+    },
+    "gate": true
+  }
+}

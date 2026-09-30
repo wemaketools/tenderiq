@@ -193,6 +193,24 @@ describe('PageHeader', () => {
     action.remove();
   });
 
+  it('renders the primary action in the page head when the top bar has no action slot (phone width)', () => {
+    const title = document.createElement('h1');
+    document.body.append(title);
+    renderWithProviders(
+      <PageSlotsContext.Provider value={{ title, primaryAction: null }}>
+        <PageHeader
+          title="Invitations"
+          primaryAction={<button type="button">Request document access</button>}
+        />
+      </PageSlotsContext.Provider>,
+    );
+    expect(title).toHaveTextContent('Invitations');
+    const action = screen.getByRole('button', { name: 'Request document access' });
+    expect(action.closest('.tiq-page-actions')).not.toBeNull();
+    expect(screen.queryByRole('heading', { level: 1, name: 'Invitations' })).toBe(title);
+    title.remove();
+  });
+
   it('renders inline outside the shell', () => {
     renderWithProviders(
       <PageHeader title="Opportunities" primaryAction={<button type="button">Subscribe</button>} />,

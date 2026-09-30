@@ -50,6 +50,7 @@ import {
   infoRequestsOf,
   isOpenApplication,
   isReconsiderable,
+  isReconsiderationWindowOpen,
   matchesText,
   programOfVersion,
   scopeFitsProgram,
@@ -217,7 +218,7 @@ export function registerSupplier(app: MockApp): void {
         decision.supersededById !== null ||
         programOfVersion(decision.programVersionId).program.id !== program.id
       ) {
-        fail(422, 'DECISION_NOT_RENEWABLE', 'Only your current decision under this program can be renewed.');
+        fail(409, 'DECISION_NOT_RENEWABLE', 'Only your current decision under this program can be renewed.');
       }
     }
     const createdAt = now.toISOString();
@@ -384,7 +385,7 @@ export function registerSupplier(app: MockApp): void {
       fail(422, 'MANDATORY_ANSWERS_MISSING', `Complete the additional information: ${missingCustom.map((issue) => issue.message).join(' ')}`);
     }
     if (readiness.expiredEvidence > 0) {
-      fail(422, 'EVIDENCE_EXPIRED', `${readiness.expiredEvidence} cited evidence items have expired; attach current editions.`);
+      fail(409, 'EVIDENCE_EXPIRED', `${readiness.expiredEvidence} cited evidence items have expired; attach current editions.`);
     }
     const submittedAt = now.toISOString();
     const year = submittedAt.slice(0, 4);
@@ -505,6 +506,13 @@ export function registerSupplier(app: MockApp): void {
     if (RECONSIDERATIONS.some((candidate) => candidate.decisionId === decision.id)) {
       fail(409, 'RECONSIDERATION_ALREADY_REQUESTED', 'A reconsideration of this decision is already under review.');
     }
+    if (!isReconsiderationWindowOpen(decision, now)) {
+      fail(
+        409,
+        'RECONSIDERATION_WINDOW_CLOSED',
+        'The reconsideration window stated in this decision has closed. Use the escalation route in its appeal terms.',
+      );
+    }
     for (const id of body.evidenceItemIds) {
       if (ownEvidence(tenant.id, id) === undefined) {
         fail(422, 'EVIDENCE_NOT_FOUND', `Evidence item ${id} is not in your library.`);
@@ -533,7 +541,7 @@ export function registerSupplier(app: MockApp): void {
     }
     const context = viewContext(now, tenant.officialTimeZone);
     if (item.status !== 'current' || (item.expiresAt !== null && item.expiresAt < context.today)) {
-      fail(422, 'EVIDENCE_NOT_CURRENT', 'Supply a current, unexpired evidence item.');
+      fail(409, 'EVIDENCE_NOT_CURRENT', 'Supply a current, unexpired evidence item.');
     }
     return {
       id: NEW_ID,

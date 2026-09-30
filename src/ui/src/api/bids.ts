@@ -36,6 +36,14 @@ export function listBids(
   return send('listBids', request, options);
 }
 
+/** GET /api/v1/supplier/bid-starts/:tenderId (`supplier.bids.startOptions`). */
+export function getBidStartOptions(
+  request: BidsRequest<'getBidStartOptions'>,
+  options?: CallOptions,
+): Promise<BidsResponse<'getBidStartOptions'>> {
+  return send('getBidStartOptions', request, options);
+}
+
 /** POST /api/v1/supplier/bids (`supplier.bids.start`), idempotent. */
 export function startBid(
   request: BidsRequest<'startBid'>,

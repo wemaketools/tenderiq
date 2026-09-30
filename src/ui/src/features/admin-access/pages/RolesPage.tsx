@@ -211,7 +211,7 @@ export default function RolesPage() {
           rows={query.data?.items}
           rowKey={(row) => String(row.roleId)}
           rowLabel={(row) => row.name}
-          onRowClick={(row) => void navigate(admin.paths.role(row.roleId))}
+          rowHref={(row) => admin.paths.role(row.roleId)}
           loading={query.isFetching}
           error={query.error}
           onRetry={query.reload}

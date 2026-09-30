@@ -188,9 +188,9 @@ describe('opening fixtures agree with the rest of the demo world', () => {
     }
   });
 
-  it('uses the lots of the tenders fixtures (T-2026-0001 Lots 101-103, T-2026-0008 Lots 801-802, T-2026-0011 Lots 1101-1102)', () => {
+  it('uses the lots of the tenders fixtures (T-2026-0001 Lots 101-103, T-2026-0002 Lot 201, T-2026-0008 Lots 801-802, T-2026-0011 Lots 1101-1102)', () => {
     // Assert
-    expect(OPENING_LOTS.map((lot) => lot.lotId)).toEqual([101, 102, 103, 801, 802, 1101, 1102]);
+    expect(OPENING_LOTS.map((lot) => lot.lotId)).toEqual([101, 102, 103, 201, 801, 802, 1101, 1102]);
     for (const lot of OPENING_LOTS) {
       expect(LOTS.find((row) => row.id === lot.lotId)).toMatchObject({ tenderId: lot.tenderId, lotNo: lot.lotNo, title: lot.title, stage: lot.stage });
     }
@@ -211,6 +211,32 @@ describe('opening fixtures agree with the rest of the demo world', () => {
       expect(COMPLIANCE_CHECKS.filter((check) => bidIds.has(check.bidId)).every((check) => check.assessedAt === null || check.assessedAt > closedAt)).toBe(true);
       expect(BID_CLARIFICATIONS.filter((row) => bidIds.has(row.bidId)).every((row) => row.raisedAt > closedAt)).toBe(true);
       expect(EXCLUSIONS.filter((row) => bidIds.has(row.bidId)).every((row) => row.proposedAt > closedAt)).toBe(true);
+    }
+  });
+
+  it('schedules every session, open tenders included, no earlier than the tender submission deadline (BR-17)', () => {
+    for (const session of OPENING_SESSIONS) {
+      // Arrange
+      const tender = OPENING_TENDERS.find((row) => row.tenderId === session.tenderId);
+
+      // Assert
+      expect(tender, `session ${String(session.id)}`).toBeDefined();
+      expect(session.scheduledAt >= (tender?.submissionDeadline ?? ''), `session ${String(session.id)}`).toBe(true);
+    }
+  });
+
+  it('schedules the first unopened session of each tender at the timetable opening milestone', () => {
+    for (const tender of OPENING_TENDERS) {
+      // Arrange
+      const sessions = OPENING_SESSIONS.filter((row) => row.tenderId === tender.tenderId && row.lotId === null);
+      const first = [...sessions].sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt))[0];
+      const milestone = MILESTONES.find((row) => row.tenderId === tender.tenderId && row.lotId === null && row.milestone === 'opening');
+      if (first === undefined || first.status !== 'scheduled' || milestone === undefined) {
+        continue;
+      }
+
+      // Assert
+      expect(first.scheduledAt, tender.reference).toBe(milestone.at);
     }
   });
 

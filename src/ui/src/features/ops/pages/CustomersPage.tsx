@@ -217,7 +217,7 @@ export default function CustomersPage() {
           onRetry={customers.reload}
           sort={{ key: filters.sort, dir: filters.dir as 'asc' | 'desc' }}
           onSortChange={(next) => setFilters({ sort: next.key, dir: next.dir, page: 1 })}
-          onRowClick={(row) => navigate(opsPaths.customer(row.tenantId))}
+          rowHref={(row) => opsPaths.customer(row.tenantId)}
           rowLabel={(row) => t('ops.customers.rowLabel', { name: row.name })}
           empty={
             <EmptyState
@@ -245,9 +245,10 @@ export default function CustomersPage() {
               cell: (row) => (
                 <>
                   <strong>{row.name}</strong>
-                  <div className="tiq-cell-sub">
-                    {row.legalName === row.name ? row.slug : `${row.legalName} · ${row.slug}`}
-                  </div>
+                  {row.legalName !== row.name && (
+                    <span className="tiq-cell-sub">{row.legalName}</span>
+                  )}
+                  <span className="tiq-cell-sub">{row.slug}</span>
                 </>
               ),
             },
@@ -289,7 +290,7 @@ export default function CustomersPage() {
                 row.planCode === null ? (
                   <span className="tiq-text-muted">{t('ops.customers.noPlan')}</span>
                 ) : (
-                  <div className="tiq-stack">
+                  <div className="tiq-stack tiq-stack--start">
                     <span>
                       <OpsChip kind="plan" value={row.planCode} size="sm" />
                     </span>
@@ -325,8 +326,8 @@ export default function CustomersPage() {
               cell: (row) => (
                 <span className="tiq-cell-sub">
                   {t('ops.customers.supportSummary', {
-                    cases: row.openSupportCases,
-                    grants: row.activeSupportGrants,
+                    cases: t('ops.customers.supportCases', { count: row.openSupportCases }),
+                    grants: t('ops.customers.supportGrants', { count: row.activeSupportGrants }),
                   })}
                 </span>
               ),

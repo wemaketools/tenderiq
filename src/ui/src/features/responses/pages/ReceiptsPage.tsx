@@ -3,7 +3,6 @@
  * receipt time, status (received, superseded, withdrawn, late/rejected, selected for evaluation) and which receipt
  * is effective. A receipt confirms receipt only, never compliance, qualification or award.
  */
-import { useNavigate } from 'react-router';
 
 import { listSupplierReceipts } from '@contracts/bids';
 import type { SupplierReceiptRow } from '@contracts/bids';
@@ -51,7 +50,6 @@ const DEFAULTS = {
 };
 
 export default function ReceiptsPage() {
-  const navigate = useNavigate();
   const timeZone = useOfficialTimeZone();
   const [filters, setFilters, clearFilters] = useScreenFilters('SUP-17', DEFAULTS);
   const query = useApiQuery(listSupplierReceipts, {
@@ -221,7 +219,7 @@ export default function ReceiptsPage() {
           rows={query.data?.items}
           rowKey={(row) => String(row.id)}
           rowLabel={(row) => row.receiptNo}
-          onRowClick={(row) => void navigate(responsePaths.receipt(row.id))}
+          rowHref={(row) => responsePaths.receipt(row.id)}
           loading={query.isFetching}
           error={query.error}
           onRetry={query.reload}

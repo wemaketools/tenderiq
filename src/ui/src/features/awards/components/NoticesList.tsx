@@ -66,7 +66,6 @@ const DEFAULTS = {
 };
 
 export function NoticesList({ overview }: { readonly overview: AwardOverview }) {
-  const navigate = useNavigate();
   const timeZone = useOfficialTimeZone();
   const tenderId = overview.tender.tenderId;
   const canIssue = usePermission('notice.issue');
@@ -225,7 +224,7 @@ export function NoticesList({ overview }: { readonly overview: AwardOverview }) 
           rows={query.data?.items}
           rowKey={(row) => String(row.noticeId)}
           rowLabel={(row) => row.title}
-          onRowClick={(row) => void navigate(awardPaths.notice(tenderId, row.noticeId))}
+          rowHref={(row) => awardPaths.notice(tenderId, row.noticeId)}
           loading={query.isFetching}
           error={query.error}
           onRetry={query.reload}

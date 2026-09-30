@@ -152,7 +152,8 @@ interface RowInput {
   readonly tenantId: number;
   readonly subjectType: ApprovalRequestsSubjectType;
   readonly subjectId: number;
-  readonly subjectReference: string;
+  /** A short record reference (`T-2026-0009`, `PR-2026-0001`) or `null` when the subject has none. */
+  readonly subjectReference: string | null;
   readonly subjectLinkPath: string;
   readonly subjectVersion: number;
   readonly currentSubjectVersion: number;
@@ -460,7 +461,8 @@ function strategyApprovals(): FixtureApproval[] {
         tenantId: strategy.tenantId,
         subjectType: 'strategy',
         subjectId: strategy.id,
-        subjectReference: strategy.title,
+        // A strategy has no reference of its own: it carries its request's reference when it serves one.
+        subjectReference: request?.reference ?? null,
         subjectLinkPath: `/buyer/strategies/${strategy.id}`,
         subjectVersion: version,
         currentSubjectVersion: strategy.revision,
@@ -525,7 +527,7 @@ function exclusionApprovals(handWritten: ReadonlySet<number>): FixtureApproval[]
         tenantId: exclusion.tenantId,
         subjectType: 'exclusion',
         subjectId: exclusion.id,
-        subjectReference: `${tender.reference} / ${supplier}`,
+        subjectReference: tender.reference,
         subjectLinkPath: `/buyer/compliance/exclusions/${exclusion.id}`,
         subjectVersion: 1,
         currentSubjectVersion: 1,

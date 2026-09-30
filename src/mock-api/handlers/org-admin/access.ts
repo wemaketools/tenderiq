@@ -220,7 +220,7 @@ export function registerAccess(app: MockApp): void {
     }
     const member = memberOfTenant(tenant.id, body.userId);
     if (member === undefined || member.membershipStatus === 'revoked') {
-      return fail(409, 'USER_NOT_MEMBER', 'Restrictions apply to current members only.');
+      return fail(422, 'USER_NOT_MEMBER', 'Restrictions apply to current members only.');
     }
     const label = scopeLabelOf(tenant.id, body.scope.scopeType, body.scope.scopeId);
     if (label === null) {

@@ -30,32 +30,13 @@ import type {
   ServiceActionStatus,
 } from '../../../contracts/operations.js';
 import { CONTRACTS } from '../contracts/index.js';
+import { LEGAL_ENTITIES, MEMBERS, ORGANIZATION_SETTINGS } from '../org-admin/index.js';
 import { TENANTS, TENANT_IDS } from '../platform.js';
 import { PORTAL_SETTINGS } from '../publication/catalog.js';
 import { MILESTONES, TENDERS } from '../tenders/index.js';
+import { INTEGRATION_CONNECTIONS } from './integrations.js';
+import { OPS_USERS } from './users.js';
 
-/** Persona user ids used by the operations fixtures (foundation-contract §5). */
-export const OPS_USERS = {
-  opsAdmin: 1,
-  supportAgent: 2,
-  adminKwu: 3,
-  mphoManager: 4,
-  tebogoOfficer: 5,
-  lesegoFinance: 9,
-  masegoContracts: 19,
-  puleAuditor: 20,
-  adminOdc: 22,
-  officerOdc: 23,
-  tsodiloAdmin: 24,
-  tsodiloBidManager: 25,
-  chobeAdmin: 28,
-  chobeBidManager: 29,
-  seroweAdmin: 32,
-  gaboroneMeterAdmin: 36,
-  gaboroneMeterBidManager: 37,
-  makgadikgadiAdmin: 40,
-  limpopoAdmin: 41,
-} as const;
 
 // ---------------------------------------------------------------------------------------------------------
 // Customer profiles (tenants columns the platform fixture does not carry)
@@ -81,6 +62,43 @@ export function publishedEventsIn(tenantId: number, year: number): number {
   ).length;
 }
 
+// ---------------------------------------------------------------------------------------------------------
+// Usage and identity derived from the organization's own records (ADM-01, ADM-03, ADM-15, CON-01), so the
+// operator console (OPS-01, OPS-03) and the customer's service page (ADM-17) show the same numbers.
+// ---------------------------------------------------------------------------------------------------------
+
+/** Active members of an organization: active membership of an active user account (ADM-03). */
+export function activeMemberCount(tenantId: number): number {
+  return MEMBERS.filter(
+    (member) => member.tenantId === tenantId && member.membershipStatus === 'active' && member.userStatus === 'active',
+  ).length;
+}
+
+/** Legal entities an organization has not retired (ADM-01). */
+export function activeLegalEntityCount(tenantId: number): number {
+  return LEGAL_ENTITIES.filter((entity) => entity.tenantId === tenantId && entity.active).length;
+}
+
+/** Business integrations in service (`active` connections, ADM-15). */
+export function activeIntegrationCount(tenantId: number): number {
+  return INTEGRATION_CONNECTIONS.filter((connection) => connection.tenantId === tenantId && connection.status === 'active')
+    .length;
+}
+
+/** Contracts in the `active` status of the contract register (CON-01). */
+export function activeContractCount(tenantId: number): number {
+  return CONTRACTS.filter((contract) => contract.tenantId === tenantId && contract.status === 'active').length;
+}
+
+/** The organization identity the customer maintains itself (ADM-01): trading name and registration number. */
+function buyerIdentity(tenantId: number): { readonly tradingName: string | null; readonly registrationNumber: string | null } {
+  const settings = ORGANIZATION_SETTINGS.find((row) => row.tenantId === tenantId);
+  if (settings === undefined) {
+    throw new Error(`Organization settings fixture missing for buyer tenant ${String(tenantId)}`);
+  }
+  return { tradingName: settings.tradingName, registrationNumber: settings.registrationNumber };
+}
+
 export interface FixtureCustomerProfile {
   readonly tenantId: number;
   readonly tradingName: string | null;
@@ -99,9 +117,8 @@ export interface FixtureCustomerProfile {
 export const CUSTOMER_PROFILES: readonly FixtureCustomerProfile[] = Object.freeze([
   {
     tenantId: TENANT_IDS.kwu,
-    tradingName: 'KWU',
+    ...buyerIdentity(TENANT_IDS.kwu),
     country: 'BW',
-    registrationNumber: 'BW-PE-1998-0042',
     planCode: 'pilot',
     onboardingStage: 'pilot',
     serviceOwnerUserId: OPS_USERS.opsAdmin,
@@ -113,9 +130,8 @@ export const CUSTOMER_PROFILES: readonly FixtureCustomerProfile[] = Object.freez
   },
   {
     tenantId: TENANT_IDS.odc,
-    tradingName: null,
+    ...buyerIdentity(TENANT_IDS.odc),
     country: 'BW',
-    registrationNumber: 'BW-LA-1966-0011',
     planCode: 'buyer_standard',
     onboardingStage: 'offboarding',
     serviceOwnerUserId: OPS_USERS.opsAdmin,
@@ -456,11 +472,11 @@ export const PLAN_DEFINITIONS: readonly FixturePlanDefinition[] = Object.freeze(
   {
     code: 'pilot',
     name: 'Pilot',
-    description: 'Twelve-month pilot for one legal entity with guided onboarding, before a live plan is chosen.',
+    description: 'Twelve-month pilot for up to two legal entities with guided onboarding, before a live plan is chosen.',
     annualFee: '120000.00',
     limits: {
       named_users: 25,
-      legal_entities: 1,
+      legal_entities: 2,
       published_events_per_year: 8,
       active_contracts: 20,
       storage_gb: 50,
@@ -566,21 +582,21 @@ export interface FixtureEntitlement {
 }
 
 export const ENTITLEMENTS: readonly FixtureEntitlement[] = Object.freeze([
-  { subscriptionId: 1, featureCode: 'named_users', limitValue: 25, usageValue: 21 },
-  { subscriptionId: 1, featureCode: 'legal_entities', limitValue: 1, usageValue: 1 },
+  { subscriptionId: 1, featureCode: 'named_users', limitValue: 25, usageValue: activeMemberCount(TENANT_IDS.kwu) },
+  { subscriptionId: 1, featureCode: 'legal_entities', limitValue: 2, usageValue: activeLegalEntityCount(TENANT_IDS.kwu) },
   { subscriptionId: 1, featureCode: 'published_events_per_year', limitValue: 8, usageValue: publishedEventsIn(TENANT_IDS.kwu, DEMO_YEAR) },
-  { subscriptionId: 1, featureCode: 'active_contracts', limitValue: 20, usageValue: 6 },
+  { subscriptionId: 1, featureCode: 'active_contracts', limitValue: 20, usageValue: activeContractCount(TENANT_IDS.kwu) },
   { subscriptionId: 1, featureCode: 'storage_gb', limitValue: 50, usageValue: 18 },
-  { subscriptionId: 1, featureCode: 'integrations', limitValue: 3, usageValue: 3 },
+  { subscriptionId: 1, featureCode: 'integrations', limitValue: 3, usageValue: activeIntegrationCount(TENANT_IDS.kwu) },
   { subscriptionId: 1, featureCode: 'onboarding_days', limitValue: 15, usageValue: 11 },
   { subscriptionId: 2, featureCode: 'named_users', limitValue: 5, usageValue: 2 },
   { subscriptionId: 2, featureCode: 'published_events_per_year', limitValue: 2, usageValue: 0 },
-  { subscriptionId: 3, featureCode: 'named_users', limitValue: 15, usageValue: 2 },
-  { subscriptionId: 3, featureCode: 'legal_entities', limitValue: 2, usageValue: 1 },
+  { subscriptionId: 3, featureCode: 'named_users', limitValue: 15, usageValue: activeMemberCount(TENANT_IDS.odc) },
+  { subscriptionId: 3, featureCode: 'legal_entities', limitValue: 2, usageValue: activeLegalEntityCount(TENANT_IDS.odc) },
   { subscriptionId: 3, featureCode: 'published_events_per_year', limitValue: 40, usageValue: publishedEventsIn(TENANT_IDS.odc, DEMO_YEAR) },
-  { subscriptionId: 3, featureCode: 'active_contracts', limitValue: 60, usageValue: 1 },
+  { subscriptionId: 3, featureCode: 'active_contracts', limitValue: 60, usageValue: activeContractCount(TENANT_IDS.odc) },
   { subscriptionId: 3, featureCode: 'storage_gb', limitValue: 100, usageValue: 3 },
-  { subscriptionId: 3, featureCode: 'integrations', limitValue: 2, usageValue: 2 },
+  { subscriptionId: 3, featureCode: 'integrations', limitValue: 2, usageValue: activeIntegrationCount(TENANT_IDS.odc) },
 ] satisfies FixtureEntitlement[]);
 
 export interface FixtureServiceAction {
@@ -612,7 +628,8 @@ export const SERVICE_ACTIONS: readonly FixtureServiceAction[] = Object.freeze([
     id: 302,
     subscriptionId: 1,
     featureCode: 'integrations',
-    description: 'KWU reached the pilot integration limit (3 of 3) when the finance connection was enabled.',
+    description:
+      'KWU went past the pilot integration limit (4 active connections, limit 3) when the finance connection was enabled. Agree an additional-integrations allowance; every connection keeps working meanwhile.',
     status: 'in_progress',
     ownerUserId: OPS_USERS.opsAdmin,
     raisedAt: '2026-08-04T09:00:00Z',
@@ -768,7 +785,7 @@ export const OFFBOARDING_PLANS: readonly FixtureOffboardingPlan[] = Object.freez
     reason: 'The council moves procurement to the national shared e-procurement service from January 2027.',
     serviceEndDate: '2026-12-31',
     continuityPlan:
-      'T-2026-0011 Office cleaning services stays open until its official deadline (21 Oct 2026, 12:00 (UTC+02:00) Africa/Gaborone) and is opened, evaluated and awarded in TenderIQ. ODC keeps full access until the award decision and any standstill end. Contract C-2025-0004 continues to be managed in TenderIQ until 31 Dec 2026, then transfers to the council records system with its obligations and open performance items.',
+      'T-2026-0011 Office cleaning services stays open until its official deadline (23 Oct 2026, 12:00 (UTC+02:00) Africa/Gaborone) and is opened, evaluated and awarded in TenderIQ. ODC keeps full access until the award decision and any standstill end. Contract C-2025-0004 continues to be managed in TenderIQ until 31 Dec 2026, then transfers to the council records system with its obligations and open performance items.',
     supplierAccessPlan:
       'Suppliers who responded to T-2026-0011 keep access to their own submissions, receipts and notices until 30 Jun 2027. Limpopo Environmental Services keeps read access to C-2025-0004 contract records until the transfer is confirmed.',
     retentionResponsibilities:

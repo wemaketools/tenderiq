@@ -136,11 +136,14 @@ export const TENDER_ASSIGNMENTS: readonly FixtureTenderAssignment[] = Object.fre
   assignment(21, TENANT_IDS.makgadikgadi, 'makgadikgadi.admin', 3, 'bid_manager', { canViewPricing: true, assignedAt: '2026-07-25T07:00:00Z' }),
   assignment(22, TENANT_IDS['limpopo-env'], 'limpopo-env.admin', 7, 'bid_manager', { canViewPricing: true, assignedAt: '2026-05-18T07:00:00Z' }),
   assignment(23, TENANT_IDS['limpopo-env'], 'limpopo-env.admin', 4, 'bid_manager', { assignedAt: '2026-04-20T07:00:00Z', endedAt: '2026-06-12T15:00:00Z' }),
+  // T-2026-0002: the Tsodilo pursuit team of SUP-09 (publication/pursuits.ts, pursuit 4002).
+  assignment(24, TSODILO, 'tsodilo.bidmanager', 2, 'bid_manager', { canViewPricing: true, assignedAt: '2026-09-16T09:00:00Z' }),
+  assignment(25, TSODILO, 'tsodilo.signatory', 2, 'signatory', { canViewPricing: true, dueAt: '2026-10-20T15:00:00Z', assignedAt: '2026-09-16T09:00:00Z' }),
 ] satisfies FixtureTenderAssignment[]);
 
 /** Pursuits of each supplier that can receive assignments (tender ids). */
 export const ASSIGNABLE_TENDER_IDS: Readonly<Record<number, readonly number[]>> = Object.freeze({
-  [TSODILO]: [6, 3],
+  [TSODILO]: [6, 2, 3],
   [CHOBE]: [2, 6, 8],
   [SEROWE]: [3, 2],
   [GABMETER]: [2],

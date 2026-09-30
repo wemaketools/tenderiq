@@ -5,11 +5,13 @@ import {
   APPROVAL_AUTHORITY_DECISION_TYPES,
   APPROVAL_DECISION_PERMISSIONS,
   APPROVAL_REQUEST_PERMISSIONS,
+  APPROVAL_VIEW_PERMISSIONS_BY_SUBJECT,
   ApprovalDetail,
   DecideApprovalBody,
   MyApprovalItem,
   RequestApprovalBody,
   approvalEndpoints,
+  canViewApprovalSubject,
 } from './approvals.js';
 import { AuditEntry, EntityHistoryParams, auditEndpoints } from './audit.js';
 import { AddHolidayBody, CalendarDetail, CalendarImpact, CreateCalendarBody, calendarEndpoints } from './calendars.js';
@@ -21,7 +23,7 @@ import {
   UploadEnvelope,
   documentEndpoints,
 } from './documents.js';
-import { endpointPermissions, validateEndpointDefinition } from './endpoint.js';
+import { endpointPermissions, supportGrantAllows, validateEndpointDefinition } from './endpoint.js';
 import type { AnyEndpoint } from './endpoint.js';
 import { APPROVAL_REQUESTS_SUBJECT_TYPE, AUTHORITY_LIMITS_DECISION_TYPE } from './enums.js';
 import {
@@ -30,7 +32,7 @@ import {
   UpdateNotificationPreferencesBody,
   notificationEndpoints,
 } from './notifications.js';
-import { ROLE_TEMPLATES, isPermissionCode, permissionTenantKind } from './permissions.js';
+import { GRANT_ONLY_PERMISSIONS, ROLE_TEMPLATES, isPermissionCode, permissionTenantKind } from './permissions.js';
 import { SessionContext, SessionContextQuery, sessionEndpoints } from './session.js';
 import { TaskItem, TaskListQuery, TaskSummary, taskEndpoints } from './tasks.js';
 
@@ -96,10 +98,13 @@ describe('shared-surface endpoints', () => {
     expect(collisions).toEqual([]);
   });
 
-  it('declares only catalog permissions of the audience tenant kind', () => {
+  it('declares only catalog permissions of the audience tenant kind, besides the grant-only support.view', () => {
     for (const endpoint of ALL) {
       for (const code of endpointPermissions(endpoint)) {
         expect(isPermissionCode(code), `${endpoint.id}: ${code}`).toBe(true);
+        if ((GRANT_ONLY_PERMISSIONS as readonly string[]).includes(code)) {
+          continue;
+        }
         const expected = { buyer: 'buyer', supplier: 'supplier', ops: 'operator', me: null, public: null }[
           endpoint.audience
         ];
@@ -114,6 +119,21 @@ describe('shared-surface endpoints', () => {
     for (const endpoint of ALL.filter((e) => e.method !== 'GET')) {
       expect(endpointPermissions(endpoint), endpoint.id).not.toContain('support.view');
     }
+  });
+
+  it('opens the calendar configuration reads to a support grant as metadata, and no command (OPS-04)', () => {
+    const open = ALL.filter((e) => endpointPermissions(e).includes('support.view'));
+    expect(open.map((e) => [e.id, e.support]).sort()).toEqual(
+      [
+        ['buyer.calendars.deadlinePolicy', 'metadata'],
+        ['buyer.calendars.get', 'metadata'],
+        ['buyer.calendars.list', 'metadata'],
+      ].sort(),
+    );
+    expect(supportGrantAllows(calendarEndpoints.listCalendars, 'metadata_only')).toBe(true);
+    expect(supportGrantAllows(calendarEndpoints.listCalendars, 'specific_records')).toBe(true);
+    expect(supportGrantAllows(calendarEndpoints.createCalendar, 'specific_records')).toBe(false);
+    expect(supportGrantAllows(approvalEndpoints.getApproval, 'specific_records')).toBe(false);
   });
 
   it('marks /me row actions as POST commands carrying the row tenant (DD-21)', () => {
@@ -341,6 +361,32 @@ describe('approvals contract (COM-05, DD-24)', () => {
       const orgAdminApproval = permission.startsWith('org.');
       expect(holder || orgAdminApproval, permission).toBe(true);
     }
+  });
+
+  it('never lets an organization administrator read bid, evaluation, award or contract approvals (PRD §4.1, BR-26)', () => {
+    const orgAdmin = ROLE_TEMPLATES.org_admin.permissions;
+    const readable = APPROVAL_REQUESTS_SUBJECT_TYPE.filter((subject) => canViewApprovalSubject(subject, orgAdmin));
+    expect(readable.sort()).toEqual(['policy_profile', 'template']);
+    expect(canViewApprovalSubject('exclusion', orgAdmin)).toBe(false);
+    expect(canViewApprovalSubject('contract', orgAdmin)).toBe(false);
+  });
+
+  it('lets the requester, the decider and the auditor of each subject type read its approvals', () => {
+    for (const subject of APPROVAL_REQUESTS_SUBJECT_TYPE) {
+      const allowed: readonly string[] = APPROVAL_VIEW_PERMISSIONS_BY_SUBJECT[subject];
+      expect(allowed, subject).toContain(APPROVAL_REQUEST_PERMISSIONS[subject]);
+      expect(allowed, subject).toContain(APPROVAL_DECISION_PERMISSIONS[subject]);
+      expect(allowed, subject).toContain('audit.view');
+      expect(canViewApprovalSubject(subject, [APPROVAL_DECISION_PERMISSIONS[subject]]), subject).toBe(true);
+      expect(canViewApprovalSubject(subject, ['approval.decide']), subject).toBe(false);
+    }
+    expect(canViewApprovalSubject('exclusion', new Set(ROLE_TEMPLATES.evaluation_chair.permissions))).toBe(true);
+  });
+
+  it('keeps the route-level list of the approval reads equal to the union of the per-subject lists', () => {
+    const union = new Set(Object.values(APPROVAL_VIEW_PERMISSIONS_BY_SUBJECT).flat());
+    expect(new Set(endpointPermissions(approvalEndpoints.getApproval))).toEqual(union);
+    expect(new Set(endpointPermissions(approvalEndpoints.getSubjectApprovals))).toEqual(union);
   });
 
   it('requires a reason to reject or return and conditions to approve with conditions', () => {

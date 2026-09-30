@@ -2,7 +2,6 @@
  * ADM-06 — Procurement policy profiles: the register of the organization's versioned policy profiles, with the
  * current and pending version of each, the procedures they permit and how many tenders use them (FR-22, BR-09).
  */
-import { useNavigate } from 'react-router';
 
 import {
   POLICY_PROFILE_VERSIONS_STATUS,
@@ -59,7 +58,6 @@ function sortField(value: string): SortField {
 }
 
 export default function PolicyProfilesPage() {
-  const navigate = useNavigate();
   const timeZone = useOfficialTimeZone();
   const canManage = usePermission('org.policy.manage');
   const [filters, setFilters, clearFilters] = useScreenFilters('ADM-06', DEFAULTS);
@@ -277,7 +275,7 @@ export default function PolicyProfilesPage() {
           rows={query.data?.items}
           rowKey={(row) => String(row.id)}
           rowLabel={(row) => row.name}
-          onRowClick={(row) => void navigate(policyPaths.profile(row.id))}
+          rowHref={(row) => policyPaths.profile(row.id)}
           loading={query.isFetching}
           error={query.error}
           onRetry={query.reload}

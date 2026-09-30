@@ -16,6 +16,7 @@ import {
   TenderDetail,
   TenderPricing,
   TenderPage,
+  TenderReadiness,
   TenderTimetable,
   TenderUpdateResult,
   tenderEndpoints,
@@ -172,6 +173,31 @@ describe('AC-06 release approval on T-2026-0005', () => {
     expect(result.gate.blockedReasons).toContain(`Release approval #${result.approval.approvalId} for revision 3 is awaiting a decision.`);
     expect(result.gate.blockedReasons.join(' ')).not.toContain('No release approval covers');
     expect(result.summary.warnings).toBe(result.readiness.filter((item) => item.status === 'warning').length);
+  });
+
+  it('states a released tender’s release instant in the official format with its time zone (DD-33)', async () => {
+    // Act
+    const response = await api.callAs(TEBOGO, tenderEndpoints.readiness, { tenant: 'kwu', params: { tenderId: 2 } });
+
+    // Assert
+    expect(response.status).toBe(200);
+    const readiness = TenderReadiness.parse(response.body);
+    const released = readiness.items.find((item) => item.id === 'release_approval.released');
+    expect(released?.title).toBe('Released on 14 Sep 2026, 09:00 (UTC+02:00) Africa/Gaborone.');
+    expect(readiness.gate.publicationBlocked).toBe(false);
+  });
+
+  it('explains that pending release checks do not stop the approval request but keep publication blocked', async () => {
+    // Act
+    const response = await api.callAs(TEBOGO, tenderEndpoints.readiness, { tenant: 'kwu', params: { tenderId: 5 } });
+
+    // Assert
+    const readiness = TenderReadiness.parse(response.body);
+    const pending = readiness.items.find((item) => item.code === 'RELEASE_CHECK_PENDING');
+    expect(pending?.status).toBe('warning');
+    expect(pending?.detail).toContain('do not stop the release approval request');
+    expect(pending?.detail).toContain('publication stays blocked');
+    expect(readiness.gate.publicationBlocked).toBe(true);
   });
 
   it('refuses a request for a superseded revision with REVISION_CONFLICT', async () => {

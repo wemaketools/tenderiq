@@ -10,10 +10,22 @@ const NOW = new Date('2026-09-30T08:00:00Z');
 const FUTURE = '2026-10-20T13:00:00Z';
 
 let api: TestMockApp;
+/** The mock app's clock; a test that moves it restores NOW in a `finally` so the suite stays order-independent. */
+let clock = NOW;
 
 beforeAll(async () => {
-  api = await createTestMockApp({ now: () => NOW });
+  api = await createTestMockApp({ now: () => clock });
 }, 60_000);
+
+/** Runs `act` with the mock app's clock at `at`, then restores the storyline's request time. */
+async function at<T>(instant: string, act: () => Promise<T>): Promise<T> {
+  clock = new Date(instant);
+  try {
+    return await act();
+  } finally {
+    clock = NOW;
+  }
+}
 
 type CallOptions = Omit<TestRequestOptions, 'token'> & {
   readonly params?: Readonly<Record<string, string | number>>;
@@ -169,7 +181,7 @@ describe('buyer reads', () => {
   it('shows registration is not qualification for Makgadikgadi and WTR-PUMP (AC-07)', async () => {
     const response = await as('tebogo.officer', q.checkEligibility, {
       tenant: 'kwu',
-      query: { supplierTenantId: 6, categoryId: 202 },
+      query: { supplierTenantId: 6, categoryId: 2 },
     });
     expect(response.status).toBe(200);
     const eligibility = q.checkEligibility.response.parse(response.body);
@@ -181,20 +193,20 @@ describe('buyer reads', () => {
   it('lets Chobe participate while the award gate stays blocked', async () => {
     const response = await as('neo.assessor', q.checkEligibility, {
       tenant: 'kwu',
-      query: { supplierTenantId: 5, categoryId: 203, amount: '1000000.00', currency: 'BWP' },
+      query: { supplierTenantId: 5, categoryId: 3, amount: '1000000.00', currency: 'BWP' },
     });
     expect(q.checkEligibility.response.parse(response.body)).toMatchObject({ gate: 'met', blockedGate: 'award' });
   });
 
   it('answers the eligibility errors', async () => {
     expectProblem(
-      await as('neo.assessor', q.checkEligibility, { tenant: 'kwu', query: { supplierTenantId: 99, categoryId: 202 } }),
+      await as('neo.assessor', q.checkEligibility, { tenant: 'kwu', query: { supplierTenantId: 99, categoryId: 2 } }),
       404,
       'SUPPLIER_NOT_FOUND',
     );
     expectProblem(
-      await as('neo.assessor', q.checkEligibility, { tenant: 'kwu', query: { supplierTenantId: 6, categoryId: 301 } }),
-      404,
+      await as('neo.assessor', q.checkEligibility, { tenant: 'kwu', query: { supplierTenantId: 6, categoryId: 20 } }),
+      422,
       'CATEGORY_NOT_FOUND',
     );
   });
@@ -270,7 +282,7 @@ describe('program commands (ADM-09)', () => {
   const program = {
     name: 'Laboratory Consumables Suppliers',
     description: null,
-    categoryId: 206,
+    categoryId: 11,
     geography: 'Botswana',
     maxContractValue: MONEY('500000.00'),
     validityMonths: 24,
@@ -290,7 +302,7 @@ describe('program commands (ADM-09)', () => {
   it('answers every program validation error', async () => {
     const cases: Array<[Record<string, unknown>, number, string]> = [
       [{ name: 'Metering Equipment Suppliers' }, 409, 'PROGRAM_NAME_DUPLICATE'],
-      [{ categoryId: 301 }, 422, 'CATEGORY_NOT_FOUND'],
+      [{ categoryId: 20 }, 422, 'CATEGORY_NOT_FOUND'],
       [{ ownerUserId: 8 }, 422, 'OWNER_NOT_ELIGIBLE'],
       [{ decisionRoleCode: 'evaluator' }, 422, 'DECISION_ROLE_UNKNOWN'],
     ];
@@ -574,7 +586,7 @@ describe('assessment commands (BUY-33, BUY-34)', () => {
   it('recommends an outcome only when findings are complete and screenings reviewed', async () => {
     const body = {
       proposedOutcome: 'qualified',
-      scopeCategoryId: 204,
+      scopeCategoryId: 5,
       scopeMaxValue: MONEY('1500000.00'),
       scopeGeography: 'Botswana',
       conditions: null,
@@ -594,7 +606,7 @@ describe('assessment commands (BUY-33, BUY-34)', () => {
       await as('neo.assessor', q.recommendOutcome, {
         tenant: 'kwu',
         params: { applicationId: 508 },
-        body: { ...body, scopeCategoryId: 205 },
+        body: { ...body, scopeCategoryId: 4 },
       }),
       409,
       'SCREENING_UNREVIEWED',
@@ -625,7 +637,7 @@ describe('assessment commands (BUY-33, BUY-34)', () => {
 describe('decision and monitoring commands (BUY-35)', () => {
   const decision = {
     outcome: 'qualified_with_conditions',
-    scopeCategoryId: 202,
+    scopeCategoryId: 2,
     scopeMaxValue: MONEY('3000000.00'),
     scopeGeography: 'Botswana',
     effectiveFrom: '2026-10-01',
@@ -651,8 +663,8 @@ describe('decision and monitoring commands (BUY-35)', () => {
   it('answers the decision errors', async () => {
     const cases: Array<[number, Record<string, unknown>, number, string]> = [
       [503, {}, 409, 'APPLICATION_NOT_DECISION_PENDING'],
-      [509, { scopeCategoryId: 301 }, 422, 'CATEGORY_NOT_FOUND'],
-      [509, { scopeCategoryId: 204 }, 422, 'SCOPE_EXCEEDS_PROGRAM'],
+      [509, { scopeCategoryId: 20 }, 422, 'CATEGORY_NOT_FOUND'],
+      [509, { scopeCategoryId: 5 }, 422, 'SCOPE_EXCEEDS_PROGRAM'],
     ];
     for (const [applicationId, change, status, code] of cases) {
       expectProblem(
@@ -672,7 +684,7 @@ describe('decision and monitoring commands (BUY-35)', () => {
     const body = {
       ...decision,
       outcome: 'suspended',
-      scopeCategoryId: 203,
+      scopeCategoryId: 3,
       scopeMaxValue: MONEY('5000000.00'),
       blockedGate: 'invitation',
       supersedeReason: 'Insurance lapsed without renewal.',
@@ -686,8 +698,8 @@ describe('decision and monitoring commands (BUY-35)', () => {
     const cases: Array<[number, Record<string, unknown>, number, string]> = [
       [705, {}, 409, 'DECISION_ALREADY_SUPERSEDED'],
       [702, { triggerId: 902 }, 422, 'TRIGGER_NOT_FOUND'],
-      [702, { scopeCategoryId: 301 }, 422, 'CATEGORY_NOT_FOUND'],
-      [702, { scopeCategoryId: 204 }, 422, 'SCOPE_EXCEEDS_PROGRAM'],
+      [702, { scopeCategoryId: 20 }, 422, 'CATEGORY_NOT_FOUND'],
+      [702, { scopeCategoryId: 5 }, 422, 'SCOPE_EXCEEDS_PROGRAM'],
     ];
     for (const [decisionId, change, status, code] of cases) {
       expectProblem(
@@ -745,7 +757,7 @@ describe('decision and monitoring commands (BUY-35)', () => {
     expect(q.assessTrigger.response.parse(assessed.body)).toMatchObject({ status: 'assessed', assessedBy: { userId: 4 } });
     const cases: Array<[number, Record<string, unknown>, number, string]> = [
       [902, {}, 409, 'TRIGGER_ALREADY_CLOSED'],
-      [901, { activeBidsReviewed: false }, 422, 'IMPACT_REVIEW_REQUIRED'],
+      [901, { activeBidsReviewed: false }, 409, 'IMPACT_REVIEW_REQUIRED'],
       [901, { resultingStatus: 'action_taken' }, 422, 'RESULTING_DECISION_REQUIRED'],
       [901, { resultingStatus: 'action_taken', resultingDecisionId: 12345 }, 404, 'DECISION_NOT_FOUND'],
     ];
@@ -822,7 +834,7 @@ describe('supplier isolation (SUP-20, SUP-24)', () => {
 describe('supplier commands', () => {
   const application = {
     programId: 13,
-    scopeCategoryId: 205,
+    scopeCategoryId: 4,
     scopeMaxValue: MONEY('1000000.00'),
     scopeGeography: 'Botswana',
     renewalOfDecisionId: null,
@@ -833,11 +845,11 @@ describe('supplier commands', () => {
     expect(created.status).toBe(201);
     expect(q.createSupplierApplication.response.parse(created.body)).toMatchObject({ status: 'draft', reference: null });
     const cases: Array<[Record<string, unknown>, number, string]> = [
-      [{ programId: 11, scopeCategoryId: 202 }, 409, 'APPLICATION_ALREADY_OPEN'],
-      [{ programId: 12, scopeCategoryId: 202 }, 422, 'SCOPE_OUTSIDE_PROGRAM'],
-      [{ programId: 12, scopeCategoryId: 204, scopeMaxValue: MONEY('9000000.00') }, 422, 'SCOPE_EXCEEDS_PROGRAM'],
+      [{ programId: 11, scopeCategoryId: 2 }, 409, 'APPLICATION_ALREADY_OPEN'],
+      [{ programId: 12, scopeCategoryId: 2 }, 422, 'SCOPE_OUTSIDE_PROGRAM'],
+      [{ programId: 12, scopeCategoryId: 5, scopeMaxValue: MONEY('9000000.00') }, 422, 'SCOPE_EXCEEDS_PROGRAM'],
       [{ programId: 16 }, 422, 'PROGRAM_NOT_OPEN'],
-      [{ renewalOfDecisionId: 701 }, 422, 'DECISION_NOT_RENEWABLE'],
+      [{ renewalOfDecisionId: 701 }, 409, 'DECISION_NOT_RENEWABLE'],
     ];
     for (const [change, status, code] of cases) {
       expectProblem(
@@ -968,10 +980,21 @@ describe('supplier commands', () => {
     }
   });
 
-  it('requests reconsideration of a restricting decision once', async () => {
+  it('requests reconsideration of a restricting decision once, inside its stated window', async () => {
+    // Arrange: decision 702 was decided on 4 May 2026 with a 14-day window; 10 May is inside it.
     const body = { grounds: 'The renewed policy is in place from 9 Oct 2026.', evidenceItemIds: [504] };
-    const requested = await as('chobe-pipe.admin', q.requestReconsideration, { tenant: 'chobe-pipe', params: { decisionId: 702 }, body });
-    expect(requested.status).toBe(201);
+
+    // Act
+    const requested = await at('2026-05-10T08:00:00Z', () =>
+      as('chobe-pipe.admin', q.requestReconsideration, { tenant: 'chobe-pipe', params: { decisionId: 702 }, body }),
+    );
+    const unknownEvidence = await at('2026-05-10T08:00:00Z', () =>
+      as('chobe-pipe.admin', q.requestReconsideration, { tenant: 'chobe-pipe', params: { decisionId: 702 }, body: { ...body, evidenceItemIds: [401] } }),
+    );
+
+    // Assert
+    expect(requested.status, requested.text).toBe(201);
+    expectProblem(unknownEvidence, 422, 'EVIDENCE_NOT_FOUND');
     expectProblem(
       await as('tsodilo.admin', q.requestReconsideration, { tenant: 'tsodilo', params: { decisionId: 701 }, body: { ...body, evidenceItemIds: [] } }),
       409,
@@ -982,11 +1005,34 @@ describe('supplier commands', () => {
       409,
       'RECONSIDERATION_ALREADY_REQUESTED',
     );
-    expectProblem(
-      await as('chobe-pipe.admin', q.requestReconsideration, { tenant: 'chobe-pipe', params: { decisionId: 702 }, body: { ...body, evidenceItemIds: [401] } }),
-      422,
-      'EVIDENCE_NOT_FOUND',
+  });
+
+  it('refuses reconsideration once the stated 14-day window has closed (SUP-24)', async () => {
+    // Arrange: on 30 Sep 2026 Chobe's 4 May decision is months past its window.
+    const body = { grounds: 'The renewed policy is in place from 9 Oct 2026.', evidenceItemIds: [504] };
+
+    // Act
+    const response = await as('chobe-pipe.admin', q.requestReconsideration, { tenant: 'chobe-pipe', params: { decisionId: 702 }, body });
+    const lastMoment = await at('2026-05-18T08:29:59Z', () =>
+      as('chobe-pipe.admin', q.getSupplierDecision, { tenant: 'chobe-pipe', params: { decisionId: 702 } }),
     );
+    const closedAtDeadline = await at('2026-05-18T08:30:00Z', () =>
+      as('chobe-pipe.admin', q.getSupplierDecision, { tenant: 'chobe-pipe', params: { decisionId: 702 } }),
+    );
+
+    // Assert
+    expectProblem(response, 409, 'RECONSIDERATION_WINDOW_CLOSED');
+    const open = q.getSupplierDecision.response.parse(lastMoment.body);
+    expect(open.reconsiderationDeadline).toEqual({ at: '2026-05-18T08:30:00.000Z', timeZone: 'Africa/Gaborone' });
+    expect(open.canRequestReconsideration).toBe(true);
+    expect(q.getSupplierDecision.response.parse(closedAtDeadline.body).canRequestReconsideration).toBe(false);
+  });
+
+  it('hides the reconsideration action on a decision past its window today', async () => {
+    const response = await as('chobe-pipe.admin', q.getSupplierDecision, { tenant: 'chobe-pipe', params: { decisionId: 702 } });
+    const detail = q.getSupplierDecision.response.parse(response.body);
+    expect(detail.reconsiderationDeadline.at < NOW.toISOString()).toBe(true);
+    expect(detail.canRequestReconsideration).toBe(false);
   });
 
   it('supplies updated evidence for a current decision without relabelling anything (AC-09)', async () => {
@@ -1008,7 +1054,7 @@ describe('supplier commands', () => {
     );
     expectProblem(
       await as('limpopo-env.admin', q.supplyDecisionEvidence, { tenant: 'limpopo-env', params: { decisionId: 706 }, body: { evidenceItemId: 803, note: null } }),
-      422,
+      409,
       'EVIDENCE_NOT_CURRENT',
     );
   });

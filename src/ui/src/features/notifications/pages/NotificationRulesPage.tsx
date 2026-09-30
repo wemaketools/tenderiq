@@ -3,7 +3,6 @@
  * escalations, plus the register of delivery exceptions (BR-42). Messages are audience-specific and general alerts
  * never embed confidential bid content (BR-43).
  */
-import { useNavigate } from 'react-router';
 
 import { NOTIFICATION_RULES_EVENT_TYPE, NOTIFICATIONS_CATEGORY } from '@contracts/enums';
 import type { NotificationRulesEventType, NotificationsCategory } from '@contracts/enums';
@@ -68,7 +67,6 @@ function sortField(value: string): SortField {
 }
 
 export default function NotificationRulesPage() {
-  const navigate = useNavigate();
   const timeZone = useDisplayTimeZone();
   const [filters, setFilters, clearFilters] = useScreenFilters('ADM-12', DEFAULTS);
   const view = filters.view === 'exceptions' ? 'exceptions' : 'rules';
@@ -254,7 +252,7 @@ export default function NotificationRulesPage() {
           rows={query.data?.items}
           rowKey={(row) => String(row.id)}
           rowLabel={(row) => tEnum('notification_rules.event_type', row.eventType)}
-          onRowClick={(row) => void navigate(notificationPaths.rule(row.id))}
+          rowHref={(row) => notificationPaths.rule(row.id)}
           loading={query.isFetching}
           error={query.error}
           onRetry={query.reload}

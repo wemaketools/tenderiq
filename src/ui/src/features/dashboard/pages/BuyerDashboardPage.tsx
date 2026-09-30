@@ -53,6 +53,7 @@ import {
   formatInstantDate,
   formatMoney,
 } from '../../../lib/format';
+import { clockDate } from '../../../lib/clock';
 import { t, tEnum } from '../../../lib/i18n';
 import {
   QUICK_RANGES,
@@ -169,7 +170,7 @@ export default function BuyerDashboardPage() {
             onSelect={(id) => {
               const range = oneOf(id, QUICK_RANGES);
               if (range === undefined) return;
-              setFilters({ range, ...quickRangeDates(range, new Date()) });
+              setFilters({ range, ...quickRangeDates(range, clockDate()) });
             }}
           />
         }
@@ -325,7 +326,11 @@ function DashboardBody({ data }: { readonly data: BuyerDashboard }) {
         <Card
           title={t('dashboard.pipeline.title')}
           subtitle={t('dashboard.pipeline.subtitle', { count: stageTotal })}
-          actions={<CardLink to="/buyer/tenders">{t('dashboard.pipeline.viewAll')}</CardLink>}
+          actions={
+            data.pipelineByStage.restricted ? undefined : (
+              <CardLink to="/buyer/tenders">{t('dashboard.pipeline.viewAll')}</CardLink>
+            )
+          }
         >
           {data.pipelineByStage.restricted ? (
             <RestrictedState compact description={t('dashboard.restricted.pipeline')} />
@@ -352,7 +357,11 @@ function DashboardBody({ data }: { readonly data: BuyerDashboard }) {
         <Card
           title={t('dashboard.deadlines.title')}
           subtitle={t('dashboard.deadlines.subtitle')}
-          actions={<CardLink to="/buyer/tenders">{t('dashboard.deadlines.viewAll')}</CardLink>}
+          actions={
+            data.deadlines.restricted ? undefined : (
+              <CardLink to="/buyer/tenders">{t('dashboard.deadlines.viewAll')}</CardLink>
+            )
+          }
         >
           {data.deadlines.restricted ? (
             <RestrictedState compact description={t('dashboard.restricted.deadlines')} />
@@ -383,6 +392,7 @@ function DashboardBody({ data }: { readonly data: BuyerDashboard }) {
               horizontal
               height={Math.max(180, data.workload.items.length * 48)}
               label={t('dashboard.workload.title')}
+              categoryLabel={t('dashboard.workload.owner')}
               series={[
                 {
                   key: 'activeEvents',
@@ -486,7 +496,11 @@ function ApprovalsCard({ data }: { readonly data: BuyerDashboard }) {
       flush
       title={t('dashboard.approvals.title')}
       subtitle={t('dashboard.approvals.subtitle')}
-      actions={<CardLink to="/me/tasks">{t('dashboard.approvals.viewAll')}</CardLink>}
+      actions={
+        data.approvals.restricted ? undefined : (
+          <CardLink to="/me/tasks">{t('dashboard.approvals.viewAll')}</CardLink>
+        )
+      }
     >
       <DataTable
         caption={t('dashboard.approvals.title')}
@@ -558,7 +572,11 @@ function RenewalsCard({ data }: { readonly data: BuyerDashboard }) {
       flush
       title={t('dashboard.renewals.title')}
       subtitle={t('dashboard.renewals.subtitle')}
-      actions={<CardLink to="/buyer/contracts">{t('dashboard.renewals.viewAll')}</CardLink>}
+      actions={
+        data.renewals.restricted ? undefined : (
+          <CardLink to="/buyer/contracts">{t('dashboard.renewals.viewAll')}</CardLink>
+        )
+      }
     >
       <DataTable
         caption={t('dashboard.renewals.title')}

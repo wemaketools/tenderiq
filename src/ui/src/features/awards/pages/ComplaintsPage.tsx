@@ -3,7 +3,6 @@
  * timeliness, independent case owner, blocking hold, outcome and response deadline. The procurement hold is shown
  * separately from the case status (PRD §8.3).
  */
-import { useNavigate } from 'react-router';
 
 import { COMPLAINT_SORT_FIELDS, listComplaints } from '@contracts/awards';
 import type { ComplaintRow } from '@contracts/awards';
@@ -53,7 +52,6 @@ const DEFAULTS = {
 };
 
 export default function ComplaintsPage() {
-  const navigate = useNavigate();
   const timeZone = useOfficialTimeZone();
   const [filters, setFilters, clearFilters] = useScreenFilters('BUY-29-complaints', DEFAULTS);
 
@@ -183,7 +181,7 @@ export default function ComplaintsPage() {
   ];
 
   return (
-    <>
+    <div className="tiq-page">
       <PageHeader title={t('awards.cases.title')} subtitle={t('awards.cases.intro')} />
       <CasesTabs />
       <FilterBar label={t('awards.complaints.filters')} onClear={clearFilters} canClear={filtered}>
@@ -267,7 +265,7 @@ export default function ComplaintsPage() {
           rows={query.data?.items}
           rowKey={(row) => String(row.complaintId)}
           rowLabel={(row) => `${row.reference} ${row.complainant.name}`}
-          onRowClick={(row) => void navigate(awardPaths.complaint(row.complaintId))}
+          rowHref={(row) => awardPaths.complaint(row.complaintId)}
           loading={query.isFetching}
           error={query.error}
           onRetry={query.reload}
@@ -293,6 +291,6 @@ export default function ComplaintsPage() {
           }
         />
       </Card>
-    </>
+    </div>
   );
 }

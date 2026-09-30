@@ -149,7 +149,7 @@ export default function SupplierClarificationsPage() {
           loading={openAddenda.isFetching}
           error={openAddenda.error}
           onRetry={openAddenda.reload}
-          onRowClick={(row) => navigate(supplierPaths.addendum(row.id))}
+          rowHref={(row) => supplierPaths.addendum(row.id)}
           rowLabel={(row) =>
             t('clarifications.addenda.rowLabel', {
               no: row.number,
@@ -229,7 +229,7 @@ export default function SupplierClarificationsPage() {
           loading={tenders.isFetching}
           error={tenders.error}
           onRetry={tenders.reload}
-          onRowClick={(row) => navigate(supplierPaths.tender(row.tenderId))}
+          rowHref={(row) => supplierPaths.tender(row.tenderId)}
           rowLabel={(row) => `${row.reference} ${row.title}`}
           empty={
             <EmptyState

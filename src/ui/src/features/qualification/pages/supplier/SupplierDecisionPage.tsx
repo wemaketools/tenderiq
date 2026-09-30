@@ -30,6 +30,7 @@ import {
   EmptyState,
   FormErrorSummary,
   MultiSelect,
+  OfficialDeadline,
   PageHeader,
   QueryView,
   Reference,
@@ -247,6 +248,10 @@ function DecisionView({ decision }: { readonly decision: SupplierDecisionDetail 
                 value: decision.supplierExplanation,
               },
               { label: t('qualification.terms.appealRoute'), value: decision.appealRoute },
+              {
+                label: t('qualification.supplierDecision.reconsiderUntil'),
+                value: <OfficialDeadline deadline={decision.reconsiderationDeadline} />,
+              },
               {
                 label: t('qualification.decision.decidedAt'),
                 value: formatDateTime(decision.decidedAt, timeZone),

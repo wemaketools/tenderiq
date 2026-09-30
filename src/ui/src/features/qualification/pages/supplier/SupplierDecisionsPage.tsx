@@ -4,7 +4,6 @@
  * conditions and the blocked gate, expiry and renewal deadlines. Each decision opens for tracking actions, supplying
  * updated evidence, renewing and requesting reconsideration.
  */
-import { useNavigate } from 'react-router';
 
 import {
   SUPPLIER_DECISION_SORT_FIELDS,
@@ -56,7 +55,6 @@ const DEFAULTS = {
 };
 
 export default function SupplierDecisionsPage() {
-  const navigate = useNavigate();
   const [filters, setFilters, clearFilters] = useScreenFilters('SUP-24', DEFAULTS);
   const overview = useApiQuery(api.getSupplierOverview, {});
   const query = useApiQuery(api.listSupplierDecisions, {
@@ -297,7 +295,7 @@ export default function SupplierDecisionsPage() {
                 rows={group.rows}
                 rowKey={(row) => String(row.id)}
                 rowLabel={(row) => `${row.program.programName} ${row.buyer.name}`}
-                onRowClick={(row) => void navigate(supplierQualificationPaths.decision(row.id))}
+                rowHref={(row) => supplierQualificationPaths.decision(row.id)}
               />
             </Card>
           ))}

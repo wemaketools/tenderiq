@@ -16,7 +16,7 @@ export function registerPublic(app: MockApp): void {
     const tender =
       buyer === undefined || buyer.kind !== 'buyer' || buyer.status !== 'active'
         ? undefined
-        : CLARIFICATION_TENDERS.find((row) => row.tenantId === buyer.id && row.reference === params.ref && row.onPublicPortal);
+        : CLARIFICATION_TENDERS.find((row) => row.tenantId === buyer.id && row.reference === params.reference && row.onPublicPortal);
     if (buyer === undefined || tender === undefined) {
       return notFound();
     }

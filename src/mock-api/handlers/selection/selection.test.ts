@@ -18,6 +18,7 @@ const ODC_OFFICER = 'officer.odc@tenderiq.local';
 const SUPPORT = 'support.agent@tenderiq.local';
 const LIMPOPO = 'limpopo-env.admin@tenderiq.local';
 const SEROWE = 'serowe-ict.bidmanager@tenderiq.local';
+const TSODILO_ADMIN = 'tsodilo.admin@tenderiq.local';
 const TSODILO_BID = 'tsodilo.bidmanager@tenderiq.local';
 const TSODILO_CONTRIBUTOR = 'tsodilo.contributor@tenderiq.local';
 const CHOBE = 'chobe-pipe.bidmanager@tenderiq.local';
@@ -196,6 +197,66 @@ describe('supplier isolation (SUP-18, SUP-19)', () => {
   });
 });
 
+describe('issued final-offer round (SUP-19, BR-30)', () => {
+  it('shows each invited supplier the issued Lot 3 round with instructions, the official deadline and its own response link', async () => {
+    // Act
+    const list = E.listSupplierFinalOffers.response.parse(
+      (await api.callAs(TSODILO_BID, E.listSupplierFinalOffers, { tenant: 'tsodilo' })).body,
+    );
+    const detail = E.getSupplierFinalOffer.response.parse(
+      (await api.callAs(TSODILO_BID, E.getSupplierFinalOffer, { tenant: 'tsodilo', params: { roundId: 2 } })).body,
+    );
+    const chobe = E.getSupplierFinalOffer.response.parse(
+      (await api.callAs(CHOBE, E.getSupplierFinalOffer, { tenant: 'chobe-pipe', params: { roundId: 2 } })).body,
+    );
+
+    // Assert
+    expect(list.items.map((row) => row.roundId)).toEqual([2]);
+    expect(detail).toMatchObject({
+      status: 'issued',
+      tender: { reference: 'T-2026-0001' },
+      deadline: { at: '2026-10-16T08:00:00Z', timeZone: 'Africa/Gaborone' },
+      finalOfferReceivedAt: null,
+      responseWorkspaceLink: '/supplier/responses/1',
+    });
+    expect(detail.instructions.length).toBeGreaterThan(0);
+    expect(chobe.responseWorkspaceLink).toBe('/supplier/responses/2');
+  });
+
+  it('hides the round from a supplier that was not invited', async () => {
+    expectProblem(
+      await api.callAs(SEROWE, E.getSupplierFinalOffer, { tenant: 'serowe-ict', params: { roundId: 2 } }),
+      404,
+      'NOT_FOUND',
+    );
+  });
+
+  it('authorizes the round on T-2026-0001 by the approved reopen decision and refuses a second open round', async () => {
+    const summary = E.getTender.response.parse(
+      (await api.callAs(OFFICER, E.getTender, { tenant: 'kwu', params: { tenderId: 1 } })).body,
+    );
+    expect(summary.gates.finalOffer.allowed).toBe(true);
+    expectProblem(
+      await api.callAs(OFFICER, E.createFinalOfferRound, {
+        tenant: 'kwu',
+        body: {
+          tenderId: 1,
+          lotId: 103,
+          instructions: 'Submit a final offer',
+          permittedChanges: 'Prices only',
+          deadline: '2026-12-01T08:00:00Z',
+          openingRules: 'Opened with a witness',
+          evaluationTreatment: 'Commercial score only',
+          proceduralAuthorityRef: 'Approved reopen decision',
+          inviteeBidIds: [104, 105],
+        },
+      }),
+      409,
+      'FINAL_OFFER_ROUND_OPEN',
+    );
+  });
+});
+
 describe('supplier commands', () => {
   it('confirms an open invitation and refuses one whose session was cancelled or already answered', async () => {
     const confirmed = await api.callAs(LIMPOPO, E.respondToInvite, {
@@ -238,6 +299,27 @@ describe('supplier commands', () => {
       body,
     });
     expectProblem(closed, 409, 'ROUND_NOT_AWAITING_RESPONSE');
+  });
+
+  it('refuses a round response from the supplier administrator or a bid manager without submission authority', async () => {
+    // Arrange
+    const body = { supplierProposal: 'Service credits capped at 6%.', internalApprovalConfirmed: true };
+
+    // Act
+    const byAdmin = await api.callAs(TSODILO_ADMIN, E.respondToRound, {
+      tenant: 'tsodilo',
+      params: { negotiationId: 2, roundId: 2 },
+      body,
+    });
+    const byBidManager = await api.callAs(TSODILO_BID, E.respondToRound, {
+      tenant: 'tsodilo',
+      params: { negotiationId: 2, roundId: 2 },
+      body,
+    });
+
+    // Assert
+    expectProblem(byAdmin, 403, 'FORBIDDEN');
+    expectProblem(byBidManager, 403, 'FORBIDDEN');
   });
 });
 

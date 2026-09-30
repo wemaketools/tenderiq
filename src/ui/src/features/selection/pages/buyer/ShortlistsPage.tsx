@@ -2,7 +2,6 @@
  * BUY-23 — Shortlists and stage progression: every shortlist with its stage, selection rule and threshold, included
  * and excluded counts, approval and outcome-notice state (FR-15, AC-22).
  */
-import { useNavigate } from 'react-router';
 
 import { SHORTLISTS_STATUS } from '@contracts/enums';
 import { selectionEndpoints } from '@contracts/selection';
@@ -49,7 +48,6 @@ const DEFAULTS = {
 };
 
 export default function ShortlistsPage() {
-  const navigate = useNavigate();
   const timeZone = useOfficialTimeZone();
   const canManage = usePermission(SELECTION_MANAGE);
   const [filters, setFilters, clearFilters] = useScreenFilters('BUY-23', DEFAULTS);
@@ -256,7 +254,7 @@ export default function ShortlistsPage() {
           rows={query.data?.items}
           rowKey={(row) => String(row.shortlistId)}
           rowLabel={(row) => `${row.tender.reference} ${row.tender.title}`}
-          onRowClick={(row) => void navigate(selectionPaths.shortlist(row.shortlistId))}
+          rowHref={(row) => selectionPaths.shortlist(row.shortlistId)}
           loading={query.isFetching}
           error={query.error}
           onRetry={query.reload}

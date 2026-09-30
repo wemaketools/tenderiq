@@ -67,6 +67,40 @@ describe('RequestRegisterPage (BUY-02)', () => {
     expect(screen.getByText('Open requests').closest('.tiq-kpi')).toHaveTextContent('2');
   });
 
+  it('shows each status quick filter with its count inline, not as an absolutely positioned badge, when the summary loads', async () => {
+    installFetch({
+      'GET /api/v1/buyer/requests': () => ({ body: page([submitted]) }),
+      'GET /api/v1/buyer/request-summary': () => ({
+        body: { ...summary, byStatus: [{ status: 'submitted', count: 7 }] },
+      }),
+      'GET /api/v1/buyer/request-options': () => ({ body: options }),
+    });
+    renderPage(<RequestRegisterPage />, { route: '/buyer/requests' });
+
+    const group = await screen.findByRole('group', { name: 'Requests by status' });
+    const chip = within(group).getByRole('button');
+    expect(chip).toHaveTextContent('Submitted7');
+    expect(chip.querySelector('.tiq-count')).toBeNull();
+    expect(within(chip).getByText('7')).toHaveClass('tiq-tab-count');
+  });
+
+  it('keeps the request column readable and clamps the purpose to one line with the full text in its title', async () => {
+    installFetch({
+      'GET /api/v1/buyer/requests': () => ({ body: page([rowOf(request)]) }),
+      'GET /api/v1/buyer/request-summary': () => ({ body: summary }),
+      'GET /api/v1/buyer/request-options': () => ({ body: options }),
+    });
+    renderPage(<RequestRegisterPage />, { route: '/buyer/requests' });
+
+    const table = await screen.findByRole('table', { name: 'Request register' });
+    const header = within(table).getByRole('columnheader', { name: /Request$/ });
+    expect(header.style.minWidth).toBe('18rem');
+    const purpose = within(table).getByTestId('request-purpose');
+    expect(purpose).toHaveAttribute('title', request.problemStatement ?? '');
+    expect(purpose).toHaveStyle({ whiteSpace: 'nowrap', textOverflow: 'ellipsis' });
+    expect(within(table).getByText('15 days').closest('td')).not.toHaveClass('tiq-num');
+  });
+
   it('sends the status filter to the API when a status is chosen', async () => {
     const { requests } = installFetch({
       'GET /api/v1/buyer/requests': () => ({ body: page([submitted]) }),

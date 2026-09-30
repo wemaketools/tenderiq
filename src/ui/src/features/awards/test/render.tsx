@@ -22,7 +22,7 @@ export const SUPPLIER_ALL: readonly PermissionCode[] = [
   'supplier.outcomes.view',
   'supplier.complaint.submit',
   'supplier.notices.acknowledge',
-  'supplier.contract.participate',
+  'supplier.response.submit',
 ];
 
 interface Options {

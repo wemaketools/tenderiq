@@ -71,6 +71,7 @@ export default {
     reapproval: 'Re-approve the changed business case',
     selfApproval: 'Another approver must decide (you raised this request)',
     escalate: 'Escalate to an approver with sufficient authority',
+    awaiting: "Awaiting {name}'s decision (above your authority)",
     none: 'No further action',
     strategy: {
       fairness: 'Decide the pending fairness review',

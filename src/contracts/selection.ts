@@ -127,11 +127,13 @@ export const SUPPLIER_NEGOTIATION_VIEW_PERMISSIONS = [
   'supplier.pricing.edit',
 ] as const satisfies EndpointPermission;
 
-/** Supplier roles that may send an internally approved round response for the organization (SUP-19). */
-export const SUPPLIER_ROUND_RESPOND_PERMISSIONS = [
-  'supplier.response.approve',
-  'supplier.notices.acknowledge',
-] as const satisfies EndpointPermission;
+/**
+ * Supplier roles that may send an internally approved round response for the organization (SUP-19). A round
+ * response commits a commercial proposal, so it needs the explicitly assigned submission authority (PRD §4.1),
+ * exactly like the assessment-request response; the organization administrator and a bid manager without that
+ * authority are refused.
+ */
+export const SUPPLIER_ROUND_RESPOND_PERMISSIONS = ['supplier.response.submit'] as const satisfies EndpointPermission;
 
 // ---------------------------------------------------------------------------------------------------------
 // Building blocks

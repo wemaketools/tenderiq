@@ -206,7 +206,7 @@ export default function SupportCasesPage() {
           onRetry={cases.reload}
           sort={{ key: filters.sort, dir: filters.dir as 'asc' | 'desc' }}
           onSortChange={(next) => setFilters({ sort: next.key, dir: next.dir, page: 1 })}
-          onRowClick={(row) => navigate(opsPaths.supportCase(row.id))}
+          rowHref={(row) => opsPaths.supportCase(row.id)}
           rowLabel={(row) => t('ops.support.rowLabel', { reference: row.reference })}
           empty={
             <EmptyState

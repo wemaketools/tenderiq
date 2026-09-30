@@ -3,7 +3,6 @@
  * status. Final offers require explicit procedural authority; where the issued conditions do not permit them the
  * round stays blocked pending a process decision (AC-23).
  */
-import { useNavigate } from 'react-router';
 
 import { FINAL_OFFER_ROUNDS_STATUS } from '@contracts/enums';
 import { selectionEndpoints } from '@contracts/selection';
@@ -51,7 +50,6 @@ const DEFAULTS = {
 };
 
 export default function FinalOffersPage() {
-  const navigate = useNavigate();
   const timeZone = useOfficialTimeZone();
   const canManage = usePermission(SELECTION_MANAGE);
   const [filters, setFilters, clearFilters] = useScreenFilters('BUY-27-BAFO', DEFAULTS);
@@ -223,7 +221,7 @@ export default function FinalOffersPage() {
           rows={query.data?.items}
           rowKey={(row) => String(row.roundId)}
           rowLabel={(row) => `${row.tender.reference} ${t('selection.finalOffers.round')}`}
-          onRowClick={(row) => void navigate(selectionPaths.finalOffer(row.roundId))}
+          rowHref={(row) => selectionPaths.finalOffer(row.roundId)}
           loading={query.isFetching}
           error={query.error}
           onRetry={query.reload}

@@ -40,6 +40,7 @@ import {
   useToast,
 } from '../../../components/ui';
 import type { DataTableColumn } from '../../../components/ui';
+import { clockDate } from '../../../lib/clock';
 import { formatCount, formatOfficialTime } from '../../../lib/format';
 import { t, tEnum } from '../../../lib/i18n';
 import {
@@ -168,7 +169,7 @@ export default function NotificationCenterPage() {
     const tenantId = positiveId(filters.tenant) ?? null;
     try {
       const result = await markAll.mutate({ body: tenantId === null ? {} : { tenantId } });
-      setReadAll({ tenantId, at: new Date().toISOString() });
+      setReadAll({ tenantId, at: clockDate().toISOString() });
       dispatch(
         notificationCountsLoaded({
           unread: result.summary.unread,

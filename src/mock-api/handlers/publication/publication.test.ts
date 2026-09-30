@@ -15,12 +15,16 @@ import type { AnyEndpoint } from '../../../contracts/endpoint.js';
 import {
   BuyerPortal,
   InvitationDetail,
+  OpportunityFilters,
   OpportunityWorkspace,
   ParticipantDetail,
   PublicNotice,
   PublicationOverview,
   publicationEndpoints as ep,
 } from '../../../contracts/publication.js';
+import { ADDENDA, CLARIFICATION_TENDERS } from '../../fixtures/clarifications/index.js';
+import { TENANT_IDS } from '../../fixtures/platform.js';
+import { findFixtureTask } from '../../fixtures/tasks.js';
 import { createTestMockApp } from '../../testing/index.js';
 import type { TestMockApp, TestResponse } from '../../testing/index.js';
 import { register } from './index.js';
@@ -235,9 +239,31 @@ describe('buyer publication (BUY-14, AC-33)', () => {
     expect(overview.isAdvertised).toBe(false);
     expect(overview.checks.find((check) => check.id === 'external_confirmation')?.status).toBe('blocking');
     const failed = overview.publications.find((row) => row.id === 222);
-    expect(failed).toMatchObject({ status: 'failed', reconciled: false, isCurrentVersion: true, exception: expect.objectContaining({ status: 'open', taskId: 7101 }) });
+    // The exception links only a task the tasks fixtures hold for KWU (the reconciliation task 190), never a dead id.
+    const reconciliationTask = findFixtureTask(190);
+    expect(failed).toMatchObject({
+      status: 'failed',
+      reconciled: false,
+      isCurrentVersion: true,
+      exception: expect.objectContaining({ status: 'open', taskId: reconciliationTask?.tenantId === TENANT_IDS.kwu ? 190 : null }),
+    });
     expect(overview.capabilities).toMatchObject({ canRetryExternal: true, canReconcile: true, canPublish: false, canDistributeInvitations: true });
     expect(overview.audience).toMatchObject({ publicNoticePath: '/opportunities/kwu/T-2026-0002', pendingInvitationCount: 1 });
+  });
+
+  it('offers no public notice link for a tender that is not released yet (no dead link)', async () => {
+    const response = await api.callAs(TEBOGO, ep.publicationOverview, { tenant: 'kwu', params: { tenderId: 5 } });
+    expect(response.status).toBe(200);
+    const overview = PublicationOverview.parse(response.body);
+    expect(overview.tender.releasedAt).toBeNull();
+    expect(overview.audience.publicNoticePath).toBeNull();
+    const notice = await anon(ep.publicNotice, { buyerSlug: 'kwu', reference: 'T-2026-0005' });
+    expect(notice.status).toBe(404);
+  });
+
+  it('shows the release approval decided on the date the tenders fixtures record (one approval record)', async () => {
+    const overview = PublicationOverview.parse((await api.callAs(TEBOGO, ep.publicationOverview, { tenant: 'kwu', params: { tenderId: 2 } })).body);
+    expect(overview.releaseApproval).toMatchObject({ approvalRequestId: 202, status: 'approved', subjectVersion: 2, approvedAt: '2026-09-12T08:30:00Z' });
   });
 
   it('shows an invitation-only event without a public notice path', async () => {
@@ -398,9 +424,11 @@ describe('buyer participants (BUY-15)', () => {
     expect((response.body as { total: number }).total).toBe(5);
     expect(response.text).not.toMatch(/attractiveness|internalRationale|pursuit/i);
     const outstanding = await api.callAs(TEBOGO, ep.listParticipants, { tenant: 'kwu', params: { tenderId: 2 }, query: { outstandingAcknowledgments: true } });
-    expect(new Set(items(outstanding, (row) => (row as { supplier: { name: string } }).supplier.name))).toEqual(
-      new Set(['Chobe Pipe & Valve Supplies', 'Makgadikgadi Civil Works']),
-    );
+    expect(new Set(items(outstanding, (row) => (row as { supplier: { name: string } }).supplier.name))).toEqual(new Set(['Chobe Pipe & Valve Supplies']));
+    // Makgadikgadi was invited after Addendum 1 and received version 2: it has nothing to acknowledge.
+    const all = (response.body as { items: Array<{ id: number; acknowledgments: { required: number; acknowledged: number } }> }).items;
+    expect(all.find((row) => row.id === 206)?.acknowledgments).toEqual({ required: 0, acknowledged: 0 });
+    expect(all.find((row) => row.id === 204)?.acknowledgments).toEqual({ required: 1, acknowledged: 1 });
     const invited = await api.callAs(TEBOGO, ep.listParticipants, { tenant: 'kwu', params: { tenderId: 2 }, query: { invitationStatus: 'invited' } });
     expect(items(invited, (row) => (row as { id: number }).id)).toEqual([206]);
   });
@@ -505,9 +533,10 @@ describe('buyer participants (BUY-15)', () => {
       total: 5,
       invitationsPending: 1,
       accessRequestsPending: 0,
-      acknowledgmentsOutstanding: 2,
+      acknowledgmentsOutstanding: 1,
       intendsToBid: 4,
-      acknowledgmentSubjects: [expect.objectContaining({ subjectId: 21, acknowledgedCount: 3, requiredCount: 5 })],
+      // The four recipients of Addendum 1 (BUY-17), of which three acknowledged.
+      acknowledgmentSubjects: [expect.objectContaining({ subjectId: 21, acknowledgedCount: 3, requiredCount: 4 })],
       capabilities: { canInvite: true, canManage: true },
     });
   });
@@ -576,7 +605,8 @@ describe('supplier discovery and workspace (SUP-06, SUP-08)', () => {
     expect(response.status).toBe(200);
     const workspace = OpportunityWorkspace.parse(response.body);
     const blocking = workspace.readiness.filter((check) => check.status === 'blocking').map((check) => check.id);
-    expect(blocking).toEqual(expect.arrayContaining(['invitation', 'acknowledgments']));
+    expect(blocking).toEqual(['invitation']);
+    expect(workspace.readiness.find((check) => check.id === 'acknowledgments')?.status).toBe('passed');
     expect(workspace.documents.find((document) => document.documentId === 7023)).toMatchObject({ available: false });
     expect(workspace.capabilities.canStartResponse).toBe(false);
     const adminOnly = await api.callAs(MAKGADIKGADI, ep.startResponse, { tenant: 'makgadikgadi', params: { tenderId: 2 } });
@@ -587,18 +617,40 @@ describe('supplier discovery and workspace (SUP-06, SUP-08)', () => {
     expect(problemCode(download)).toBe('DOCUMENT_ACCESS_NOT_GRANTED');
   });
 
-  it('locks every restricted document of an uninvited organization whose access request is pending (BR-15)', async () => {
-    const workspace = OpportunityWorkspace.parse((await api.callAs(MAKGADIKGADI, ep.opportunityWorkspace, { tenant: 'makgadikgadi', params: { tenderId: 6 } })).body);
-    expect(workspace.documents.map((document) => [document.documentId, document.available, document.lockedReason])).toEqual([
-      [7061, false, 'Your access request awaits the buyer’s decision.'],
-      [7062, false, 'Your access request awaits the buyer’s decision.'],
-      [7063, false, 'Your access request awaits the buyer’s decision.'],
-    ]);
+  it('hides an invitation-only event from an organization whose forwarded-invitation access request is pending (PRD §7.5, BR-15)', async () => {
+    const workspace = await api.callAs(MAKGADIKGADI, ep.opportunityWorkspace, { tenant: 'makgadikgadi', params: { tenderId: 6 } });
+    expect(workspace.status).toBe(404);
+    expect(problemCode(workspace)).toBe('OPPORTUNITY_NOT_FOUND');
+    expect(workspace.text).not.toMatch(/chlorine|dosing|sha256/i);
+    const list = items(await api.callAs(MAKGADIKGADI, ep.listOpportunities, { tenant: 'makgadikgadi', query: { pageSize: 100, includeDismissed: true } }), refOf);
+    expect(list).not.toContain('T-2026-0006');
+    const filters = OpportunityFilters.parse((await api.callAs(MAKGADIKGADI, ep.opportunityFilters, { tenant: 'makgadikgadi' })).body);
+    expect(filters.categories.map((option) => option.value)).not.toContain('WTR-DOSE');
     for (const documentId of [7061, 7062, 7063]) {
       const download = await api.callAs(MAKGADIKGADI, ep.opportunityDocumentDownload, { tenant: 'makgadikgadi', params: { tenderId: 6, documentId } });
-      expect(download.status).toBe(403);
-      expect(problemCode(download)).toBe('DOCUMENT_ACCESS_NOT_GRANTED');
+      expect(download.status).toBe(404);
+      expect(problemCode(download)).toBe('OPPORTUNITY_NOT_FOUND');
     }
+    // The requester follows its own request under /supplier/invitations, without a link to the hidden event.
+    const request = InvitationDetail.parse((await api.callAs(MAKGADIKGADI, ep.getInvitation, { tenant: 'makgadikgadi', params: { participantId: 606 } })).body);
+    expect(request).toMatchObject({ kind: 'access_request', accessStatus: 'requested', opportunityPath: null });
+    // Invited organizations still see it.
+    const invited = await api.callAs(CHOBE_BM, ep.opportunityWorkspace, { tenant: 'chobe-pipe', params: { tenderId: 6 } });
+    expect(invited.status).toBe(200);
+  });
+
+  it('hides a restricted event from a denied applicant but lets it ask again through its request', async () => {
+    const workspace = await api.callAs(MAKGADIKGADI, ep.opportunityWorkspace, { tenant: 'makgadikgadi', params: { tenderId: 9 } });
+    expect(problemCode(workspace)).toBe('OPPORTUNITY_NOT_FOUND');
+    const admitted = await api.callAs(SEROWE_BM, ep.opportunityWorkspace, { tenant: 'serowe-ict', params: { tenderId: 9 } });
+    expect(admitted.status).toBe(200);
+    const again = await api.callAs(MAKGADIKGADI, ep.requestAccess, {
+      tenant: 'makgadikgadi',
+      params: { tenderId: 9 },
+      body: { reason: 'We now partner with an acoustic specialist.', contactName: 'Sethunya Makgadi', contactEmail: 'makgadikgadi.admin@tenderiq.local' },
+    });
+    // Reached (not 404): the event's response window has closed.
+    expect(problemCode(again)).toBe('NOTICE_NOT_OPEN');
   });
 
   it('offers restricted access, the confidentiality undertaking and lot selection on T-2026-0011', async () => {
@@ -618,7 +670,7 @@ describe('supplier discovery and workspace (SUP-06, SUP-08)', () => {
     expect(requested.body).toMatchObject({ source: 'access_request', accessStatus: 'requested' });
 
     const chobe = OpportunityWorkspace.parse((await api.callAs(CHOBE_BM, ep.opportunityWorkspace, { tenant: 'chobe-pipe', params: { tenderId: 11 } })).body);
-    expect(chobe.capabilities).toMatchObject({ canAcceptConfidentiality: true, canSelectLots: true, canAcknowledge: true, canRequestAccess: false });
+    expect(chobe.capabilities).toMatchObject({ canAcceptConfidentiality: true, canSelectLots: true, canAcknowledge: false, canRequestAccess: false });
     expect(chobe.lots.map((entry) => [entry.lotId, entry.eligible, entry.selected])).toEqual([
       [1101, true, false],
       [1102, true, false],
@@ -682,7 +734,7 @@ describe('supplier discovery and workspace (SUP-06, SUP-08)', () => {
 
   it('refuses lot selection on a closed event and watchlist entries for hidden events', async () => {
     const lots = await api.callAs(TSODILO_BM, ep.selectLots, { tenant: 'tsodilo', params: { tenderId: 1 }, body: { lotIds: [101] } });
-    const noLot = await api.callAs(TSODILO_BM, ep.selectLots, { tenant: 'tsodilo', params: { tenderId: 2 }, body: { lotIds: [201] } });
+    const noLot = await api.callAs(TSODILO_BM, ep.selectLots, { tenant: 'tsodilo', params: { tenderId: 2 }, body: { lotIds: [299] } });
     const hidden = await api.callAs(SEROWE_BM, ep.addToWatchlist, { tenant: 'serowe-ict', body: { tenderId: 6 } });
     const duplicate = await api.callAs(TSODILO_BM, ep.addToWatchlist, { tenant: 'tsodilo', body: { tenderId: 2 } });
     const added = await api.callAs(TSODILO_BM, ep.addToWatchlist, { tenant: 'tsodilo', body: { tenderId: 11 } });
@@ -822,7 +874,8 @@ describe('supplier invitations (SUP-07)', () => {
     const notGranted = await api.callAs(MAKGADIKGADI, ep.acceptConfidentiality, { tenant: 'makgadikgadi', params: { tenderId: 6 }, body: { accept: true } });
     expect(problemCode(already)).toBe('CONFIDENTIALITY_ALREADY_ACCEPTED');
     expect(problemCode(notRequired)).toBe('CONFIDENTIALITY_NOT_REQUIRED');
-    expect(problemCode(notGranted)).toBe('ACCESS_NOT_GRANTED');
+    // A pending requester does not see the invitation-only event at all (PRD §7.5).
+    expect(problemCode(notGranted)).toBe('OPPORTUNITY_NOT_FOUND');
   });
 });
 
@@ -900,7 +953,7 @@ describe('supplier pursuit (SUP-09, DD-41)', () => {
     const pricing = await api.callAs(TSODILO_BM, ep.addTeamMember, { tenant: 'tsodilo', params: { tenderId: 2 }, body: { ...member, userId: 26, responsibility: 'contributor', canViewPricing: true } });
     const outsider = await api.callAs(TSODILO_BM, ep.addTeamMember, { tenant: 'tsodilo', params: { tenderId: 2 }, body: { ...member, userId: 29, responsibility: 'contributor', canViewPricing: false } });
     const already = await api.callAs(TSODILO_BM, ep.addTeamMember, { tenant: 'tsodilo', params: { tenderId: 2 }, body: { ...member, userId: 25, responsibility: 'reviewer', canViewPricing: true } });
-    const badLot = await api.callAs(TSODILO_BM, ep.addTeamMember, { tenant: 'tsodilo', params: { tenderId: 2 }, body: { ...member, userId: 42, responsibility: 'contributor', canViewPricing: false, lotIds: [201] } });
+    const badLot = await api.callAs(TSODILO_BM, ep.addTeamMember, { tenant: 'tsodilo', params: { tenderId: 2 }, body: { ...member, userId: 42, responsibility: 'contributor', canViewPricing: false, lotIds: [299] } });
     const added = await api.callAs(TSODILO_BM, ep.addTeamMember, {
       tenant: 'tsodilo',
       params: { tenderId: 2 },
@@ -940,5 +993,74 @@ describe('supplier pursuit (SUP-09, DD-41)', () => {
     expect(candidates.map((candidate) => candidate.user.userId).sort((a, b) => a - b)).toEqual([24, 25, 26, 27, 42]);
     expect(candidates.find((candidate) => candidate.user.userId === 25)?.canViewPricing).toBe(true);
     expect(candidates.find((candidate) => candidate.user.userId === 26)?.canViewPricing).toBe(false);
+  });
+});
+
+describe('cross-domain coherence of the notice and the workspace (QA findings)', () => {
+  it('publishes the single bid-domain lot of T-2026-0002 as Lot 1, cited by its addendum and selected by its participants', async () => {
+    const notice = PublicNotice.parse((await anon(ep.publicNotice, { buyerSlug: 'kwu', reference: 'T-2026-0002' })).body);
+    expect(notice.lots.map((entry) => [entry.lotId, entry.lotNo, entry.title])).toEqual([[201, 1, 'Smart meters with AMR modules']]);
+    expect(notice.lotCount).toBe(1);
+    expect(notice.addenda.find((addendum) => addendum.number === 1)?.affectedLotNos).toEqual([1]);
+    expect(notice.summary).toContain('12,000 domestic');
+    const workspace = OpportunityWorkspace.parse((await api.callAs(TSODILO_BM, ep.opportunityWorkspace, { tenant: 'tsodilo', params: { tenderId: 2 } })).body);
+    expect(workspace.lots.map((entry) => [entry.lotId, entry.selected])).toEqual([[201, true]]);
+    expect(workspace.readiness.find((check) => check.id === 'lots')?.status).toBe('passed');
+  });
+
+  it('counts as acknowledgment recipients exactly the organizations each issued addendum was delivered to (BUY-15 = BUY-17)', async () => {
+    const cases: Array<{ persona: string; tenant: string; tenderId: number }> = [
+      { persona: TEBOGO, tenant: 'kwu', tenderId: 1 },
+      { persona: TEBOGO, tenant: 'kwu', tenderId: 2 },
+      { persona: TEBOGO, tenant: 'kwu', tenderId: 3 },
+      { persona: ODC_OFFICER, tenant: 'odc', tenderId: 11 },
+    ];
+    for (const { persona, tenant, tenderId } of cases) {
+      const summary = (await api.callAs(persona, ep.participantSummary, { tenant, params: { tenderId } })).body as {
+        acknowledgmentSubjects: Array<{ subjectId: number; acknowledgedCount: number; requiredCount: number }>;
+      };
+      for (const subject of summary.acknowledgmentSubjects) {
+        const addendum = ADDENDA.find((entry) => entry.id === subject.subjectId);
+        expect(subject.requiredCount, `addendum ${subject.subjectId}`).toBe(addendum?.recipients.length);
+        expect(subject.acknowledgedCount, `addendum ${subject.subjectId}`).toBe(addendum?.recipients.filter((entry) => entry.acknowledgedAt !== null).length);
+      }
+    }
+  });
+
+  it('applies the declared qualification gate: informational before award on T-2026-0001, blocking on T-2026-0006 (AC-07)', async () => {
+    const informational = OpportunityWorkspace.parse((await api.callAs(MAKGADIKGADI, ep.opportunityWorkspace, { tenant: 'makgadikgadi', params: { tenderId: 1 } })).body);
+    const gate = informational.readiness.find((check) => check.id === 'qualification');
+    expect(gate?.status).toBe('warning');
+    expect(gate?.detail).toMatch(/before award/);
+    expect(informational.lots.every((entry) => entry.ineligibleReason !== 'The qualification gate of this event is not met.')).toBe(true);
+    expect(informational.conditions.find((condition) => condition.conditionType === 'qualification_required')).toMatchObject({ blocking: false });
+  });
+
+  it('sends session registration deadlines with the official time zone (DD-33)', async () => {
+    const workspace = OpportunityWorkspace.parse((await api.callAs(TSODILO_BM, ep.opportunityWorkspace, { tenant: 'tsodilo', params: { tenderId: 6 } })).body);
+    const deadlines = workspace.sessions.map((session) => session.registrationDeadline).filter((deadline) => deadline !== null);
+    expect(deadlines.length).toBeGreaterThan(0);
+    for (const deadline of deadlines) {
+      expect(deadline.timeZone).toBe('Africa/Gaborone');
+    }
+  });
+
+  it('offers the clarification channel only to organizations the clarifications domain serves (no dead links)', async () => {
+    const cases: Array<{ persona: string; tenant: string; tenderId: number }> = [
+      { persona: TSODILO_BM, tenant: 'tsodilo', tenderId: 2 },
+      { persona: TSODILO_BM, tenant: 'tsodilo', tenderId: 10 },
+      { persona: TSODILO_BM, tenant: 'tsodilo', tenderId: 4 },
+      { persona: LIMPOPO, tenant: 'limpopo-env', tenderId: 2 },
+      { persona: MAKGADIKGADI, tenant: 'makgadikgadi', tenderId: 2 },
+    ];
+    for (const { persona, tenant, tenderId } of cases) {
+      const workspace = OpportunityWorkspace.parse((await api.callAs(persona, ep.opportunityWorkspace, { tenant, params: { tenderId } })).body);
+      const served =
+        CLARIFICATION_TENDERS.find((entry) => entry.id === tenderId)?.participants.some((entry) => entry.supplierTenantId === TENANT_IDS[tenant as keyof typeof TENANT_IDS]) ??
+        false;
+      expect(workspace.capabilities.canViewClarifications, `${tenant} on ${tenderId}`).toBe(served);
+    }
+    const outsider = OpportunityWorkspace.parse((await api.callAs(LIMPOPO, ep.opportunityWorkspace, { tenant: 'limpopo-env', params: { tenderId: 2 } })).body);
+    expect(outsider.capabilities.canViewClarifications).toBe(false);
   });
 });

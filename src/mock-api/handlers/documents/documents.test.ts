@@ -4,11 +4,15 @@ import { DocumentDetail, documentEndpoints } from '../../../contracts/documents.
 import { createHash } from 'node:crypto';
 
 import { RECORDS } from '../../fixtures/approvals/world.js';
+import { storylineNow } from '../../fixtures/demo-clock.js';
 import { allPersonas } from '../../persona.js';
 import { createTestMockApp } from '../../testing/index.js';
 import type { TestMockApp } from '../../testing/index.js';
 import { register } from './index.js';
 import { PROTOTYPE_COPY_NOTICE, issueToken } from './prototype-storage.js';
+
+/** The mock app's clock: the system clock, never earlier than the storyline "as of" (link expiry is judged on it). */
+const appNowMs = (): number => storylineNow(new Date()).getTime();
 
 const EMAIL = (login: string): string => `${login}@tenderiq.local`;
 const HASH = 'c'.repeat(64);
@@ -306,7 +310,7 @@ describe('prototype storage downloads (COM-07: download only when permitted)', (
 
   it('refuses the file of a sealed or restricted version with the same 403 as the link request', async () => {
     // Arrange: links forged for readers whose access excludes the file (sealed content; auditor on restricted material)
-    const expires = Date.now() + 60_000;
+    const expires = appNowMs() + 60_000;
     const sealed = issueToken(206, 2061, 5, expires);
     const restricted = issueToken(207, 2071, 20, expires);
 
@@ -324,8 +328,8 @@ describe('prototype storage downloads (COM-07: download only when permitted)', (
   });
 
   it('refuses expired and tampered links', async () => {
-    const expired = issueToken(201, 2012, 5, Date.now() - 1_000);
-    const valid = issueToken(201, 2012, 5, Date.now() + 60_000);
+    const expired = issueToken(201, 2012, 5, appNowMs() - 1_000);
+    const valid = issueToken(201, 2012, 5, appNowMs() + 60_000);
     // Change the last digest character to a different hex digit, so the token never stays valid by chance.
     const tampered = `${valid.slice(0, -1)}${valid.endsWith('0') ? '1' : '0'}`;
 

@@ -17,14 +17,21 @@
  * rows belong to several domains (for example the approval panel on requests, tenders and contracts). The
  * domain service then applies the subject-specific check. Use `endpointPermissions()` / `isPermitted()`.
  *
+ * Operator support grants (OPS-04, ADR 0013): inside a customer tenant an operator's effective set is exactly
+ * `support.view`. An endpoint opens to that grant by listing `support.view` in its permissions AND declaring its
+ * `support` surface (see `SupportSurface`). Only buyer or supplier GET reads may do so, never a command and never a
+ * bid, opening, evaluation, scoring or sealed path (`SUPPORT_VIEW_FORBIDDEN_SEGMENTS`); `validateEndpointDefinition`
+ * enforces it and `supportGrantAllows()` applies the grant scope.
+ *
  * `defineEndpoint` validates the definition when the module loads and throws on a malformed contract, so a
  * broken contract fails every test that imports it.
  */
 import type { z } from 'zod';
 
-import { AUDIENCES, ERROR_CODE_PATTERN } from './common.js';
+import { AUDIENCES, ERROR_CODE_PATTERN, PLATFORM_ERRORS, errorStatus } from './common.js';
 import type { Audience } from './common.js';
-import { isPermissionCode, permissionTenantKind } from './permissions.js';
+import type { SupportAccessGrantsScope } from './enums.js';
+import { GRANT_ONLY_PERMISSIONS, isPermissionCode, permissionTenantKind } from './permissions.js';
 import type { PermissionCode } from './permissions.js';
 
 /** HTTP methods used by the API. */
@@ -44,6 +51,34 @@ export const HEALTH_PATH = '/api/v1/health';
 export const SCREEN_ID_PATTERN = /^(COM|PUB|SUP|BUY|EVA|CON|ADM|OPS|REP)-\d{2}$/;
 /** Endpoint id such as `approvals.decide` or `me.tasks.list`. */
 export const ENDPOINT_ID_PATTERN = /^[a-z][a-zA-Z0-9]*(\.[a-z][a-zA-Z0-9]*)+$/;
+
+/**
+ * What an operator under an active support grant may read through an endpoint that accepts `support.view`:
+ * - `metadata`: configuration and record metadata of the customer tenant (no content bodies). Open under a grant of
+ *   either scope (`metadata_only` or `specific_records`).
+ * - `records`: the rows of one record. Open only under a `specific_records` grant, and only for records named in
+ *   the grant's `record_refs`; any other record answers the endpoint's own not-found error.
+ * Under either surface, sealed material, drafts, scores and documents above `SUPPORT_VIEW_DOCUMENT_CLASSIFICATIONS`
+ * (documents.ts) are never returned (PRD §4.2, AC-15).
+ */
+export const SUPPORT_SURFACES = ['metadata', 'records'] as const;
+export type SupportSurface = (typeof SUPPORT_SURFACES)[number];
+
+/** Path segments an endpoint accepting `support.view` may never contain (sealed, bid and evaluation content). */
+export const SUPPORT_VIEW_FORBIDDEN_SEGMENTS = [
+  'bids',
+  'bid-revisions',
+  'responses',
+  'opening',
+  'openings',
+  'evaluation',
+  'evaluations',
+  'scores',
+  'scoring',
+  'sealed',
+  'pricing',
+  'drafts',
+] as const;
 
 /** One permission code, or a non-empty list meaning "any of these". */
 export type EndpointPermission = PermissionCode | readonly [PermissionCode, ...PermissionCode[]];
@@ -81,7 +116,11 @@ export interface EndpointDefinition<
   readonly response: Response;
   /** Success status. Default: 200 (201 for an idempotent POST that creates a record). */
   readonly status?: SuccessStatus;
-  /** Declared business error codes (UPPER_SNAKE). Platform codes (401/403/404/422/500) are implicit. */
+  /**
+   * Declared business error codes (UPPER_SNAKE). Each code has ONE HTTP status, fixed centrally in
+   * `DOMAIN_ERROR_STATUS` (common.ts) and read with `declaredErrorStatus`. Platform codes (401/403/404/422/500)
+   * are implicit.
+   */
   readonly errors: readonly string[];
   /** PRD screen ids that call this endpoint (at least one). */
   readonly screens: readonly [string, ...string[]];
@@ -91,6 +130,8 @@ export interface EndpointDefinition<
   readonly rowTenant?: boolean;
   /** Short human description for the OpenAPI document. */
   readonly summary?: string;
+  /** Declared exactly when `permission` lists `support.view`: what a support grant may read here. */
+  readonly support?: SupportSurface;
 }
 
 /** A defined endpoint: the definition with its resolved success status and path parameter names. */
@@ -175,6 +216,51 @@ export function tenantHeaderMode(endpoint: Pick<EndpointDefinition, 'audience' |
   return 'active';
 }
 
+/** The support-grant rules of a definition (see `SupportSurface`). */
+function supportProblems(definition: EndpointDefinition, permissions: readonly PermissionCode[]): string[] {
+  const problems: string[] = [];
+  const acceptsGrant = permissions.some((code) => (GRANT_ONLY_PERMISSIONS as readonly string[]).includes(code));
+  if (!acceptsGrant) {
+    if (definition.support !== undefined) {
+      problems.push('support is declared only on endpoints that accept support.view');
+    }
+    return problems;
+  }
+  if (definition.support === undefined || !(SUPPORT_SURFACES as readonly string[]).includes(definition.support)) {
+    problems.push(`an endpoint accepting support.view must declare support: ${SUPPORT_SURFACES.join(' | ')}`);
+  }
+  if (definition.method !== 'GET') {
+    problems.push('support.view is read-only: only GET endpoints may accept it');
+  }
+  if (definition.audience !== 'buyer' && definition.audience !== 'supplier') {
+    problems.push('support.view applies inside a customer tenant: buyer or supplier endpoints only');
+  }
+  const segments = definition.path.split('/');
+  const forbidden = SUPPORT_VIEW_FORBIDDEN_SEGMENTS.filter((segment) => segments.includes(segment));
+  if (forbidden.length > 0) {
+    problems.push(`support.view never opens bid, opening, evaluation or sealed paths (${forbidden.join(', ')})`);
+  }
+  return problems;
+}
+
+/**
+ * True when an operator under an active support grant of `scope` may call the endpoint: it accepts `support.view`
+ * and its surface is open to that scope (`records` needs `specific_records`). Record-level filtering by
+ * `record_refs` is then the handler's job.
+ */
+export function supportGrantAllows(
+  endpoint: Pick<EndpointDefinition, 'permission' | 'support'>,
+  scope: SupportAccessGrantsScope,
+): boolean {
+  const accepts = endpointPermissions(endpoint).some((code) =>
+    (GRANT_ONLY_PERMISSIONS as readonly string[]).includes(code),
+  );
+  if (!accepts || endpoint.support === undefined) {
+    return false;
+  }
+  return endpoint.support === 'metadata' || scope === 'specific_records';
+}
+
 /** Collects every problem of a definition (empty = valid). Exported for tests and the catalog check. */
 export function validateEndpointDefinition(definition: EndpointDefinition): string[] {
   const problems: string[] = [];
@@ -207,6 +293,9 @@ export function validateEndpointDefinition(definition: EndpointDefinition): stri
       problems.push(`permission "${code}" is not in the catalog (permissions.ts)`);
       continue;
     }
+    if ((GRANT_ONLY_PERMISSIONS as readonly string[]).includes(code)) {
+      continue;
+    }
     const kind = permissionTenantKind(code);
     const expected = audience === 'buyer' ? 'buyer' : audience === 'supplier' ? 'supplier' : audience === 'ops' ? 'operator' : null;
     if (expected !== null && kind !== expected && kind !== 'any') {
@@ -222,6 +311,7 @@ export function validateEndpointDefinition(definition: EndpointDefinition): stri
   if (audience === 'me' && permissions.length > 0 && definition.rowTenant !== true) {
     problems.push('a me endpoint can only require a permission when it acts on a row tenant (rowTenant: true)');
   }
+  problems.push(...supportProblems(definition, permissions));
   if (definition.rowTenant === true && audience !== 'me') {
     problems.push('rowTenant applies only to me endpoints');
   }
@@ -270,6 +360,31 @@ export function validateEndpointDefinition(definition: EndpointDefinition): stri
     problems.push('error codes must be unique');
   }
   return problems;
+}
+
+/**
+ * The declared codes of an endpoint that have no status in the central registry (`DOMAIN_ERROR_STATUS`).
+ * The catalog test requires this to be empty for every endpoint.
+ */
+export function unregisteredErrorCodes(endpoint: Pick<EndpointDefinition, 'errors'>): string[] {
+  return endpoint.errors.filter((code) => errorStatus(code) === undefined);
+}
+
+/**
+ * The HTTP status an endpoint must send with an error code: the registry status of a code the endpoint declares,
+ * or of a platform code (`PLATFORM_ERRORS`). `undefined` when the endpoint may not send the code at all. Both the
+ * mock dispatch and the Stage B error mapper use it, so the same code never travels with two statuses.
+ */
+export function declaredErrorStatus(endpoint: Pick<EndpointDefinition, 'errors'>, code: string): number | undefined {
+  const status = errorStatus(code);
+  if (status === undefined) {
+    return undefined;
+  }
+  return endpoint.errors.includes(code) || isPlatformCode(code) ? status : undefined;
+}
+
+function isPlatformCode(code: string): boolean {
+  return Object.hasOwn(PLATFORM_ERRORS, code);
 }
 
 /**

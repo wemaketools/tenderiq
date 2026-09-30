@@ -36,6 +36,7 @@ const REQUESTER = 'kagiso.requester@tenderiq.local';
 const SUPPLIER = 'tsodilo.bidmanager@tenderiq.local';
 const OPERATOR = 'ops.admin@tenderiq.local';
 const SUPPORT = 'support.agent@tenderiq.local';
+const FINANCIAL_REVIEWER = 'lesego.finance@tenderiq.local';
 
 let api: TestMockApp;
 
@@ -358,6 +359,15 @@ describe('ADM-07 custom fields', () => {
     expect(formDefinition.coreConditionSources).toContain('value_band');
   });
 
+  it('serves the qualification application form to a restricted financial reviewer (AC-08)', async () => {
+    const response = await api.callAs(FINANCIAL_REVIEWER, p.getCustomFieldForm, {
+      tenant: 'kwu',
+      params: { entityType: 'qualification_application' },
+    });
+    expect(response.status).toBe(200);
+    expect(CustomFieldForm.parse(response.body).fields.length).toBeGreaterThan(0);
+  });
+
   it('gives a supplier only the supplier-visible and public fields of the buyer it names', async () => {
     const response = await api.callAs(SUPPLIER, p.getSupplierCustomFieldForm, {
       tenant: 'tsodilo',
@@ -399,7 +409,7 @@ describe('ADM-08 templates', () => {
     expect(options.owners.map((owner) => owner.fullName)).not.toContain('Gaone Letsholo');
     expect(options.categories.map((category) => category.code)).not.toContain('FAC-CLEAN');
     const odc = TemplateAuthoringOptions.parse((await api.callAs(ADMIN_ODC, p.getTemplateAuthoringOptions, { tenant: 'odc' })).body);
-    expect(odc.categories.map((category) => category.code)).toEqual(['FAC-CLEAN']);
+    expect(odc.categories.map((category) => category.code).sort()).toEqual(['CIV-WORKS', 'FAC-CLEAN', 'FAC-MAINT', 'FUEL']);
     expect((await api.callAs(REQUESTER, p.getTemplateAuthoringOptions, { tenant: 'kwu' })).status).toBe(403);
   });
 

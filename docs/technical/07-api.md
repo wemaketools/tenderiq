@@ -97,7 +97,8 @@ An operator may act inside a customer tenant only while an active, customer-auth
 - the operator sends the customer's tenant id in `X-Tenant-Id` and uses that tenant's audience prefix;
 - the request-time check compares the grant's `starts_at`, `expires_at` and `revoked_at` directly. The `expire-support-access` job only updates the display status and audits it (DD-18);
 - access is read-only through `support.view`. It never includes sealed content, supplier drafts or evaluation scores, and never allows submit, score, approve or sign;
-- the access is written to `audit_log` (with `support_grant_id`) **before** the handler runs, in the **customer** tenant's partition, so the customer can review it (DD-11).
+- the access is written to `audit_log` (with `support_grant_id`) **before** the handler runs, in the **customer** tenant's partition, so the customer can review it (DD-11);
+- an endpoint admits the grant only when it lists `support.view` **and** declares a support surface the grant `scope` opens (`supportGrantAllows()` in `src/contracts/endpoint.ts`: surface `metadata` for every grant, surface `records` only for `specific_records`); every other endpoint answers 403 `FORBIDDEN` under a grant. The mock API applies the same rule in its permission middleware.
 
 The Stage A contracts fix which read endpoints honour `support.view`, and how the grant `scope` (`metadata_only`, `specific_records`) restricts responses ([adr/0013-operator-support-access-grants.md](adr/0013-operator-support-access-grants.md)).
 
@@ -113,6 +114,13 @@ The Stage A contracts fix which read endpoints honour `support.view`, and how th
 | `x-correlation-id` or `x-request-id` | optional | If present, the server adopts it as the correlation id. Otherwise the server generates one. The response always echoes `x-correlation-id` (see §7). |
 
 Request and response bodies are JSON. Errors use `application/problem+json` (§4).
+
+Every response, success or error, carries two headers set by the request-context middleware (§7.1 step 2):
+
+| Response header | Value and rules |
+|---|---|
+| `x-correlation-id` | The request's correlation id (§7.2). |
+| `x-server-time` | The API clock at the time of the request, as an ISO 8601 UTC instant without milliseconds (for example `2026-10-06T08:00:00Z`). In the Stage A mock API it is the storyline clock (`storylineNow()`, never earlier than `DEMO_AS_OF` in `src/mock-api/fixtures/demo-clock.ts`); in Stage B it is the server clock. The SPA uses it, together with `serverTime` of `/api/v1/me/context`, only to align its display clock (`src/ui/src/lib/clock.ts`, [09-frontend.md](09-frontend.md#13-official-deadlines-and-time-display)); deadline decisions stay on the server. |
 
 ### 3.2 Authentication
 
@@ -217,7 +225,7 @@ Zod validation messages are written as `"CODE|message"`. A helper in `lib/valida
 | 403 | An authenticated, active user who lacks tenant access or a permission | All tenant-context failures (no header, no active membership, inactive tenant, kind/prefix mismatch, no active support grant) return **one identical** 403. |
 | 404 | Unknown route | Unknown routes return 404, not 401 (brief §5.1). A record belonging to another tenant is not found by the tenant-scoped query, so the endpoint's not-found error applies. |
 | 422 | Request fails the contract schema | `errors[]` carries `{ field, code, message }`. |
-| Declared business errors | Expected failures returned as `Result` errors: illegal transitions, conflicts, invalid references, sealing and assignment denials, authority or SoD blocks, active holds | Each endpoint lists them in its contract `errors`, with status and `code`. The concrete `AppError` subclass set is finalized in Stage B (platform-http). |
+| Declared business errors | Expected failures returned as `Result` errors: illegal transitions, conflicts, invalid references, sealing and assignment denials, authority or SoD blocks, active holds | Each endpoint lists its codes in its contract `errors`. Every code has exactly **one** status, fixed in `DOMAIN_ERROR_STATUS` (`src/contracts/common.ts`): 403 denied to the caller, 404 record not in scope, 409 state forbids the action, 410 a time-limited artefact is gone (upload slot, signed download link), 422 invalid reference or input rule. `declaredErrorStatus()` (`src/contracts/endpoint.ts`) reads it; the mock dispatch answers 500 (and logs the defect) when a handler sends a code with any other status, and the OpenAPI document lists each code under its status. The concrete `AppError` subclass set is finalized in Stage B (platform-http). |
 | 500 | Unexpected exception | Constant sanitized `detail` plus `correlationId`. |
 
 ```mermaid
@@ -292,7 +300,7 @@ Idempotency in the brief's sense (claimed keys, state-guarded sweeps) also appli
 `buildApp(deps)` registers middleware in this order (brief §5.1):
 
 1. **Security headers**, applied after `next()` so they survive replaced responses, including error responses.
-2. **Request context**: resolve the correlation id from `x-correlation-id` or `x-request-id`, or generate one; attach a request-scoped child logger; echo `x-correlation-id` on the response.
+2. **Request context**: resolve the correlation id from `x-correlation-id` or `x-request-id`, or generate one; fix the request time; attach a request-scoped child logger; set `x-correlation-id` and `x-server-time` (the request time, §3.1) on the response.
 3. **Request log line** (in a `finally`): method, route pattern, status, `durationMs`, `userId`, `tenantId`.
 4. **Error boundary**: any thrown error becomes problem+json with a sanitized message.
 5. **Alternate-credential routes**, mounted before auth. The sources name none for TenderIQ.
@@ -465,7 +473,7 @@ In Stage B, a contract change needs a recorded reason and a UI update in the sam
 
 - `npm run docs:api` runs `scripts/docs/generate-openapi.ts`, which walks `src/contracts/catalog.ts` and writes **`docs/technical/api/openapi.json`**.
 - Schemas are converted with zod v4's built-in `z.toJSONSchema()`. No new dependency is added for this (architecture-plan §11.2); the only approved runtime addition in the project is `nodemailer`, for the email channel (DD-44).
-- Each `defineEndpoint` becomes one operation: `method` + `path`, `params`/`query` as parameters, `body` as the request body, `response` as the success response, `errors` as problem+json responses. How `audience`, `permission` and `screens` appear in the document (for example as tags or extension members) is decided when the generator is written in Stage A.
+- Each `defineEndpoint` becomes one operation: `method` + `path`, `params`/`query` as parameters, `body` as the request body, `response` as the success response, `errors` as problem+json responses grouped under each code's registry status (§4.4; the generator refuses a code without one). How `audience`, `permission` and `screens` appear in the document (for example as tags or extension members) is decided when the generator is written in Stage A.
 - `docs/technical/api/**` is owned by the Stage A Integration step (A3 `integrate`). The file is regenerated when contracts change and synced at the end of each stage by `docs-sync`. The generated file is authoritative for exact paths; the catalog in §13 is not.
 
 ## 11. Stage A mock API

@@ -295,7 +295,7 @@ function SupplierTenderWorkspace({ tender }: { readonly tender: SupplierTenderCo
               loading={addenda.isFetching}
               error={addenda.error}
               onRetry={addenda.reload}
-              onRowClick={(row) => navigate(supplierPaths.addendum(row.id))}
+              rowHref={(row) => supplierPaths.addendum(row.id)}
               rowLabel={(row) =>
                 t('clarifications.addenda.rowLabel', {
                   no: row.number,

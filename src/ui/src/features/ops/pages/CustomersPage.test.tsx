@@ -49,6 +49,33 @@ describe('CustomersPage (OPS-01)', () => {
     expect(screen.getByText('Service metadata only')).toBeInTheDocument();
   });
 
+  it('pluralizes the open cases and grants summary by count', async () => {
+    routes([
+      customerRow({ openSupportCases: 1, activeSupportGrants: 1 }),
+      customerRow({ tenantId: 2, slug: 'kwu', openSupportCases: 2, activeSupportGrants: 0 }),
+    ]);
+    renderWithProviders(<CustomersPage />, { state: opsState(), route: '/ops/customers' });
+
+    const table = await screen.findByRole('table', { name: 'Customers' });
+
+    expect(within(table).getByText('1 case · 1 grant')).toBeInTheDocument();
+    expect(within(table).getByText('2 cases · 0 grants')).toBeInTheDocument();
+  });
+
+  it('keeps the plan and subscription chips at their own width and splits the legal name from the slug', async () => {
+    routes([customerRow({ legalName: 'Okavango District Council (Local Authority)' })]);
+    renderWithProviders(<CustomersPage />, { state: opsState(), route: '/ops/customers' });
+
+    const table = await screen.findByRole('table', { name: 'Customers' });
+    const planStack = within(table).getByText('Buyer Standard').closest('.tiq-stack');
+
+    expect(planStack).toHaveClass('tiq-stack--start');
+    expect(within(table).getByText('Okavango District Council (Local Authority)')).toHaveClass(
+      'tiq-cell-sub',
+    );
+    expect(within(table).getByText('odc')).toHaveClass('tiq-cell-sub');
+  });
+
   it('sends the kind filter to the API when a kind is chosen', async () => {
     const { requests } = routes();
     renderWithProviders(<CustomersPage />, { state: opsState(), route: '/ops/customers' });

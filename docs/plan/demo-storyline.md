@@ -5,6 +5,7 @@ This one story drives **Stage A** static fixtures (`src/mock-api/fixtures/<domai
 - Each domain writes **only its own fixtures/tables**. It uses the natural keys below (tenant slugs, user emails, tender/contract references).
 - **Stage A fixtures** are typed against `src/contracts` and validated by the contract schemas. A cross-fixture consistency test checks that every reference resolves across domains.
 - **Stage B seed modules** run in numeric order, are idempotent (look up by natural key, skip what exists), and refuse to run against production (brief §6.4).
+- **The demo "now" is 6 Oct 2026, 08:00 UTC** (`DEMO_AS_OF = 2026-10-06T08:00:00Z`, `src/mock-api/fixtures/demo-clock.ts`). Every record is written as of that instant: what has happened lies before it, what is pending or scheduled after it. The mock API serves requests on the storyline clock (`storylineNow()`), which `/api/v1/me/context` reports as `serverTime`; Stage B seeds use the same instant.
 - All personas use password `test1234`. They are real accounts in the local Supabase Auth (Docker) from Stage A, created by `npm run auth:personas` (DD-43).
 
 ## Organizations (tenants)

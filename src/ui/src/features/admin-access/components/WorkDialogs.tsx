@@ -25,6 +25,7 @@ import {
   QueryView,
   Select,
 } from '../../../components/ui';
+import { clockDate } from '../../../lib/clock';
 import { formatCount } from '../../../lib/format';
 import { t, tEnum } from '../../../lib/i18n';
 import { useMemberAdmin } from '../lib/audience';
@@ -227,7 +228,7 @@ export function DeactivateDialog({
               confirmHistoryRetained: true,
             },
           });
-          onDone(result, new Date().toISOString());
+          onDone(result, clockDate().toISOString());
         } catch {
           // Shown in the dialog.
         }

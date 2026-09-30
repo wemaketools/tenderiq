@@ -4,7 +4,6 @@
  * invitation record; restricted document access is requested here or from the opportunity workspace.
  */
 import { useState } from 'react';
-import { useNavigate } from 'react-router';
 
 import { PARTICIPANTS_ACCESS_STATUS, PARTICIPANTS_INVITATION_STATUS } from '@contracts/enums';
 import { INVITATION_SORT_FIELDS, publicationEndpoints } from '@contracts/publication';
@@ -69,7 +68,6 @@ const DEFAULTS = {
 const KINDS = ['invitation', 'access_request'] as const;
 
 export default function InvitationsPage() {
-  const navigate = useNavigate();
   const toast = useToast();
   const canAnswer = usePermission(NOTICES_ACKNOWLEDGE);
   const [filters, setFilters, clearFilters] = useScreenFilters('SUP-07', DEFAULTS);
@@ -375,7 +373,7 @@ export default function InvitationsPage() {
           rows={query.data?.items}
           rowKey={(row) => String(row.participantId)}
           rowLabel={(row) => `${row.tender.reference} ${row.tender.title}`}
-          onRowClick={(row) => void navigate(opportunityPaths.invitation(row.participantId))}
+          rowHref={(row) => opportunityPaths.invitation(row.participantId)}
           loading={query.isFetching}
           error={query.error}
           onRetry={query.reload}

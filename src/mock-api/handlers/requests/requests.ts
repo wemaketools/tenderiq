@@ -6,7 +6,7 @@
  * only. Another tenant's request is simply not found. Commands validate the business state the fixtures imply and
  * return a static outcome: nothing is persisted.
  */
-import type { Money } from '../../../contracts/common.js';
+import type { Money, PersonRef } from '../../../contracts/common.js';
 import { compare, lt } from '../../../contracts/decimal.js';
 import type { PermissionCode } from '../../../contracts/permissions.js';
 import {
@@ -384,6 +384,19 @@ export interface DetailOverrides {
   readonly infoRequests?: readonly FixtureInfoRequest[];
 }
 
+/** The pending approval's current approver when that is someone other than the viewer (routed or escalated, AC-05). */
+export function awaitingDecisionFrom(row: FixtureRequest, viewer: Viewer): PersonRef | null {
+  const approverId = row.approval?.status === 'pending' ? row.approval.currentApproverUserId : null;
+  if (approverId === null || approverId === viewer.userId || !isOpenStatus(row.status)) {
+    return null;
+  }
+  return personOrNull(approverId);
+}
+
+function isOpenStatus(status: ProcurementRequestsStatus): boolean {
+  return status === 'submitted' || status === 'under_review' || status === 'information_requested';
+}
+
 export function detailOf(row: FixtureRequest, viewer: Viewer, overrides: DetailOverrides = {}): RequestDetail {
   const tenantId = row.tenantId;
   const planItem = PLAN_ITEMS.find((item) => item.requestId === row.id && item.tenantId === tenantId);
@@ -441,7 +454,7 @@ export function detailOf(row: FixtureRequest, viewer: Viewer, overrides: DetailO
     planItem: planItem === undefined ? null : { id: planItem.id, title: planItem.title, status: planItem.status },
     strategy:
       strategy === undefined ? null : { id: strategy.id, revision: strategy.revision, procedure: strategy.procedure, status: strategy.status },
-    decision: { decidedAt: row.decidedAt, decisionReason: row.decisionReason, deferredUntil: row.deferredUntil, latest: latestDecisionOf(row) },
+    decision: { decidedAt: row.decidedAt, decisionReason: row.decisionReason, deferredUntil: row.deferredUntil, latest: latestDecisionOf(row), awaitingDecisionFrom: awaitingDecisionFrom(row, viewer) },
     links,
     infoRequests: infoRows.map(infoRequestOf),
     revisions:
@@ -531,6 +544,7 @@ export function decisionViewOf(row: FixtureRequest, viewer: Viewer, extras: { co
       requestedAt: row.approval?.requestedAt ?? null,
       dueAt: row.approval?.dueAt ?? null,
     },
+    awaitingDecisionFrom: awaitingDecisionFrom(row, viewer),
     funding: {
       status: row.fundingStatus,
       fundingSource: fundingSourceRef(row.tenantId, row.fundingSourceId),

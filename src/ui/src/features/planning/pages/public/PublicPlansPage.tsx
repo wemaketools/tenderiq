@@ -4,7 +4,7 @@
  * states that forecasts may change and are not invitations to submit a bid.
  */
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { Link } from 'react-router';
 
 import { requestEndpoints } from '@contracts/requests';
 import type { PublicAdvanceNotice } from '@contracts/requests';
@@ -32,7 +32,6 @@ import { planningPaths } from '../../lib';
 const PUBLIC_ZONE = browserTimeZone();
 
 export default function PublicPlansPage() {
-  const navigate = useNavigate();
   const [q, setQ] = useState('');
   const [buyer, setBuyer] = useState('');
   const [category, setCategory] = useState('');
@@ -156,7 +155,7 @@ export default function PublicPlansPage() {
             setSort(next);
             setPage(1);
           }}
-          onRowClick={(row) => navigate(planningPaths.publicNotice(row.buyer.slug, row.id))}
+          rowHref={(row) => planningPaths.publicNotice(row.buyer.slug, row.id)}
           rowLabel={(row) => row.title}
           empty={<EmptyState compact icon="megaphone" title={t('planning.public.empty')} />}
           pagination={

@@ -3,7 +3,6 @@
  * deadline, outcome and whether a procurement hold is active. Other suppliers' cases and the buyer's private
  * deliberations are never shown.
  */
-import { useNavigate } from 'react-router';
 
 import { SUPPLIER_COMPLAINT_SORT_FIELDS, listSupplierComplaints } from '@contracts/awards';
 import type { SupplierComplaintRow } from '@contracts/awards';
@@ -52,7 +51,6 @@ const DEFAULTS = {
 };
 
 export default function SupplierComplaintsPage() {
-  const navigate = useNavigate();
   const timeZone = useOfficialTimeZone();
   const canSubmit = usePermission('supplier.complaint.submit');
   const [filters, setFilters, clearFilters] = useScreenFilters('SUP-22', DEFAULTS);
@@ -169,7 +167,7 @@ export default function SupplierComplaintsPage() {
   ];
 
   return (
-    <>
+    <div className="tiq-page">
       <PageHeader
         title={t('outcomes.complaints.title')}
         subtitle={t('outcomes.complaints.intro')}
@@ -252,7 +250,7 @@ export default function SupplierComplaintsPage() {
           rows={query.data?.items}
           rowKey={(row) => String(row.complaintId)}
           rowLabel={(row) => `${row.reference} ${row.tender.reference}`}
-          onRowClick={(row) => void navigate(outcomePaths.complaint(row.complaintId))}
+          rowHref={(row) => outcomePaths.complaint(row.complaintId)}
           loading={query.isFetching}
           error={query.error}
           onRetry={query.reload}
@@ -281,6 +279,6 @@ export default function SupplierComplaintsPage() {
           }
         />
       </Card>
-    </>
+    </div>
   );
 }

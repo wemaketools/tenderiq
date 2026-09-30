@@ -99,7 +99,7 @@ flowchart TB
 | # | Middleware | Module | Behavior | Failure |
 |---|---|---|---|---|
 | 1 | Security headers | `lib/router` | API response headers, applied after `next()` so they survive replaced responses. HSTS only when `APP_ENV !== 'local'`. The SPA document's CSP is not set here: it is a meta tag in `index.html` (DD-30). | — |
-| 2 | Request context | `lib/router`, `lib/logging` | Takes the correlation id from `x-correlation-id` or `x-request-id`, or generates one. Attaches a request-scoped child logger and echoes `x-correlation-id`. | — |
+| 2 | Request context | `lib/router`, `lib/logging` | Takes the correlation id from `x-correlation-id` or `x-request-id`, or generates one. Fixes the request time, attaches a request-scoped child logger, and sets `x-correlation-id` and `x-server-time` (the request time as an ISO 8601 UTC instant; the storyline clock in the Stage A mock API) on every response ([07-api.md](07-api.md#31-headers)). | — |
 | 3 | Request log line | `lib/logging` | In a `finally`: method, route pattern, status, durationMs, userId, tenantId. | — |
 | 4 | Error boundary | `lib/errors` | Converts any thrown error to RFC 7807 `application/problem+json`. 5xx responses carry a constant sanitized `detail`. | 500 |
 | 5 | Alternate-credential routes | — | The brief reserves this slot. The TenderIQ sources define no such routes. Cron and queue endpoints are separate functions outside `/api/v1`. | — |

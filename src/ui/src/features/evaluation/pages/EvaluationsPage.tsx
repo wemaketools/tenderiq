@@ -3,7 +3,6 @@
  * lot of it, with its stage, the caller's role, the chair, assignment progress (missing work counted, never scored as
  * zero), the price gate, moderation and report status and the next due date in the official time zone.
  */
-import { useNavigate } from 'react-router';
 
 import {
   EVALUATION_ROLES,
@@ -55,7 +54,6 @@ const DEFAULTS = {
 };
 
 export default function EvaluationsPage() {
-  const navigate = useNavigate();
   const canSeeAssignments = usePermission(ASSIGNMENT_VIEW_PERMISSIONS);
   const [filters, setFilters, clearFilters] = useScreenFilters('EVA-list', DEFAULTS);
 
@@ -266,9 +264,7 @@ export default function EvaluationsPage() {
           rows={query.data?.items}
           rowKey={(row) => `${row.tender.tenderId}:${row.lot?.lotId ?? 0}`}
           rowLabel={(row) => `${row.tender.reference} ${row.tender.title}`}
-          onRowClick={(row) =>
-            void navigate(evaluationPaths.overview(row.tender.tenderId, row.lot?.lotId))
-          }
+          rowHref={(row) => evaluationPaths.overview(row.tender.tenderId, row.lot?.lotId)}
           loading={query.isFetching}
           error={query.error}
           onRetry={query.reload}

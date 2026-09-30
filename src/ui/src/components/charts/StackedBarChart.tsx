@@ -20,6 +20,8 @@ export interface StackedBarChartProps {
   readonly formatValue?: (value: number) => string;
   /** Horizontal bars (categories on the y axis). */
   readonly horizontal?: boolean;
+  /** Header of the category column in the accessible data table (default "Category"), for example "Owner". */
+  readonly categoryLabel?: string;
 }
 
 export function StackedBarChart({
@@ -29,6 +31,7 @@ export function StackedBarChart({
   height = 260,
   formatValue = formatCount,
   horizontal = false,
+  categoryLabel,
 }: StackedBarChartProps) {
   if (points.length === 0 || series.length === 0) {
     return <EmptyState compact title={t('charts.empty')} />;
@@ -37,7 +40,7 @@ export function StackedBarChart({
   return (
     <ChartFrame
       label={label}
-      columns={[t('charts.category'), ...series.map((item) => item.label)]}
+      columns={[categoryLabel ?? t('charts.category'), ...series.map((item) => item.label)]}
       rows={points.map((point) => ({
         key: point.x,
         cells: [

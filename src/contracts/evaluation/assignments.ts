@@ -118,12 +118,27 @@ export const EvaluationEvent = z.object({
 });
 export type EvaluationEvent = z.infer<typeof EvaluationEvent>;
 
+/**
+ * How much committee detail the overview carries for the caller (PRD §4.3, independent evaluation):
+ * - `full`: the chair, oversight roles, and committee members whose own assessment is submitted.
+ * - `own_assessment_pending`: an evaluator whose own non-price assessment is not submitted. Timeline details that carry
+ *   committee scores, moderation outcomes or the ranking, and the price-gate note, are withheld (the same rule as
+ *   `OWN_ASSESSMENT_NOT_SUBMITTED` on the results).
+ * - `conflict_pending_review`: an evaluator whose conflict declaration awaits the chair's review (content access is
+ *   suspended, DD-25). In addition the bid list (supplier identities and compliance) is withheld.
+ * Conflict-declaration details in the timeline are shown only to the chair and the declarant.
+ */
+export const OVERVIEW_DETAIL_LEVELS = ['full', 'own_assessment_pending', 'conflict_pending_review'] as const;
+export const OverviewDetailLevel = z.enum(OVERVIEW_DETAIL_LEVELS);
+export type OverviewDetailLevel = z.infer<typeof OverviewDetailLevel>;
+
 /** The evaluation overview of one tender or lot. */
 export const EvaluationOverview = EvaluationSummaryRow.extend({
   plan: EvaluationPlan,
   bids: z.array(EvaluationBidRef),
   committee: z.array(CommitteeLine),
   timeline: z.array(EvaluationEvent),
+  detailLevel: OverviewDetailLevel,
 });
 export type EvaluationOverview = z.infer<typeof EvaluationOverview>;
 

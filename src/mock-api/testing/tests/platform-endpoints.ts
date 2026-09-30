@@ -101,7 +101,7 @@ export const lockedCommand = defineEndpoint({
   audience: 'buyer',
   permission: 'tender.view',
   response: z.object({ ok: z.boolean() }),
-  errors: ['ITEM_LOCKED'],
+  errors: ['HOLD_BLOCKS_ACTION'],
   screens: ['BUY-07'],
 });
 
@@ -112,7 +112,44 @@ export const undeclaredCommand = defineEndpoint({
   audience: 'buyer',
   permission: 'tender.view',
   response: z.object({ ok: z.boolean() }),
-  errors: ['ITEM_LOCKED'],
+  errors: ['HOLD_BLOCKS_ACTION'],
+  screens: ['BUY-07'],
+});
+
+/** A support-readable record read (surface `records`): opens only to a `specific_records` grant. */
+export const supportRecordsRead = defineEndpoint({
+  id: 'testPlatform.buyer.supportRecords',
+  method: 'GET',
+  path: '/api/v1/buyer/test-platform/support-records',
+  audience: 'buyer',
+  permission: ['tender.view', 'support.view'],
+  support: 'records',
+  response: Echo,
+  errors: [],
+  screens: ['BUY-07'],
+});
+
+/** A support-readable configuration read (surface `metadata`): opens to every support grant. */
+export const supportMetadataRead = defineEndpoint({
+  id: 'testPlatform.buyer.supportMetadata',
+  method: 'GET',
+  path: '/api/v1/buyer/test-platform/support-metadata',
+  audience: 'buyer',
+  permission: ['tender.view', 'support.view'],
+  support: 'metadata',
+  response: Echo,
+  errors: [],
+  screens: ['BUY-07'],
+});
+
+export const misstatusedCommand = defineEndpoint({
+  id: 'testPlatform.buyer.misstatused',
+  method: 'POST',
+  path: '/api/v1/buyer/test-platform/misstatused',
+  audience: 'buyer',
+  permission: 'tender.view',
+  response: z.object({ ok: z.boolean() }),
+  errors: ['HOLD_BLOCKS_ACTION'],
   screens: ['BUY-07'],
 });
 
@@ -165,12 +202,16 @@ export function register(app: MockApp): void {
   mockRoute(app, buyerAdminOnly, ({ requireTenant }) => echo(requireTenant()));
   mockRoute(app, supplierPing, ({ requireTenant }) => echo(requireTenant()));
   mockRoute(app, opsPing, ({ requireTenant }) => echo(requireTenant()));
+  mockRoute(app, supportRecordsRead, ({ requireTenant }) => echo(requireTenant()));
+  mockRoute(app, supportMetadataRead, ({ requireTenant }) => echo(requireTenant()));
   mockRoute(app, publicHello, ({ persona }) => ({ hello: 'world', signedIn: persona !== null }));
   mockRoute(app, validatedCommand, ({ params, query, body }) => ({ itemId: params.itemId, mode: query.mode, ...body }));
   // Fixture drift: a float instead of a decimal string.
   mockRoute(app, driftingRead, () => ({ amount: { amount: 12.5, currency: 'BWP' } }) as unknown as { amount: { amount: string; currency: string } });
-  mockRoute(app, lockedCommand, ({ fail }) => fail(409, 'ITEM_LOCKED', 'The item is locked by an active hold.'));
+  mockRoute(app, lockedCommand, ({ fail }) => fail(409, 'HOLD_BLOCKS_ACTION', 'The item is locked by an active hold.'));
   mockRoute(app, undeclaredCommand, ({ fail }) => fail(409, 'SOMETHING_ELSE'));
+  // A declared code sent with a status other than its registry status (409).
+  mockRoute(app, misstatusedCommand, ({ fail }) => fail(422, 'HOLD_BLOCKS_ACTION'));
   mockRoute(app, exploding, () => {
     throw new Error(EXPLOSION_MESSAGE);
   });

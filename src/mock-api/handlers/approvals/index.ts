@@ -13,6 +13,7 @@ import {
   APPROVAL_AUTHORITY_DECISION_TYPES,
   APPROVAL_DECISION_PERMISSIONS,
   APPROVAL_REQUEST_PERMISSIONS,
+  canViewApprovalSubject,
   checkAuthority,
   decideApproval,
   getApproval,
@@ -32,6 +33,7 @@ import { APPROVALS, findFixtureApproval } from '../../fixtures/approvals.js';
 import type { FixtureApproval } from '../../fixtures/approvals.js';
 import { activeMemberships, allPersonas, membershipPermissions, organizationLabel, personRef } from '../../persona.js';
 import type { Persona } from '../../persona.js';
+import { subjectLinkFor } from './links.js';
 import {
   authorityCheck,
   currentStepOf,
@@ -110,7 +112,7 @@ export function register(app: MockApp): void {
         organization: organizationLabel(approval.tenantId),
         myStep: myStepOf(approval, persona.userId, permissions),
         involvement,
-        subjectLinkPath: approval.subjectLinkPath,
+        subjectLinkPath: subjectLinkFor(approval.subjectLinkPath, permissions),
       });
     }
     const q = query.q?.toLowerCase();
@@ -236,6 +238,10 @@ export function register(app: MockApp): void {
     if (approval.holdActive) {
       return fail(409, 'HOLD_BLOCKS_ACTION', 'A hold on the subject blocks this decision.');
     }
+    const gate = approval.subjectGates?.[0];
+    if (gate !== undefined) {
+      return fail(409, 'SUBJECT_NOT_READY_FOR_APPROVAL', gate.detail);
+    }
     const decidedAt = iso(now);
     const stepStatus = STEP_STATUS_OF[body.decision] ?? 'approved';
     const positive = body.decision === 'approve' || body.decision === 'approve_with_conditions';
@@ -275,8 +281,13 @@ export function register(app: MockApp): void {
     return detail;
   });
 
-  mockRoute(app, getSubjectApprovals, ({ requireTenant, params }) => {
+  mockRoute(app, getSubjectApprovals, ({ requireTenant, params, fail }) => {
     const { tenant, permissions } = requireTenant();
+    // Administration is not content access (BR-26): without a view permission of the subject type the subject is
+    // simply not found, exactly as another tenant's.
+    if (!canViewApprovalSubject(params.subjectType, permissions)) {
+      return fail(404, 'SUBJECT_NOT_FOUND');
+    }
     const approvals = APPROVALS.filter(
       (approval) => approval.tenantId === tenant.id && approval.subjectType === params.subjectType && approval.subjectId === params.subjectId,
     ).sort((a, b) => Date.parse(b.requestedAt) - Date.parse(a.requestedAt));
@@ -301,7 +312,7 @@ export function register(app: MockApp): void {
   mockRoute(app, getApproval, ({ requireTenant, requirePersona, params, fail }) => {
     const { tenant, permissions } = requireTenant();
     const approval = findFixtureApproval(params.approvalId);
-    if (approval === undefined || approval.tenantId !== tenant.id) {
+    if (approval === undefined || approval.tenantId !== tenant.id || !canViewApprovalSubject(approval.subjectType, permissions)) {
       return fail(404, 'APPROVAL_NOT_FOUND');
     }
     return toApprovalDetail(approval, { userId: requirePersona().userId, permissions });
@@ -341,7 +352,7 @@ export function register(app: MockApp): void {
       tenantId: tenant.id,
       subjectType: body.subjectType,
       subjectId: body.subjectId,
-      subjectReference: body.title,
+      subjectReference: existing[0]?.subjectReference ?? null,
       // The subject's own page when an earlier approval names it; otherwise the approvals inbox (never a dead link).
       subjectLinkPath: existing[0]?.subjectLinkPath ?? '/me/approvals',
       subjectVersion: body.subjectVersion,

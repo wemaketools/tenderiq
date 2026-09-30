@@ -42,6 +42,7 @@ import type {
   FixturePublication,
   FixtureTender,
 } from '../../fixtures/publication.js';
+import { findFixtureTask } from '../../fixtures/tasks.js';
 import { findPersonaById, findTenantById } from '../../persona.js';
 import { formatOfficialInstant } from '../bids/time.js';
 
@@ -203,12 +204,26 @@ export function isPubliclyVisible(tender: FixtureTender): boolean {
   );
 }
 
-/** A supplier sees the public set plus released events it takes part in (PRD §4.3). */
+/**
+ * True when a participant row authorizes its organization to see an event that is not public: any participant of an
+ * open event, and for an invitation-only or restricted event only an invited legal supplier or an admitted one
+ * (access granted). A pending or denied access request, for example one based on a forwarded invitation, does not
+ * authorize (PRD §7.5, §4.3; AC-01, BR-15): the requester follows its request under /supplier/invitations.
+ */
+export function authorizesVisibility(tender: FixtureTender, participant: FixtureParticipant): boolean {
+  return tender.participation === 'open' || participant.source === 'invited' || participant.accessStatus === 'granted';
+}
+
+/** A supplier sees the public set plus released events it is authorized to take part in (PRD §4.3, §7.5). */
 export function isVisibleToSupplier(tender: FixtureTender, supplierTenantId: number): boolean {
   if (tender.releasedAt === null) {
     return false;
   }
-  return isPubliclyVisible(tender) || participantOf(tender.id, supplierTenantId) !== undefined;
+  if (isPubliclyVisible(tender)) {
+    return true;
+  }
+  const participant = participantOf(tender.id, supplierTenantId);
+  return participant !== undefined && authorizesVisibility(tender, participant);
 }
 
 /** The response window is open: status `open` and the deadline still ahead. */
@@ -339,11 +354,22 @@ export function requiredAcknowledgments(tender: FixtureTender): Array<{ subjectT
     }));
 }
 
+function hasAcknowledged(participant: FixtureParticipant, subject: { subjectType: 'addendum'; subjectId: number }): boolean {
+  return participant.acknowledgments.some((ack) => ack.subjectType === subject.subjectType && ack.subjectId === subject.subjectId);
+}
+
+/**
+ * The acknowledgment subjects this participant must acknowledge: the addenda issued while it took part (it held the
+ * earlier version and is a recipient). An organization that joined after an addendum received the amended version
+ * directly, so that addendum is not asked of it (unless it acknowledged anyway); the addendum's recipients and the
+ * participants' acknowledgment counts therefore agree (BUY-15, BUY-17).
+ */
+export function requiredAcknowledgmentsFor(tender: FixtureTender, participant: FixtureParticipant) {
+  return requiredAcknowledgments(tender).filter((subject) => participant.registeredAt <= subject.requiredSince || hasAcknowledged(participant, subject));
+}
+
 export function outstandingAcknowledgments(tender: FixtureTender, participant: FixtureParticipant) {
-  return requiredAcknowledgments(tender).filter(
-    (subject) =>
-      !participant.acknowledgments.some((ack) => ack.subjectType === subject.subjectType && ack.subjectId === subject.subjectId),
-  );
+  return requiredAcknowledgmentsFor(tender, participant).filter((subject) => !hasAcknowledged(participant, subject));
 }
 
 /** The latest formal delivery status of a participant. */
@@ -361,7 +387,7 @@ export function participantRow(participant: FixtureParticipant): ParticipantRow 
   if (tender === undefined) {
     throw new Error(`Participant ${participant.id} names unknown tender ${participant.tenderId}.`);
   }
-  const required = requiredAcknowledgments(tender);
+  const required = requiredAcknowledgmentsFor(tender, participant);
   return {
     id: participant.id,
     tenderId: participant.tenderId,
@@ -442,7 +468,8 @@ export function publicationException(publication: FixturePublication): Publicati
     openedAt: exception.openedAt,
     resolvedAt: exception.resolvedAt,
     resolution: exception.resolution,
-    taskId: exception.taskId,
+    // Only a task the owner can find in the inbox is linked (`tasks`, same tenant); otherwise no link is offered.
+    taskId: exception.taskId !== null && findFixtureTask(exception.taskId)?.tenantId === exception.tenantId ? exception.taskId : null,
   };
 }
 

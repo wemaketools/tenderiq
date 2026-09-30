@@ -7,7 +7,6 @@
  * whose team they are on (the API filters; `total` counts only visible rows).
  */
 import { useState } from 'react';
-import { useNavigate } from 'react-router';
 
 import {
   TENDERS_EVENT_TYPE,
@@ -103,7 +102,6 @@ function countOf(
 }
 
 export default function TenderRegisterPage() {
-  const navigate = useNavigate();
   const toast = useToast();
   const timeZone = useOfficialTimeZone();
   const canCreate = usePermission(TENDER_CREATE);
@@ -475,7 +473,7 @@ export default function TenderRegisterPage() {
           rows={query.data === undefined ? undefined : overlay.apply(query.data.items)}
           rowKey={(row) => String(row.id)}
           rowLabel={(row) => `${row.reference} ${row.title}`}
-          onRowClick={(row) => void navigate(tenderPaths.overview(row.id))}
+          rowHref={(row) => tenderPaths.overview(row.id)}
           loading={query.isFetching}
           error={query.error?.kind === 'forbidden' ? null : query.error}
           restricted={query.error?.kind === 'forbidden'}

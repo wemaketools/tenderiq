@@ -146,6 +146,7 @@ describe('ApprovalDecisionPage (COM-05)', () => {
     expect(
       await screen.findByText(/Your decision is recorded for this exact version/),
     ).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByTestId('decision-recorded')).toHaveFocus());
   });
 
   it('requires a reason to reject and explains a version that changed meanwhile', async () => {
@@ -168,6 +169,37 @@ describe('ApprovalDecisionPage (COM-05)', () => {
     expect(
       await within(dialog).findByText(/The record changed while you were reviewing it/),
     ).toBeInTheDocument();
+  });
+
+  it('blocks the decision while a gate of the subject is open and says which one (AC-24)', async () => {
+    const detail = approvalDetail();
+    routeCalls({
+      'me.approvals.get': () =>
+        approvalDetail({
+          subjectType: 'award',
+          subjectReference: 'T-2026-0009',
+          subjectLinkPath: null,
+          allowedDecisions: [],
+          myStep:
+            detail.myStep === null
+              ? null
+              : { ...detail.myStep, canDecide: false, blockers: ['subject_gate_blocked'] },
+          subjectGates: [
+            { code: 'diligence', detail: 'One award-blocking due-diligence finding is open.' },
+          ],
+        }),
+      'buyer.audit.entityHistory': () => ({ items: [], total: 0, page: 1, pageSize: 10 }),
+    });
+    renderPage(<ApprovalDecisionPage />, PATH);
+    expect(
+      await screen.findByText('One award-blocking due-diligence finding is open.'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('The record is not ready for a decision')).toBeInTheDocument();
+    const approve = screen.queryByRole('button', { name: 'Approve' });
+    expect(approve === null || approve.hasAttribute('disabled')).toBe(true);
+    // No link is offered when the caller may not open the subject's screen.
+    expect(screen.queryByRole('link', { name: 'T-2026-0009' })).toBeNull();
+    expect(screen.getAllByText('T-2026-0009').length).toBeGreaterThan(0);
   });
 
   it('shows the not-found state for an unknown approval', async () => {

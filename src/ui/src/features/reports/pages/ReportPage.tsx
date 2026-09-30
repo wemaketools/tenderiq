@@ -42,6 +42,7 @@ import {
   formErrors,
 } from '../../../components/ui';
 import type { DataTableColumn } from '../../../components/ui';
+import { clockDate } from '../../../lib/clock';
 import { formatCalendarDate, formatCount } from '../../../lib/format';
 import { t } from '../../../lib/i18n';
 import { NotFoundPage } from '../../../pages/NotFoundPage';
@@ -208,7 +209,7 @@ function ReportView({ family }: { readonly family: (typeof REPORT_DEFINITIONS_FA
             onSelect={(id) => {
               const range = oneOf(id, QUICK_RANGES);
               if (range === undefined) return;
-              setFilters({ range, ...quickRangeDates(range, new Date()) });
+              setFilters({ range, ...quickRangeDates(range, clockDate()) });
             }}
           />
         }

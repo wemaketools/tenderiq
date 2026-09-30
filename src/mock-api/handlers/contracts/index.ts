@@ -107,6 +107,7 @@ import {
   supplierSignatoryView,
   tenantName,
   timeZoneOf,
+  withViewerApprovalAccess,
 } from './build.js';
 
 /** First id of a record "created" by a static command (foundation-contract §2.3). */
@@ -230,11 +231,24 @@ function sortContracts(rows: ContractRow[], sort: string | undefined, dir: 'asc'
 // Registration
 // ---------------------------------------------------------------------------------------------------------
 
+/**
+ * Every contracts route answers with its approval references resolved for the viewer (`inApprovalWorkspace` is
+ * true only when `/me/approvals/:approvalId` opens the request for this persona).
+ */
+function viewerAwareApp(app: MockApp): MockApp {
+  return {
+    route(endpoint, handler) {
+      app.route(endpoint, async (context) => withViewerApprovalAccess(await handler(context), context.persona));
+    },
+  };
+}
+
 export function register(app: MockApp): void {
-  registerBuyerFormation(app);
-  registerBuyerDelivery(app);
-  registerBuyerCommercial(app);
-  registerSupplier(app);
+  const routes = viewerAwareApp(app);
+  registerBuyerFormation(routes);
+  registerBuyerDelivery(routes);
+  registerBuyerCommercial(routes);
+  registerSupplier(routes);
 }
 
 function registerBuyerFormation(app: MockApp): void {

@@ -4,11 +4,14 @@ import {
   ApprovalDetail,
   approvalEndpoints,
 } from '../../../contracts/approvals.js';
+import { matchesRoute, spaRoutePatterns } from '../../fixtures/approvals/spa-routes.js';
 import { WORKSPACE_AS_OF, tid, uid } from '../../fixtures/approvals/world.js';
-import { allPersonas } from '../../persona.js';
+import { APPROVALS } from '../../fixtures/approvals.js';
+import { activeMemberships, allPersonas, membershipPermissions } from '../../persona.js';
 import { createTestMockApp } from '../../testing/index.js';
 import type { TestMockApp } from '../../testing/index.js';
 import { register } from './index.js';
+import { subjectLinkGuard } from './links.js';
 import { authorityCheck } from './view.js';
 
 const EMAIL = (login: string): string => `${login}@tenderiq.local`;
@@ -283,6 +286,28 @@ describe('buyer approval panels', () => {
     expect(single.status).toBe(404);
   });
 
+  it('hides exclusion and contract approvals from an administrator without a subject view permission (BR-26), not from the chair', async () => {
+    // Act
+    const adminReads = await Promise.all(
+      [37, 2602, 14304].map((approvalId) => api.callAs(EMAIL('admin.kwu'), approvalEndpoints.getApproval, { params: { approvalId }, tenant: 'kwu' })),
+    );
+    const adminPanel = await api.callAs(EMAIL('admin.kwu'), approvalEndpoints.getSubjectApprovals, {
+      params: { subjectType: 'exclusion', subjectId: 5101 },
+      tenant: 'kwu',
+    });
+    const chairRead = await api.callAs(EMAIL('boitumelo.chair'), approvalEndpoints.getApproval, { params: { approvalId: 37 }, tenant: 'kwu' });
+
+    // Assert
+    for (const response of adminReads) {
+      expect(response.status).toBe(404);
+      expect(response.body).toMatchObject({ code: 'APPROVAL_NOT_FOUND' });
+    }
+    expect(adminPanel.status).toBe(404);
+    expect(adminPanel.body).toMatchObject({ code: 'SUBJECT_NOT_FOUND' });
+    expect(chairRead.status).toBe(200);
+    expect(detail(chairRead.body).id).toBe(37);
+  });
+
   it('answers 403 to a supplier persona on a buyer route', async () => {
     const response = await api.callAs(EMAIL('tsodilo.admin'), approvalEndpoints.getApproval, { params: { approvalId: 31 }, tenant: 'tsodilo' });
     expect(response.status).toBe(403);
@@ -357,5 +382,82 @@ describe('buyer approval panels', () => {
       body: { reason: 'Motors repaired under warranty; no purchase needed' },
     });
     expect(detail(own.body).status).toBe('withdrawn');
+  });
+});
+
+describe('subject references and links', () => {
+  it('keeps every subject reference a short record code (never a title or a supplier name)', () => {
+    for (const approval of APPROVALS) {
+      if (approval.subjectReference === null) continue;
+      expect(approval.subjectReference.length, `approval ${approval.id}: ${approval.subjectReference}`).toBeLessThanOrEqual(24);
+      expect(approval.subjectReference, `approval ${approval.id}`).not.toContain(' / ');
+    }
+  });
+
+  it('guards every subject link and points it at a real SPA route', () => {
+    const routes = spaRoutePatterns();
+    for (const approval of APPROVALS) {
+      expect(subjectLinkGuard(approval.subjectLinkPath), `approval ${approval.id} → ${approval.subjectLinkPath}`).toBeDefined();
+      expect(matchesRoute(approval.subjectLinkPath, routes), `approval ${approval.id} → ${approval.subjectLinkPath}`).toBe(true);
+    }
+  });
+
+  it.each(allPersonas().filter((persona) => persona.status === 'active').map((persona) => [persona.email] as const))(
+    'links %s only to subject screens the caller may open',
+    async (email) => {
+      const persona = allPersonas().find((candidate) => candidate.email === email);
+      const response = await api.callAs(email, approvalEndpoints.listMyApprovals, { query: { pageSize: 100 } });
+      for (const row of approvalEndpoints.listMyApprovals.response.parse(response.body).items) {
+        if (row.subjectLinkPath === null || row.subjectLinkPath === undefined) continue;
+        const membership = persona === undefined ? undefined : activeMemberships(persona).find((m) => m.tenantId === row.organization.tenantId);
+        const held: readonly string[] = membership === undefined ? [] : membershipPermissions(membership);
+        const guard = subjectLinkGuard(row.subjectLinkPath);
+        expect(guard === undefined ? false : guard.anyOf.length === 0 || guard.anyOf.some((code) => held.includes(code)), `approval ${row.id} → ${row.subjectLinkPath}`).toBe(true);
+      }
+    },
+  );
+
+  it('withholds the strategy link from the Chief Executive, who decides strategies without the register’s read permission', async () => {
+    const response = await api.callAs(KEABETSWE, approvalEndpoints.listMyApprovals, { query: { subjectType: 'strategy', pageSize: 100 } });
+    const rows = approvalEndpoints.listMyApprovals.response.parse(response.body).items;
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.every((row) => row.subjectLinkPath === null)).toBe(true);
+    const opened = detail((await api.callAs(KEABETSWE, approvalEndpoints.getMyApproval, { params: { approvalId: rows[0]?.id ?? 0 } })).body);
+    expect(opened.subjectLinkPath).toBeNull();
+  });
+
+  it('still links the strategy for the manager, who holds the strategy permissions', async () => {
+    const response = await api.callAs(MPHO, approvalEndpoints.listMyApprovals, { query: { subjectType: 'strategy', pageSize: 100 } });
+    const rows = approvalEndpoints.listMyApprovals.response.parse(response.body).items;
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.every((row) => row.subjectLinkPath?.startsWith('/buyer/strategies/') === true)).toBe(true);
+  });
+});
+
+describe('subject gates (AC-24)', () => {
+  it('blocks the award approval of T-2026-0009 while diligence and the negotiation are open', async () => {
+    const view = detail((await api.callAs(KEABETSWE, approvalEndpoints.getMyApproval, { params: { approvalId: 39 } })).body);
+    expect(view.status).toBe('pending');
+    expect(view.myStep?.canDecide).toBe(false);
+    expect(view.myStep?.blockers).toContain('subject_gate_blocked');
+    expect(view.allowedDecisions).toEqual([]);
+    expect(view.subjectGates?.map((gate) => gate.code)).toEqual(['diligence', 'negotiation']);
+  });
+
+  it('refuses a decision on a gated approval with 409', async () => {
+    const view = detail((await api.callAs(KEABETSWE, approvalEndpoints.getMyApproval, { params: { approvalId: 39 } })).body);
+    const response = await api.callAs(KEABETSWE, approvalEndpoints.decideApproval, {
+      params: { approvalId: 39 },
+      tenant: 'kwu',
+      body: { subjectVersion: view.subjectVersion, contentHash: view.contentHash, decision: 'approve' },
+    });
+    expect(response.status).toBe(409);
+    expect(response.body).toMatchObject({ code: 'SUBJECT_NOT_READY_FOR_APPROVAL' });
+  });
+
+  it('reports no gate on an approval whose subject is ready', async () => {
+    const view = detail((await api.callAs(MPHO, approvalEndpoints.getMyApproval, { params: { approvalId: 328 } })).body);
+    expect(view.subjectGates).toEqual([]);
+    expect(view.myStep?.blockers).not.toContain('subject_gate_blocked');
   });
 });

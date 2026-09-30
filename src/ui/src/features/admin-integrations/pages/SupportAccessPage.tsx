@@ -3,7 +3,6 @@
  * organization's records, with the case, business need, permitted records, requested duration and status. The
  * organization administrator authorizes, narrows, denies or revokes each grant; support never gets access otherwise.
  */
-import { useNavigate } from 'react-router';
 
 import { operationsEndpoints } from '@contracts/operations';
 import type { CustomerSupportGrant } from '@contracts/operations';
@@ -33,7 +32,6 @@ import { grantWindow } from '../../ops/lib/grants';
 const DEFAULTS = { status: '', page: 1, sort: 'requestedAt', dir: 'desc' };
 
 export default function SupportAccessPage() {
-  const navigate = useNavigate();
   const tenant = useActiveTenant();
   const timeZone = tenant?.officialTimeZone ?? 'UTC';
   const [filters, setFilters, clearFilters] = useScreenFilters('OPS-04-customer', DEFAULTS);
@@ -110,7 +108,7 @@ export default function SupportAccessPage() {
           onRetry={grants.reload}
           sort={{ key: filters.sort, dir: filters.dir as 'asc' | 'desc' }}
           onSortChange={(next) => setFilters({ sort: next.key, dir: next.dir, page: 1 })}
-          onRowClick={(row) => navigate(servicePaths.supportGrant(row.id))}
+          rowHref={(row) => servicePaths.supportGrant(row.id)}
           rowLabel={(row) =>
             t('admin-integrations.support.rowLabel', { reference: row.caseReference })
           }

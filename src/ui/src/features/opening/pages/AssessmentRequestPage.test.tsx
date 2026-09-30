@@ -41,7 +41,7 @@ describe('AssessmentRequestPage (SUP-18, BR-22)', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Submit response' }));
     const dialog = await screen.findByRole('dialog');
     expect(
-      within(dialog).getByText('T-2026-0001 · Kalahari Water Utilities (Pilot)'),
+      within(dialog).getByText('CL-4109 · T-2026-0001 · Kalahari Water Utilities (Pilot)'),
     ).toBeInTheDocument();
     await userEvent.click(within(dialog).getByRole('button', { name: 'Submit response' }));
 

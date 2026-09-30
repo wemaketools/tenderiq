@@ -13,12 +13,14 @@
  * - T-2026-0006 (invitation-only, AC-01): Tsodilo and Chobe invited and accepted; Chobe's first invitation bounced
  *   and its contact was replaced without changing the invited legal supplier. Makgadikgadi received a forwarded
  *   invitation and asked for access: forwarding does not authorize it, and its qualification gate is not met.
- * - T-2026-0001: Makgadikgadi's qualification gate is not met (AC-07).
+ * - T-2026-0001: Makgadikgadi is not qualified and its application is pending; the declared gate applies before award,
+ *   so it takes part and bid on Lot 2 (AC-07: the declared gate, not registration, decides).
  * - T-2026-0008: Gaborone Metering shared a no-bid reason with the buyer (DD-41).
  * - T-2026-0009 (restricted): three access requests granted, one denied.
  * - T-2026-0011 (ODC, eligibility review + confidentiality undertaking): Limpopo (Lots 1 and 2) and Makgadikgadi
- *   (Lot 1) were admitted and bid. Chobe registered after Addendum 1 and was admitted on 25 Sep; it has not yet
- *   accepted the confidentiality undertaking, acknowledged the addendum or selected lots (SUP-08 actions).
+ *   (Lot 1) were admitted and bid. Chobe registered after Addendum 1 (so it received version 2 and has no addendum to
+ *   acknowledge) and was admitted on 25 Sep; it has not yet accepted the confidentiality undertaking or selected lots
+ *   (SUP-08 actions).
  */
 import type {
   NoticeRecipientsDeliveryStatus,
@@ -34,6 +36,7 @@ import type {
 import type { ParticipantEvent } from '../../../contracts/publication.js';
 import { ADDENDA, SESSIONS } from '../clarifications/index.js';
 import { PERSONAS, TENANT_IDS } from '../platform.js';
+import { TENDERS } from './tenders.js';
 
 export interface FixtureAcknowledgment {
   readonly subjectType: ParticipantAcknowledgmentsSubjectType;
@@ -214,7 +217,9 @@ const LOCAL_PARTICIPANTS: FixtureParticipant[] = [
     intentChangedAt: '2026-06-22T09:00:00Z',
   }),
   interested(1, KWU, MAKGADIKGADI, '2026-06-17T13:00:00Z', U.makgadikgadiAdmin, {
-    qualificationGate: 'not_met',
+    // Application QA-2026-0006 awaits more information (qualification fixtures, AC-08); the declared gate of this
+    // event applies before award only, so the supplier takes part and bids meanwhile (AC-07).
+    qualificationGate: 'pending',
     selectedLotIds: [102],
     intentChangedAt: '2026-06-25T10:00:00Z',
   }),
@@ -445,8 +450,8 @@ const LOCAL_PARTICIPANTS: FixtureParticipant[] = [
     ],
   }),
   // T-2026-0010 ------------------------------------------------------------------------------------------------
-  interested(10, KWU, TSODILO, '2026-03-04T08:00:00Z', U.tsodiloBidManager, { intentChangedAt: '2026-03-10T08:00:00Z' }),
-  interested(10, KWU, MAKGADIKGADI, '2026-03-05T08:00:00Z', U.makgadikgadiAdmin, { intentChangedAt: '2026-03-11T08:00:00Z' }),
+  interested(10, KWU, TSODILO, '2026-01-14T08:00:00Z', U.tsodiloBidManager, { intentChangedAt: '2026-01-20T08:00:00Z' }),
+  interested(10, KWU, MAKGADIKGADI, '2026-01-15T08:00:00Z', U.makgadikgadiAdmin, { intentChangedAt: '2026-01-21T08:00:00Z' }),
   // T-2026-0011 (ODC): the council admits each applicant before releasing the floor plans (eligibility review).
   interested(11, ODC, LIMPOPO, '2026-09-17T08:00:00Z', U.limpopoAdmin, {
     accessStatus: 'granted',
@@ -517,6 +522,24 @@ function emailOf(userId: number): string | null {
 }
 
 /**
+ * A participant of a single-lot event takes part in that lot (as `register interest` records it), unless it has not
+ * joined yet (an unanswered, declined or expired invitation; a pending or denied access request) or shared a no-bid.
+ */
+function singleLotSelection(participant: FixtureParticipant): readonly number[] {
+  const lots = TENDERS.find((tender) => tender.id === participant.tenderId)?.lots ?? [];
+  const only = lots.length === 1 ? lots[0] : undefined;
+  const joined =
+    participant.invitationStatus !== 'invited' &&
+    participant.invitationStatus !== 'declined' &&
+    participant.invitationStatus !== 'expired' &&
+    participant.accessStatus !== 'requested' &&
+    participant.accessStatus !== 'denied';
+  return participant.selectedLotIds.length === 0 && only !== undefined && joined && participant.bidIntent !== 'no_bid'
+    ? [only.lotId]
+    : participant.selectedLotIds;
+}
+
+/**
  * Adds the facts the clarifications fixtures own: the acknowledgments and formal deliveries of every issued addendum
  * (`addenda` recipients; `participant_acknowledgments` is authoritative, DD-42) and the session registrations
  * (`session_registrations`). The participant history shows each acknowledgment.
@@ -569,6 +592,7 @@ function withOwnedFacts(participant: FixtureParticipant): FixtureParticipant {
   );
   return {
     ...participant,
+    selectedLotIds: singleLotSelection(participant),
     acknowledgments,
     deliveries: [...participant.deliveries, ...deliveries].sort((a, b) => a.issuedAt.localeCompare(b.issuedAt)),
     sessionRegistrations,

@@ -17,13 +17,20 @@ import type {
   TendersProcedure,
   TendersStatus,
 } from '../../../contracts/enums.js';
+import { BUYER_CATEGORIES } from '../categories.js';
+import { DEMO_AS_OF, DEMO_AS_OF_DATE, DEMO_TIME_ZONE } from '../demo-clock.js';
 import { TENANT_IDS } from '../platform.js';
 
-/** The instant every dashboard and report fixture is computed at ("data as of"). */
-export const REPORTING_AS_OF = '2026-10-07T12:00:00Z';
-/** `REPORTING_AS_OF` as a calendar date in Africa/Gaborone. */
-export const REPORTING_AS_OF_DATE = '2026-10-07';
-export const OFFICIAL_TIME_ZONE = 'Africa/Gaborone';
+/**
+ * The instant every dashboard, report and records fixture is computed at ("data as of"): the single demo "now" of
+ * the storyline (`../demo-clock.ts`), the same instant the organization, contract and access-review fixtures are
+ * written around. Every activity timestamp of the reporting and records fixtures is on or before it; every deadline,
+ * due date and notice window after it is still ahead.
+ */
+export const REPORTING_AS_OF: string = DEMO_AS_OF;
+/** `REPORTING_AS_OF` as a calendar date in Africa/Gaborone (`../demo-clock.ts`). */
+export const REPORTING_AS_OF_DATE: string = DEMO_AS_OF_DATE;
+export const OFFICIAL_TIME_ZONE: string = DEMO_TIME_ZONE;
 
 /** Persona user ids used by the reporting fixtures (see `../platform.ts`). */
 export const USERS = {
@@ -98,19 +105,13 @@ export const DEPARTMENTS: readonly FixtureDimension[] = [
   { id: 6, tenantId: ODC, label: 'Facilities Management', code: null },
 ];
 
-export const CATEGORIES: readonly FixtureDimension[] = [
-  { id: 1, tenantId: KWU, label: 'Water infrastructure', code: 'WTR-INFRA' },
-  { id: 2, tenantId: KWU, label: 'Pumps and mechanical equipment', code: 'WTR-PUMP' },
-  { id: 3, tenantId: KWU, label: 'Pipes, valves and fittings', code: 'WTR-PIPE' },
-  { id: 4, tenantId: KWU, label: 'Water metering', code: 'WTR-METER' },
-  { id: 5, tenantId: KWU, label: 'SCADA and telemetry', code: 'ICT-SCADA' },
-  { id: 6, tenantId: KWU, label: 'Water treatment chemicals and dosing', code: 'WTR-CHEM' },
-  { id: 7, tenantId: KWU, label: 'Leak detection services', code: 'ENV-LEAK' },
-  { id: 8, tenantId: KWU, label: 'Civil works', code: 'CIV-WORKS' },
-  { id: 9, tenantId: KWU, label: 'Fleet maintenance services', code: 'FLEET-SVC' },
-  { id: 10, tenantId: KWU, label: 'Electrical maintenance services', code: 'ELEC-MAINT' },
-  { id: 20, tenantId: ODC, label: 'Cleaning services', code: 'FAC-CLEAN' },
-];
+/** The buyer categories of the demo world (`../categories.ts`), as report and dashboard dimensions. */
+export const CATEGORIES: readonly FixtureDimension[] = BUYER_CATEGORIES.filter((row) => row.active).map(({ id, tenantId, name, code }) => ({
+  id,
+  tenantId,
+  label: name,
+  code,
+}));
 
 export function dimensionLabel(rows: readonly FixtureDimension[], id: number): string {
   return rows.find((row) => row.id === id)?.label ?? '';
@@ -180,21 +181,62 @@ export const TENDER_FACTS: readonly FixtureTenderFact[] = [
     ],
     openedOn: '2026-05-18',
     lastActivityOn: '2026-09-22',
-    daysInStage: 33,
+    daysInStage: 32,
     nextMilestoneLabel: 'Lot 3 evaluation in progress',
   }),
-  tender({ id: 2, reference: 'T-2026-0002', title: 'Smart water meter supply', eventType: 'rfq', procedure: 'open', status: 'open', departmentId: 3, categoryId: 4, estimatedValue: bwp('1280000.00'), openedOn: '2026-08-24', lastActivityOn: '2026-10-02', daysInStage: 23, nextMilestoneLabel: 'Submission deadline, 16 Oct 2026' }),
-  tender({ id: 3, reference: 'T-2026-0003', title: 'SCADA telemetry upgrade', eventType: 'rfp', procedure: 'open', status: 'under_assessment', departmentId: 2, categoryId: 5, estimatedValue: bwp('125000.00'), openedOn: '2026-06-22', lastActivityOn: '2026-09-18', daysInStage: 40, nextMilestoneLabel: 'Expected award, 30 Oct 2026' }),
-  tender({ id: 4, reference: 'T-2026-0004', title: 'Leak-detection market consultation', eventType: 'rfi', procedure: 'rfi', status: 'information_collected', departmentId: 3, categoryId: 7, estimatedValue: null, openedOn: '2026-04-20', lastActivityOn: '2026-06-30', daysInStage: 99, nextMilestoneLabel: null }),
-  tender({ id: 5, reference: 'T-2026-0005', title: 'Water treatment chemicals framework', eventType: 'tender', procedure: 'open', status: 'awaiting_release_approval', departmentId: 4, categoryId: 6, estimatedValue: bwp('1920000.00'), openedOn: '2026-09-07', lastActivityOn: '2026-09-28', daysInStage: 9, nextMilestoneLabel: 'Release approval required again after a scope change', isPublic: false }),
-  tender({ id: 6, reference: 'T-2026-0006', title: 'Chlorine dosing equipment', eventType: 'rfq', procedure: 'invitation_only', status: 'open', departmentId: 4, categoryId: 6, estimatedValue: bwp('640000.00'), openedOn: '2026-09-01', lastActivityOn: '2026-09-21', daysInStage: 16, nextMilestoneLabel: 'Submission deadline, 14 Oct 2026', isPublic: false }),
-  tender({ id: 7, reference: 'T-2026-0007', title: 'Reservoir rehabilitation works', eventType: 'tender', procedure: 'open', status: 'award_pending', departmentId: 2, categoryId: 8, estimatedValue: bwp('7400000.00'), openedOn: '2026-04-06', lastActivityOn: '2026-09-25', daysInStage: 18, nextMilestoneLabel: 'Standstill ends 8 Oct 2026, 17:00 (complaint hold in force)' }),
-  tender({ id: 8, reference: 'T-2026-0008', title: 'Pipeline valves bulk supply', eventType: 'tender', procedure: 'open', status: 'closed', departmentId: 3, categoryId: 3, estimatedValue: bwp('2350000.00'), openedOn: '2026-07-27', lastActivityOn: '2026-09-25', daysInStage: 12, nextMilestoneLabel: 'Opening deferred to the next opening committee sitting' }),
-  tender({ id: 9, reference: 'T-2026-0009', title: 'Acoustic leak detection services', eventType: 'rfp', procedure: 'restricted', status: 'under_assessment', departmentId: 3, categoryId: 7, estimatedValue: bwp('3100000.00'), openedOn: '2026-06-15', lastActivityOn: '2026-09-24', daysInStage: 54, nextMilestoneLabel: 'Fallback bidder due diligence' }),
-  tender({ id: 10, reference: 'T-2026-0010', title: 'Fleet vehicle maintenance', eventType: 'rfq', procedure: 'open', status: 'awarded', departmentId: 5, categoryId: 9, estimatedValue: bwp('2850000.00'), openedOn: '2026-02-09', lastActivityOn: '2026-08-01', daysInStage: 215, nextMilestoneLabel: null }),
-  tender({ id: 11, tenantId: ODC, legalEntityId: 2, ownerUserId: USERS.officerOdc, reference: 'T-2026-0011', title: 'Office cleaning services', eventType: 'rfq', procedure: 'open', status: 'open', departmentId: 6, categoryId: 20, estimatedValue: bwp('420000.00'), openedOn: '2026-08-31', lastActivityOn: '2026-09-16', daysInStage: 21, nextMilestoneLabel: 'Submission deadline, 21 Oct 2026' }),
-  tender({ id: 12, reference: 'T-2026-0012', title: 'Treatment works electrical maintenance', eventType: 'rfq', procedure: 'open', status: 'draft', departmentId: 2, categoryId: 10, estimatedValue: bwp('780000.00'), openedOn: '2026-09-22', lastActivityOn: '2026-09-29', daysInStage: 15, nextMilestoneLabel: 'Draft: release planned for December 2026', isPublic: false }),
-  tender({ id: LEGACY_TENDER_ID, reference: 'T-2025-0003', title: 'Maun wellfield pump supply (legacy import, 2018)', eventType: 'tender', procedure: 'open', status: 'archived', ownerUserId: USERS.formerOfficer, departmentId: 1, categoryId: 2, estimatedValue: bwp('2250000.00'), openedOn: '2018-07-02', lastActivityOn: '2018-11-30', daysInStage: 2868, nextMilestoneLabel: null, isPublic: false }),
+  tender({ id: 2, reference: 'T-2026-0002', title: 'Smart water meter supply', eventType: 'rfq', procedure: 'open', status: 'open', departmentId: 3, categoryId: 4, estimatedValue: bwp('1280000.00'), openedOn: '2026-08-24', lastActivityOn: '2026-10-02', daysInStage: 22, nextMilestoneLabel: 'Submission deadline, 21 Oct 2026 (moved from 14 Oct by Addendum 1)' }),
+  tender({ id: 3, reference: 'T-2026-0003', title: 'SCADA telemetry upgrade', eventType: 'rfp', procedure: 'open', status: 'under_assessment', departmentId: 2, categoryId: 5, estimatedValue: bwp('125000.00'), openedOn: '2026-06-22', lastActivityOn: '2026-09-18', daysInStage: 39, nextMilestoneLabel: 'Expected award, 30 Oct 2026' }),
+  tender({ id: 4, reference: 'T-2026-0004', title: 'Leak-detection market consultation', eventType: 'rfi', procedure: 'rfi', status: 'information_collected', departmentId: 3, categoryId: 7, estimatedValue: null, openedOn: '2026-04-20', lastActivityOn: '2026-06-30', daysInStage: 98, nextMilestoneLabel: null }),
+  tender({ id: 5, reference: 'T-2026-0005', title: 'Water treatment chemicals framework', eventType: 'tender', procedure: 'open', status: 'awaiting_release_approval', departmentId: 4, categoryId: 6, estimatedValue: bwp('1920000.00'), openedOn: '2026-09-07', lastActivityOn: '2026-09-28', daysInStage: 8, nextMilestoneLabel: 'Release approval required again after a scope change', isPublic: false }),
+  tender({ id: 6, reference: 'T-2026-0006', title: 'Chlorine dosing equipment', eventType: 'rfq', procedure: 'invitation_only', status: 'open', departmentId: 4, categoryId: 6, estimatedValue: bwp('640000.00'), openedOn: '2026-09-01', lastActivityOn: '2026-09-21', daysInStage: 15, nextMilestoneLabel: 'Submission deadline, 14 Oct 2026', isPublic: false }),
+  tender({ id: 7, reference: 'T-2026-0007', title: 'Reservoir rehabilitation works', eventType: 'tender', procedure: 'open', status: 'award_pending', departmentId: 2, categoryId: 8, estimatedValue: bwp('7400000.00'), openedOn: '2026-04-06', lastActivityOn: '2026-09-25', daysInStage: 17, nextMilestoneLabel: 'Standstill ends 8 Oct 2026, 17:00 (complaint hold in force)' }),
+  tender({ id: 8, reference: 'T-2026-0008', title: 'Pipeline valves bulk supply', eventType: 'tender', procedure: 'open', status: 'closed', departmentId: 3, categoryId: 3, estimatedValue: bwp('2350000.00'), openedOn: '2026-07-27', lastActivityOn: '2026-09-25', daysInStage: 11, nextMilestoneLabel: 'Opening of the qualification envelopes, 7 Oct 2026' }),
+  tender({ id: 9, reference: 'T-2026-0009', title: 'Acoustic leak detection services', eventType: 'rfp', procedure: 'restricted', status: 'under_assessment', departmentId: 3, categoryId: 7, estimatedValue: bwp('3100000.00'), openedOn: '2026-06-15', lastActivityOn: '2026-09-24', daysInStage: 53, nextMilestoneLabel: 'Fallback bidder due diligence' }),
+  tender({ id: 10, reference: 'T-2026-0010', title: 'Fleet vehicle maintenance', eventType: 'rfq', procedure: 'open', status: 'awarded', departmentId: 5, categoryId: 9, estimatedValue: bwp('1900000.00'), openedOn: '2025-12-01', lastActivityOn: '2026-08-01', daysInStage: 214, nextMilestoneLabel: null }),
+  tender({ id: 11, tenantId: ODC, legalEntityId: 2, ownerUserId: USERS.officerOdc, reference: 'T-2026-0011', title: 'Office cleaning services', eventType: 'rfq', procedure: 'open', status: 'open', departmentId: 6, categoryId: 20, estimatedValue: bwp('420000.00'), openedOn: '2026-08-31', lastActivityOn: '2026-09-16', daysInStage: 20, nextMilestoneLabel: 'Submission deadline, 23 Oct 2026 (moved from 21 Oct by Addendum 1)' }),
+  tender({ id: 12, reference: 'T-2026-0012', title: 'Treatment works electrical maintenance', eventType: 'rfq', procedure: 'open', status: 'draft', departmentId: 2, categoryId: 10, estimatedValue: bwp('780000.00'), openedOn: '2026-09-22', lastActivityOn: '2026-09-29', daysInStage: 14, nextMilestoneLabel: 'Draft: release planned for December 2026', isPublic: false }),
+  tender({
+    id: 13,
+    tenantId: ODC,
+    legalEntityId: 2,
+    ownerUserId: USERS.officerOdc,
+    reference: 'T-2026-0013',
+    title: 'Community borehole drilling — Maun cluster',
+    eventType: 'tender',
+    procedure: 'open',
+    status: 'ready',
+    departmentId: 6,
+    categoryId: 21,
+    estimatedValue: bwp('1980000.00'),
+    openedOn: '2026-09-08',
+    lastActivityOn: '2026-09-29',
+    daysInStage: 7,
+    nextMilestoneLabel: 'Release scheduled for 20 Oct 2026; submission deadline 18 Nov 2026',
+    isPublic: false,
+  }),
+  tender({
+    id: 14,
+    reference: 'T-2026-0014',
+    title: 'Water treatment works instrumentation',
+    eventType: 'tender',
+    procedure: 'open',
+    status: 'under_assessment',
+    departmentId: 2,
+    categoryId: 1,
+    estimatedValue: bwp('3650000.00'),
+    lots: [
+      { id: 1401, number: 1, title: 'Flow meters', stage: 'under_assessment', estimatedValue: bwp('820000.00') },
+      { id: 1402, number: 2, title: 'Online water-quality analysers', stage: 'under_assessment', estimatedValue: bwp('760000.00') },
+      { id: 1403, number: 3, title: 'Level sensors', stage: 'under_assessment', estimatedValue: bwp('410000.00') },
+      { id: 1404, number: 4, title: 'Pressure transmitters', stage: 'under_assessment', estimatedValue: bwp('380000.00') },
+      { id: 1405, number: 5, title: 'Chlorine dosing controllers', stage: 'under_assessment', estimatedValue: bwp('1280000.00') },
+    ],
+    openedOn: '2026-06-22',
+    lastActivityOn: '2026-09-28',
+    daysInStage: 47,
+    nextMilestoneLabel: 'Expected award, 13 Nov 2026',
+  }),
+  tender({ id: LEGACY_TENDER_ID, reference: 'T-2025-0003', title: 'Maun wellfield pump supply (legacy import, 2018)', eventType: 'tender', procedure: 'open', status: 'archived', ownerUserId: USERS.formerOfficer, departmentId: 1, categoryId: 2, estimatedValue: bwp('2250000.00'), openedOn: '2018-07-02', lastActivityOn: '2018-11-30', daysInStage: 2867, nextMilestoneLabel: null, isPublic: false }),
 ];
 
 export function tenderFact(tenderId: number): FixtureTenderFact {
@@ -234,7 +276,7 @@ export interface FixtureContractFact {
 /** Mirrors the contracts domain fixtures (`../contracts/core.ts`): ids, statuses, suppliers and values. */
 export const CONTRACT_FACTS: readonly FixtureContractFact[] = [
   { id: 1, tenantId: KWU, reference: 'C-2026-0001', title: 'Fleet vehicle maintenance', tenderId: 10, supplierTenantId: TENANT_IDS.tsodilo, status: 'active', value: bwp('1850000.00'), ownerUserId: USERS.tebogo, imported: false },
-  { id: 2, tenantId: KWU, reference: 'C-2026-0002', title: 'Borehole pumps Lot 1: supply and installation', tenderId: 1, supplierTenantId: TENANT_IDS.tsodilo, status: 'awaiting_signature', value: bwp('4685000.00'), ownerUserId: USERS.tebogo, imported: false },
+  { id: 2, tenantId: KWU, reference: 'C-2026-0002', title: 'Borehole pumps Lot 1: supply and installation', tenderId: 1, supplierTenantId: TENANT_IDS.tsodilo, status: 'awaiting_signature', value: bwp('4668000.00'), ownerUserId: USERS.tebogo, imported: false },
   { id: 3, tenantId: KWU, reference: 'C-2026-0003', title: 'Borehole pumps Lot 1: preventive maintenance', tenderId: 1, supplierTenantId: TENANT_IDS.tsodilo, status: 'under_review', value: bwp('540000.00'), ownerUserId: USERS.tebogo, imported: false },
   { id: 4, tenantId: KWU, reference: 'C-2025-0007', title: 'Legacy meter reading services', tenderId: null, supplierTenantId: TENANT_IDS['gaborone-meter'], status: 'expired', value: bwp('640000.00'), ownerUserId: USERS.masego, imported: true },
   { id: 5, tenantId: KWU, reference: 'C-2025-0003', title: 'SCADA helpdesk and patching support', tenderId: null, supplierTenantId: TENANT_IDS['serowe-ict'], status: 'closed', value: bwp('310000.00'), ownerUserId: USERS.masego, imported: false },
@@ -257,6 +299,8 @@ export function contractFact(contractId: number): FixtureContractFact {
 
 export const LINKS = {
   buyerTender: (tenderId: number): string => `/buyer/tenders/${tenderId}`,
+  /** The publication record of a tender (channels, external notices and their exceptions). */
+  buyerTenderPublication: (tenderId: number): string => `/buyer/tenders/${tenderId}/publication`,
   buyerTenders: (status?: string): string => (status === undefined ? '/buyer/tenders' : `/buyer/tenders?status=${status}`),
   buyerContract: (contractId: number): string => `/buyer/contracts/${contractId}`,
   buyerContracts: (): string => '/buyer/contracts',

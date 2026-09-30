@@ -66,6 +66,7 @@ export default {
   workload: {
     title: 'Workload by owner',
     subtitle: 'Active events, tasks and approvals',
+    owner: 'Owner',
     activeEvents: 'Active events',
     openTasks: 'Open tasks',
     overdueTasks: 'Overdue tasks',
@@ -131,7 +132,7 @@ export default {
     validTo: 'Valid to {date}',
     conditions: 'Conditions: {conditions}',
     evidence: 'Expiring evidence',
-    evidenceHint: 'Documents that expire within 60 days',
+    evidenceHint: 'Documents expired or expiring within {days} days',
     evidenceRestricted: 'Your role does not manage the evidence library.',
     noEvidence: 'No evidence expires soon',
     expired: 'Expired',

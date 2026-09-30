@@ -3,7 +3,6 @@
  * rules; approved calendars are maintained, and changes are reviewed against active events before they apply
  * (BR-12). The deadline policy summarizes what applies with the calendars.
  */
-import { useNavigate } from 'react-router';
 
 import { CALENDAR_SORT_FIELDS, getDeadlinePolicy, listCalendars } from '@contracts/calendars';
 import type { CalendarSummary } from '@contracts/calendars';
@@ -53,7 +52,6 @@ function sortField(value: string): SortField {
 }
 
 export default function CalendarsPage() {
-  const navigate = useNavigate();
   const timeZone = useDisplayTimeZone();
   const canManage = usePermission('org.calendars.manage');
   const [filters, setFilters, clearFilters] = useScreenFilters('ADM-10', DEFAULTS);
@@ -246,7 +244,7 @@ export default function CalendarsPage() {
           rows={query.data?.items}
           rowKey={(row) => String(row.id)}
           rowLabel={(row) => row.name}
-          onRowClick={(row) => void navigate(calendarPaths.calendar(row.id))}
+          rowHref={(row) => calendarPaths.calendar(row.id)}
           loading={query.isFetching}
           error={query.error}
           onRetry={query.reload}

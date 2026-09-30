@@ -15,6 +15,7 @@ import type {
   ProcurementStrategiesProcedure,
   TendersStatus,
 } from '../../../contracts/enums.js';
+import { BUYER_CATEGORIES } from '../categories.js';
 import { TENANT_IDS, TENANTS } from '../platform.js';
 
 export const KWU = TENANT_IDS.kwu;
@@ -152,23 +153,10 @@ export const DEPARTMENTS: readonly FixtureDepartment[] = Object.freeze([
   { id: 12, tenantId: ODC, code: 'PW', name: 'Public Works', legalEntityId: 2 },
 ]);
 
-export const CATEGORIES: readonly FixtureCategory[] = Object.freeze([
-  { id: 1, tenantId: KWU, code: 'WTR-INFRA', name: 'Water infrastructure', parentId: null },
-  { id: 2, tenantId: KWU, code: 'WTR-PUMP', name: 'Pumps and mechanical equipment', parentId: 1 },
-  { id: 3, tenantId: KWU, code: 'WTR-PIPE', name: 'Pipes, valves and fittings', parentId: 1 },
-  { id: 4, tenantId: KWU, code: 'ICT-SCADA', name: 'SCADA and telemetry', parentId: null },
-  { id: 5, tenantId: KWU, code: 'WTR-CHEM', name: 'Water treatment chemicals', parentId: null },
-  { id: 6, tenantId: KWU, code: 'FLEET-SVC', name: 'Fleet services', parentId: null },
-  { id: 7, tenantId: KWU, code: 'FAC-SVC', name: 'Facilities and office', parentId: null },
-  { id: 8, tenantId: KWU, code: 'LAB-EQP', name: 'Laboratory equipment', parentId: null },
-  { id: 9, tenantId: KWU, code: 'PPE', name: 'Protective clothing and equipment', parentId: null },
-  { id: 10, tenantId: KWU, code: 'ICT-COMMS', name: 'Communications ICT', parentId: null },
-  { id: 11, tenantId: KWU, code: 'ENG-SVC', name: 'Engineering services', parentId: null },
-  { id: 12, tenantId: KWU, code: 'ENERGY', name: 'Energy and power', parentId: null },
-  { id: 21, tenantId: ODC, code: 'FAC-CLEAN', name: 'Cleaning services', parentId: null },
-  { id: 22, tenantId: ODC, code: 'CIV-WORKS', name: 'Civil works', parentId: null },
-  { id: 23, tenantId: ODC, code: 'FUEL', name: 'Fuel supply', parentId: null },
-]);
+/** The buyer categories of the demo world (`../categories.ts`), the active ones offered for new requests. */
+export const CATEGORIES: readonly FixtureCategory[] = Object.freeze(
+  BUYER_CATEGORIES.filter((row) => row.active).map(({ id, tenantId, code, name, parentId }) => ({ id, tenantId, code, name, parentId })),
+);
 
 export const COST_CENTERS: readonly FixtureCostCenter[] = Object.freeze([
   { id: 1, tenantId: KWU, code: 'CC-OPS-410', name: 'Borehole operations', departmentId: 1 },
@@ -253,7 +241,7 @@ export const CONTRACTS: readonly FixtureContractRef[] = Object.freeze([
     expiresOn: '2027-03-31',
     ceiling: bwp('2400000.00'),
     committed: bwp('1290000.00'),
-    renewalNoticeFrom: '2026-10-05',
+    renewalNoticeFrom: '2026-10-11',
   },
   {
     id: 2,

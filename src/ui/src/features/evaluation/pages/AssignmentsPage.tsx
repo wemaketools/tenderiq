@@ -4,7 +4,6 @@
  * conflict declaration, BR-08) and completion. Missing work is counted as "not scored", never as zero (AC-18). The row
  * action is the next permitted step: accept, wait for the conflict review, score, submit or correct.
  */
-import { useNavigate } from 'react-router';
 
 import { EVALUATION_ASSIGNMENTS_STATUS } from '@contracts/enums';
 import { ASSIGNMENT_SORT_FIELDS, listAssignments, listEvaluations } from '@contracts/evaluation';
@@ -104,7 +103,6 @@ function DeclarationsCell({ row }: { readonly row: AssignmentRow }) {
 }
 
 export default function AssignmentsPage() {
-  const navigate = useNavigate();
   const isChair = usePermission('evaluation.chair');
   const canOverview = usePermission(EVALUATION_OVERVIEW_PERMISSIONS);
   const [filters, setFilters, clearFilters] = useScreenFilters('EVA-01', DEFAULTS);
@@ -405,7 +403,7 @@ export default function AssignmentsPage() {
               evaluator: row.evaluator.fullName,
             })
           }
-          onRowClick={(row) => void navigate(evaluationPaths.assignment(row.assignmentId))}
+          rowHref={(row) => evaluationPaths.assignment(row.assignmentId)}
           loading={query.isFetching}
           error={query.error}
           onRetry={query.reload}

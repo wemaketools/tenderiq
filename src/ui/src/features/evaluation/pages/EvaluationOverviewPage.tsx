@@ -12,6 +12,7 @@ import type { CommitteeLine, EvaluationOverview } from '@contracts/evaluation';
 import { useApiQuery } from '../../../api/hooks';
 import { usePermission } from '../../../auth/permissions';
 import {
+  Banner,
   Card,
   DataTable,
   DetailList,
@@ -227,6 +228,14 @@ export default function EvaluationOverviewPage() {
         )
       ) : (
         <>
+          {overview.detailLevel !== 'full' && (
+            <Banner
+              tone="info"
+              title={t(`evaluation.overview.detail.${overview.detailLevel}.title`)}
+            >
+              <p>{t(`evaluation.overview.detail.${overview.detailLevel}.body`)}</p>
+            </Banner>
+          )}
           <KpiGrid>
             <KpiCard
               label={t('evaluation.overview.kpi.submitted')}
@@ -393,7 +402,16 @@ export default function EvaluationOverviewPage() {
                   ]}
                   rows={overview.bids}
                   rowKey={(bid) => String(bid.bidId)}
-                  empty={<EmptyState compact title={t('evaluation.assignment.noBids')} />}
+                  empty={
+                    <EmptyState
+                      compact
+                      title={
+                        overview.detailLevel === 'conflict_pending_review'
+                          ? t('evaluation.overview.bidsWithheld')
+                          : t('evaluation.assignment.noBids')
+                      }
+                    />
+                  }
                 />
               </Card>
               <PlanCard overview={overview} />

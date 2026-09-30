@@ -8,6 +8,8 @@
  * - `/buyer/*`, `/supplier/*`, `/ops/*` and `/me/*`: signed in with an active organization, inside AppShell; the area
  *   must match the organization's kind (`/me` matches every kind). Each feature route can require a permission.
  * - Anything else: Not found.
+ * - A route that fails to load or throws renders RouteErrorPage: inside the shell for area routes (the navigation
+ *   stays usable), standalone otherwise.
  */
 import { Suspense, lazy } from 'react';
 import type { ComponentType, ReactNode } from 'react';
@@ -23,6 +25,7 @@ import { SelectOrganizationPage } from '../components/shell/SelectOrganizationPa
 import { SkeletonBlock } from '../components/ui/Skeleton';
 import { AreaHomePage } from '../pages/AreaHomePage';
 import { NotFoundPage } from '../pages/NotFoundPage';
+import { RouteErrorPage } from '../pages/RouteErrorPage';
 import { RootLayout } from './RootLayout';
 import { RouteGuard } from './RouteGuard';
 import { features as registeredFeatures } from './featureRegistry';
@@ -76,7 +79,12 @@ function areaRoute(
     children.unshift({ index: true, element: <AreaHomePage area={area} modules={modules} /> });
   }
   children.push({ path: '*', element: <NotFoundPage inShell /> });
-  return { path, element: <RouteGuard area={area} />, children };
+  return {
+    path,
+    element: <RouteGuard area={area} />,
+    errorElement: <RouteErrorPage inShell />,
+    children,
+  };
 }
 
 /** The route objects for a set of feature modules (exported for tests). */
@@ -88,6 +96,7 @@ export function buildRoutes(modules: readonly FeatureModule[]): RouteObject[] {
   return [
     {
       element: <RootLayout />,
+      errorElement: <RouteErrorPage />,
       children: [
         { path: '/', element: <PublicShell />, children: publicChildren },
         { path: '/signin', element: <SignInPage /> },

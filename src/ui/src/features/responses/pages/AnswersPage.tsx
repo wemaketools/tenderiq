@@ -3,7 +3,6 @@
  * progress, assigned contributors and review comments. Lots are selected here; reused content is flagged for review
  * and deviations are identified; the completeness check separates blocking errors from warnings (FR-11).
  */
-import { useNavigate } from 'react-router';
 
 import { ANSWER_LIST_SORTS, getReadiness, listAnswers } from '@contracts/bids';
 import type { BidAnswerRow, BidDetail, BidSection } from '@contracts/bids';
@@ -116,7 +115,6 @@ function AnswersContent({
   readonly bid: BidDetail;
   readonly reloadBid: () => void;
 }) {
-  const navigate = useNavigate();
   const timeZone = bid.officialTimeZone;
   const [filters, setFilters, clearFilters] = useScreenFilters(`SUP-12:${bid.id}`, DEFAULTS);
   const query = useApiQuery(listAnswers, {
@@ -394,7 +392,7 @@ function AnswersContent({
           rows={page?.items}
           rowKey={(row) => String(row.requirementId)}
           rowLabel={(row) => `${row.refCode} ${row.text}`}
-          onRowClick={(row) => void navigate(responsePaths.answer(bid.id, row.requirementId))}
+          rowHref={(row) => responsePaths.answer(bid.id, row.requirementId)}
           loading={query.isFetching}
           error={query.error}
           onRetry={query.reload}

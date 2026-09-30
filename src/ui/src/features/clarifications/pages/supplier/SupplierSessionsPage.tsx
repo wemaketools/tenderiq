@@ -2,7 +2,6 @@
  * SUP-11 Briefings and site visits: the sessions of the tenders the supplier participates in, with venue, available
  * places, mandatory status, the registration deadline and the supplier's own booking.
  */
-import { useNavigate } from 'react-router';
 
 import { clarificationsEndpoints } from '@contracts/clarifications';
 import type { SupplierSessionRow } from '@contracts/clarifications';
@@ -45,7 +44,6 @@ const DEFAULT_FILTERS = {
 const TENDERS_REQUEST = { query: { pageSize: 100 } } as const;
 
 export default function SupplierSessionsPage() {
-  const navigate = useNavigate();
   const [filters, setFilters, clearFilters] = useScreenFilters('SUP-11', DEFAULT_FILTERS);
   const tenders = useApiQuery(clarificationsEndpoints.supplierTenders, TENDERS_REQUEST);
   const tenderId = filters.tender === '' ? undefined : Number(filters.tender);
@@ -164,7 +162,7 @@ export default function SupplierSessionsPage() {
           onRetry={sessions.reload}
           sort={sort}
           onSortChange={(next) => setFilters({ sort: next.key, dir: next.dir, page: 1 })}
-          onRowClick={(row) => navigate(supplierPaths.session(row.id))}
+          rowHref={(row) => supplierPaths.session(row.id)}
           rowLabel={(row) => row.title}
           empty={
             <EmptyState

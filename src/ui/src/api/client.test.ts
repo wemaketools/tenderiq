@@ -166,6 +166,22 @@ describe('call: responses', () => {
     expect(onUnauthorized).toHaveBeenCalledTimes(1);
   });
 
+  it('reports an expired upload slot (410) as a conflict the user can resolve, not a server error', async () => {
+    adapters();
+    installFetch({
+      'GET /api/v1/me/task-summary': () =>
+        problem(410, 'Upload expired', {
+          code: 'UPLOAD_EXPIRED',
+          detail: 'Upload the file again.',
+        }),
+    });
+    await expect(call(getMyTaskSummary, {})).rejects.toMatchObject({
+      kind: 'conflict',
+      status: 410,
+      code: 'UPLOAD_EXPIRED',
+    });
+  });
+
   it('rejects a response that drifts from the contract in development builds', async () => {
     adapters();
     installFetch({ 'GET /api/v1/me/task-summary': () => ({ body: { open: 'three' } }) });

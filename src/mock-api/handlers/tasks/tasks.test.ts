@@ -67,7 +67,7 @@ describe('me.tasks.list', () => {
       'Keabetswe Nkwe',
     ]);
     const exceptions = await api.callAs(EMAIL('tebogo.officer'), taskEndpoints.listMyTasks, { query: { taskType: 'delivery_exception' } });
-    expect(taskEndpoints.listMyTasks.response.parse(exceptions.body).items.map((row) => row.id)).toEqual([114]);
+    expect(taskEndpoints.listMyTasks.response.parse(exceptions.body).items.map((row) => row.id)).toEqual([114, 190]);
   });
 
   it('sorts by priority on request', async () => {

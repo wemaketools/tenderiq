@@ -5,7 +5,6 @@
  * Fields carried by issued forms are never changed silently (PRD §17.1, §17.3).
  */
 import { useState } from 'react';
-import { useNavigate } from 'react-router';
 
 import {
   CUSTOM_FIELDS_AUDIENCE,
@@ -99,7 +98,6 @@ function booleanFilter(value: string): boolean | undefined {
 type Tab = 'register' | 'preview';
 
 function FieldRegister() {
-  const navigate = useNavigate();
   const timeZone = useOfficialTimeZone();
   const [filters, setFilters, clearFilters] = useScreenFilters('ADM-07', DEFAULTS);
   const query = useApiQuery(listCustomFields, {
@@ -351,7 +349,7 @@ function FieldRegister() {
           rows={query.data?.items}
           rowKey={(row) => String(row.id)}
           rowLabel={(row) => row.label}
-          onRowClick={(row) => void navigate(policyPaths.field(row.id))}
+          rowHref={(row) => policyPaths.field(row.id)}
           loading={query.isFetching}
           error={query.error}
           onRetry={query.reload}

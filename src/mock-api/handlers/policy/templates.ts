@@ -324,7 +324,7 @@ export function registerTemplates(app: MockApp): void {
     if (version.versionStatus !== 'draft') return fail(409, 'TEMPLATE_VERSION_NOT_DRAFT', 'Only a draft version can be submitted.');
     const today = calendarDateOf(now);
     if (template.reviewDate !== null && template.reviewDate < today) {
-      return fail(409, 'REVIEW_DATE_IN_PAST', 'Set a future review date before submitting.');
+      return fail(422, 'REVIEW_DATE_IN_PAST', 'Set a future review date before submitting.');
     }
     const userId = requirePersona().userId;
     const submitted: FixtureTemplateVersion = {

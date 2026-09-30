@@ -54,7 +54,13 @@ import { Readiness } from '../components/Readiness';
 import { evaluationErrorMessage, withEvaluationMessage } from '../lib/errors';
 import { useIdParam, useLotId } from '../lib/hooks';
 import { bidLabel } from '../lib/labels';
-import { cellKey, criteriaById, orderedCriteria, ratingOptions } from '../lib/scores';
+import {
+  RATING_PLACES,
+  cellKey,
+  criteriaById,
+  orderedCriteria,
+  ratingOptions,
+} from '../lib/scores';
 
 export default function ModerationPage() {
   const tenderId = useIdParam('tenderId');
@@ -188,7 +194,7 @@ function ModerationWorkspace({
           tone="warning"
           value={formatCount(divergent)}
           hint={t('evaluation.moderation.kpi.divergentHint', {
-            threshold: formatDecimalString(view.divergenceThreshold),
+            threshold: formatDecimalString(view.divergenceThreshold, RATING_PLACES),
           })}
         />
         <KpiCard
@@ -253,6 +259,7 @@ function ModerationWorkspace({
                         <ScoreValue
                           score={score.notScored ? null : score.score}
                           isNotApplicable={score.isNotApplicable}
+                          places={RATING_PLACES}
                         />
                       ) : (
                         <Chip tone="neutral" size="sm">
@@ -273,7 +280,7 @@ function ModerationWorkspace({
                   {cell.spread === null ? (
                     <OrDash>{null}</OrDash>
                   ) : (
-                    formatDecimalString(cell.spread)
+                    formatDecimalString(cell.spread, RATING_PLACES)
                   )}
                   {cell.divergent && (
                     <Chip tone="warning" size="sm">
@@ -310,7 +317,7 @@ function ModerationWorkspace({
                   <>
                     <span className="tiq-num">
                       {t('evaluation.moderation.agreedValue', {
-                        score: formatDecimalString(cell.current.finalScore),
+                        score: formatDecimalString(cell.current.finalScore, RATING_PLACES),
                         points: formatDecimalString(
                           cell.current.weightedPoints,
                           plan.decimalPlacesDisplay,
@@ -400,6 +407,7 @@ function ModerationWorkspace({
                           <ScoreValue
                             score={score.notScored ? null : score.score}
                             isNotApplicable={score.isNotApplicable}
+                            places={RATING_PLACES}
                           />
                         ) : (
                           <span className="tiq-text-muted">
@@ -443,7 +451,7 @@ function ModerationWorkspace({
                         key: 'score',
                         label: t('evaluation.moderation.col.agreed'),
                         value: t('evaluation.moderation.agreedValue', {
-                          score: formatDecimalString(current.current.finalScore),
+                          score: formatDecimalString(current.current.finalScore, RATING_PLACES),
                           points: formatDecimalString(
                             current.current.weightedPoints,
                             plan.decimalPlacesDisplay,
@@ -485,7 +493,7 @@ function ModerationWorkspace({
                       items={current.history.map((item) => ({
                         id: item.moderatedScoreId,
                         title: t('evaluation.moderation.historyItem', {
-                          score: formatDecimalString(item.finalScore),
+                          score: formatDecimalString(item.finalScore, RATING_PLACES),
                           method: tEnum('moderation_sessions.method', item.method),
                         }),
                         meta: `${item.moderatedBy.fullName} · ${formatDateTime(item.recordedAt, timeZone)}`,
@@ -612,7 +620,7 @@ function ModerationWorkspace({
                 {
                   key: 'threshold',
                   label: t('evaluation.moderation.threshold'),
-                  value: formatDecimalString(view.divergenceThreshold),
+                  value: formatDecimalString(view.divergenceThreshold, RATING_PLACES),
                 },
                 {
                   key: 'created',
@@ -707,7 +715,7 @@ function ModerationWorkspace({
           current?.current === null || current === null
             ? t('evaluation.moderation.recordConsequence')
             : t('evaluation.moderation.recordSupersedes', {
-                score: formatDecimalString(current.current.finalScore),
+                score: formatDecimalString(current.current.finalScore, RATING_PLACES),
               })
         }
         confirmLabel={t('evaluation.moderation.record')}

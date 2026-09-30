@@ -17,7 +17,7 @@ function routes(
       owner: null,
       status: 'received',
       afterDeadline: true,
-      responseDueAt: '2026-09-01T10:00:00Z',
+      responseDueAt: { at: '2026-09-01T10:00:00Z', timeZone: 'Africa/Gaborone' },
     }),
   ],
 ) {

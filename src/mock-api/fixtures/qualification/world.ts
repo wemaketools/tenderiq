@@ -29,6 +29,7 @@ import type {
   TenantsVerificationStatus,
   TendersStatus,
 } from '../../../contracts/enums.js';
+import { BUYER_CATEGORIES } from '../categories.js';
 import { TENANT_IDS } from '../platform.js';
 
 export const KWU = TENANT_IDS.kwu;
@@ -75,18 +76,10 @@ export interface FxCategory {
   readonly parentId: number | null;
 }
 
-export const QUALIFICATION_CATEGORIES: readonly FxCategory[] = Object.freeze([
-  { id: 201, tenantId: KWU, code: 'WTR-INFRA', name: 'Water infrastructure', parentId: null },
-  { id: 202, tenantId: KWU, code: 'WTR-PUMP', name: 'Pumps and mechanical equipment', parentId: 201 },
-  { id: 203, tenantId: KWU, code: 'WTR-PIPE', name: 'Pipes, valves and fittings', parentId: 201 },
-  { id: 204, tenantId: KWU, code: 'ICT-SCADA', name: 'SCADA, telemetry and ICT services', parentId: null },
-  { id: 205, tenantId: KWU, code: 'WTR-METER', name: 'Water meters and metering services', parentId: null },
-  { id: 206, tenantId: KWU, code: 'ENV-SVC', name: 'Environmental and laboratory services', parentId: null },
-  { id: 207, tenantId: KWU, code: 'CIV-WORKS', name: 'Civil works', parentId: null },
-  { id: 208, tenantId: KWU, code: 'CHEM-SUP', name: 'Water treatment chemicals and dosing', parentId: null },
-  { id: 301, tenantId: ODC, code: 'FAC-CLEAN', name: 'Cleaning and facilities services', parentId: null },
-  { id: 302, tenantId: ODC, code: 'CIV-ROADS', name: 'Roads and civil works', parentId: null },
-]);
+/** The buyer categories of the demo world (`../categories.ts`); a program or decision scope names one of them. */
+export const QUALIFICATION_CATEGORIES: readonly FxCategory[] = Object.freeze(
+  BUYER_CATEGORIES.filter((row) => row.active).map(({ id, tenantId, code, name, parentId }) => ({ id, tenantId, code, name, parentId })),
+);
 
 /** The category and every descendant (DD-26). */
 export function categoryWithDescendants(categoryId: number): FxCategory[] {

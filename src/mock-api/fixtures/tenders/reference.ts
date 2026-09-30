@@ -4,6 +4,7 @@
  * requests: projects, requests, strategies; qualification: programs). They are mirrored here with the ids and natural
  * keys the storyline uses, so the tender screens can name them; the cross-fixture consistency test lines them up.
  */
+import { BUYER_CATEGORIES } from '../categories.js';
 import { TENANT_IDS } from '../platform.js';
 import { POLICY_PROFILES, POLICY_VERSIONS as POLICY_VERSION_ROWS } from '../policy/profiles.js';
 import { CATEGORIES as REQUEST_CATEGORIES } from '../requests/reference.js';
@@ -59,19 +60,10 @@ export const DEPARTMENTS: readonly FxNamed[] = Object.freeze([
   { id: 6, tenantId: ODC, name: 'Facilities Management' },
 ]);
 
-export const CATEGORIES: readonly FxCategory[] = Object.freeze([
-  { id: 1, tenantId: KWU, code: 'WTR-INFRA', name: 'Water infrastructure', parentId: null },
-  { id: 2, tenantId: KWU, code: 'WTR-PUMP', name: 'Pumps and mechanical equipment', parentId: 1 },
-  { id: 3, tenantId: KWU, code: 'WTR-PIPE', name: 'Pipes, valves and fittings', parentId: 1 },
-  { id: 4, tenantId: KWU, code: 'WTR-METER', name: 'Water metering', parentId: null },
-  { id: 5, tenantId: KWU, code: 'ICT-SCADA', name: 'SCADA and telemetry', parentId: null },
-  { id: 6, tenantId: KWU, code: 'WTR-CHEM', name: 'Water treatment chemicals and dosing', parentId: null },
-  { id: 7, tenantId: KWU, code: 'ENV-LEAK', name: 'Leak detection services', parentId: null },
-  { id: 8, tenantId: KWU, code: 'CIV-WORKS', name: 'Civil works', parentId: null },
-  { id: 9, tenantId: KWU, code: 'FLEET-SVC', name: 'Fleet maintenance services', parentId: null },
-  { id: 10, tenantId: KWU, code: 'ELEC-MAINT', name: 'Electrical maintenance services', parentId: null },
-  { id: 20, tenantId: ODC, code: 'FAC-CLEAN', name: 'Cleaning services', parentId: null },
-]);
+/** The buyer categories of the demo world (`../categories.ts`), the active ones offered for new tenders. */
+export const CATEGORIES: readonly FxCategory[] = Object.freeze(
+  BUYER_CATEGORIES.filter((row) => row.active).map(({ id, tenantId, code, name, parentId }) => ({ id, tenantId, code, name, parentId })),
+);
 
 const BOTSWANA_HOLIDAYS_2026 = [
   { date: '2026-01-01', name: 'New Year’s Day' },

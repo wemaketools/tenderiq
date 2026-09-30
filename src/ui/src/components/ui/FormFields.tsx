@@ -391,9 +391,8 @@ export function RadioGroup({
       className={classes.join(' ')}
       aria-invalid={error !== undefined || undefined}
       aria-describedby={describedBy(id, hint, error)}
-      aria-required={required || undefined}
     >
-      <legend>
+      <legend id={`${id}-legend`}>
         {label}
         {required === true && (
           <span className="tiq-required" aria-hidden="true">
@@ -401,7 +400,14 @@ export function RadioGroup({
           </span>
         )}
       </legend>
-      <div className="tiq-radio-options">
+      {/* aria-required is not allowed on a fieldset (role group), so the options carry it as a radiogroup named
+          by the legend; the fieldset keeps its group role and name. */}
+      <div
+        className="tiq-radio-options"
+        role="radiogroup"
+        aria-labelledby={`${id}-legend`}
+        aria-required={required || undefined}
+      >
         {options.map((option) => (
           <label key={option.value} className="tiq-check">
             <input

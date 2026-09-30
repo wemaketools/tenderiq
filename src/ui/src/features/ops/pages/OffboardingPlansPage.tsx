@@ -2,7 +2,6 @@
  * OPS-02 offboarding plan register: every customer exit with its status, the active events and contracts it must
  * keep serving, the service end date, customer agreement and owner. Plans are started from the customer page.
  */
-import { useNavigate } from 'react-router';
 
 import { operationsEndpoints } from '@contracts/operations';
 import type { OffboardingPlanRow } from '@contracts/operations';
@@ -44,7 +43,6 @@ const DEFAULTS = {
 type SortField = 'customer' | 'status' | 'serviceEndDate' | 'updatedAt';
 
 export default function OffboardingPlansPage() {
-  const navigate = useNavigate();
   const tenant = useActiveTenant();
   const timeZone = tenant?.officialTimeZone ?? 'UTC';
   const [filters, setFilters, clearFilters] = useScreenFilters('OPS-02', DEFAULTS);
@@ -155,7 +153,7 @@ export default function OffboardingPlansPage() {
           onRetry={plans.reload}
           sort={{ key: filters.sort, dir: filters.dir as 'asc' | 'desc' }}
           onSortChange={(next) => setFilters({ sort: next.key, dir: next.dir, page: 1 })}
-          onRowClick={(row) => navigate(opsPaths.offboardingPlan(row.id))}
+          rowHref={(row) => opsPaths.offboardingPlan(row.id)}
           rowLabel={(row) => t('ops.offboarding.rowLabel', { name: row.customer.name })}
           empty={
             <EmptyState

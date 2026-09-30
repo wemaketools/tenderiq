@@ -464,9 +464,9 @@ const evaluation: FixtureEvaluation = {
   timeline: [
     { at: '2026-08-11T10:00:00Z', title: 'Submission deadline passed', actorUserId: null, detail: '3 submissions from the prequalified applicants.' },
     { at: '2026-08-12T07:04:09Z', title: 'All envelopes opened (single stage)', actorUserId: null, detail: null },
-    { at: '2026-08-13T09:00:00Z', title: 'Evaluator recused and replaced', actorUserId: USERS.boitumelo, detail: 'A. Segwai (prior employment) replaced by K. Ntsima.' },
+    { at: '2026-08-13T09:00:00Z', title: 'Evaluator recused and replaced', actorUserId: USERS.boitumelo, detail: 'A. Segwai (prior employment) replaced by K. Ntsima.', sensitivity: 'conflict_detail', subjectUserId: USERS.amantle },
     { at: '2026-09-01T10:00:00Z', title: 'Moderation finalized (consensus)', actorUserId: USERS.boitumelo, detail: null },
-    { at: '2026-09-03T14:00:00Z', title: 'Commercial comparison approved', actorUserId: USERS.refilwe, detail: 'Abnormally-low review recorded for Supplier B.' },
+    { at: '2026-09-03T14:00:00Z', title: 'Commercial comparison approved', actorUserId: USERS.refilwe, detail: 'Abnormally-low review recorded for Supplier B.', sensitivity: 'committee_results' },
     { at: '2026-09-04T11:30:00Z', title: 'Evaluation report v1 signed off', actorUserId: null, detail: null },
     { at: '2026-09-26T09:00:00Z', title: 'Results re-validated after due diligence failure', actorUserId: USERS.boitumelo, detail: null },
     { at: '2026-09-28T07:00:00Z', title: 'Supplementary report v2 submitted for sign-off', actorUserId: USERS.boitumelo, detail: null },

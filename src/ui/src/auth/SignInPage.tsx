@@ -3,6 +3,9 @@
  * form cannot reveal which accounts exist (brief §5.7). After sign-in the user lands on the page they asked for, or
  * the home of their organization, or the organization selection (COM-02).
  *
+ * While a request runs the fields are read-only (not disabled), so keyboard focus stays in the form; after a failure
+ * focus returns to the password field.
+ *
  * In local development builds only, the demo-accounts quick-pick is loaded below the card (DD-43).
  */
 import { Suspense, lazy, useState } from 'react';
@@ -21,6 +24,8 @@ import { useAuth } from './authContext';
 // Local development builds only: Vite replaces import.meta.env.DEV with false in production builds, so this lazy
 // import and its module are removed from the bundle (scan-bundle verifies the marker is absent).
 const DemoAccounts = import.meta.env.DEV ? lazy(() => import('./DemoAccounts')) : null;
+
+const PASSWORD_FIELD_ID = 'tiq-signin-password';
 
 interface FromState {
   readonly from?: string;
@@ -53,6 +58,8 @@ export function SignInPage() {
     setSubmitting(false);
     if (!result.ok) {
       setFailed(true);
+      // Keyboard users continue where they were: back in the password field, next to the error message.
+      document.getElementById(PASSWORD_FIELD_ID)?.focus();
     }
   };
 
@@ -118,16 +125,19 @@ export function SignInPage() {
           value={email}
           onChange={setEmail}
           required
-          disabled={busy}
+          readOnly={busy}
+          aria-disabled={busy || undefined}
         />
         <TextField
+          id={PASSWORD_FIELD_ID}
           label={t('auth.field.password')}
           type="password"
           autoComplete="current-password"
           value={password}
           onChange={setPassword}
           required
-          disabled={busy}
+          readOnly={busy}
+          aria-disabled={busy || undefined}
         />
         <Button
           type="submit"

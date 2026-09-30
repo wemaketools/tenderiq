@@ -739,12 +739,16 @@ export const acceptOutcomeNoticeTerms = defineEndpoint({
   method: 'POST',
   path: '/api/v1/supplier/outcome-notices/:noticeId/accept-terms',
   audience: 'supplier',
-  permission: 'supplier.contract.participate',
+  // Accepting award terms commits the supplier (PRD §4.1): only the authorized signatory's submission authority
+  // qualifies. `supplier.contract.participate` alone (for example supplier_finance) is not enough.
+  permission: 'supplier.response.submit',
   params: NoticeParams,
   body: AcceptNoticeTermsBody,
   response: NoticeAcknowledgment,
   errors: ['NOTICE_HAS_NO_TERMS', 'TERMS_ALREADY_ACCEPTED', 'NOTICE_NOT_ACKNOWLEDGED'],
   screens: ['SUP-21'],
+  summary:
+    'Accepts the terms of an award notice on behalf of the supplier; requires the authorized signatory capability (supplier.response.submit).',
 });
 
 export const requestDebrief = defineEndpoint({

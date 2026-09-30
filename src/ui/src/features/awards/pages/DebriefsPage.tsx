@@ -2,7 +2,6 @@
  * BUY-29 — Debrief requests: every supplier request with its tender, requester, due date (official time zone),
  * meeting and status. Search, filters, sorting and pagination are served by the API.
  */
-import { useNavigate } from 'react-router';
 
 import { DEBRIEF_SORT_FIELDS, listDebriefs } from '@contracts/awards';
 import type { DebriefRow } from '@contracts/awards';
@@ -50,7 +49,6 @@ const DEFAULTS = {
 };
 
 export default function DebriefsPage() {
-  const navigate = useNavigate();
   const timeZone = useOfficialTimeZone();
   const now = useNow();
   const [filters, setFilters, clearFilters] = useScreenFilters('BUY-29-debriefs', DEFAULTS);
@@ -136,7 +134,7 @@ export default function DebriefsPage() {
   ];
 
   return (
-    <>
+    <div className="tiq-page">
       <PageHeader title={t('awards.cases.title')} subtitle={t('awards.cases.intro')} />
       <CasesTabs />
       <FilterBar label={t('awards.debriefs.filters')} onClear={clearFilters} canClear={filtered}>
@@ -203,7 +201,7 @@ export default function DebriefsPage() {
           rows={query.data?.items}
           rowKey={(row) => String(row.debriefId)}
           rowLabel={(row) => `${row.tender.reference} ${row.supplier.name}`}
-          onRowClick={(row) => void navigate(awardPaths.debrief(row.debriefId))}
+          rowHref={(row) => awardPaths.debrief(row.debriefId)}
           loading={query.isFetching}
           error={query.error}
           onRetry={query.reload}
@@ -229,6 +227,6 @@ export default function DebriefsPage() {
           }
         />
       </Card>
-    </>
+    </div>
   );
 }

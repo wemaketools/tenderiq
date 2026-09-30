@@ -7,7 +7,8 @@
  *   whose cumulative contract value after CR-0003 (BWP 2,280,000.00) exceeds the procurement manager's
  *   BWP 2,000,000.00 authority, so the approval routes to the Chief Executive (AC-31). CR-0003 is approval 36 of the
  *   approvals domain (Mpho Dikgang may decide it for Keabetswe Nkwe under his delegation).
- * - A 12-month renewal option whose notice window opens on 5 October 2026 with no decision (AC-32).
+ * - A 12-month renewal option whose notice window opens on 11 October 2026, five days after the storyline "now"
+ *   (`../demo-clock.ts`), with no decision (AC-32).
  * - The Q3 milestone invoice stays `invoiced` / `not_accepted` because the evidence was rejected (AC-30).
  */
 import { CONTRACT_IDS, CONTRACT_USERS } from './core.js';
@@ -309,7 +310,7 @@ export const CONTRACT_RENEWAL_OPTIONS: readonly FixtureRenewalOption[] = Object.
     contractId: CONTRACT_IDS.fleet,
     optionType: 'renewal',
     periodMonths: 12,
-    noticeWindowStart: '2026-10-05',
+    noticeWindowStart: '2026-10-11',
     noticeDeadline: '2026-12-31T15:00:00Z',
     status: 'available',
     decision: null,

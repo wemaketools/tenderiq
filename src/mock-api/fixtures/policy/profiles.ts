@@ -349,13 +349,13 @@ export const POLICY_VERSIONS: readonly FixturePolicyVersion[] = Object.freeze([
   {
     id: 6, tenantId: kwu, profileId: 3, versionNo: 1, status: 'retired', rules: RFQ_V1,
     createdBy: ADMIN_KWU, createdAt: '2025-11-04T07:30:00Z', submittedBy: ADMIN_KWU, submittedAt: '2025-11-10T09:20:00Z',
-    approvedBy: ADMIN_KWU, approvedAt: '2025-11-20T12:20:00Z', effectiveFrom: '2025-12-01T00:00:00Z', retiredAt: '2026-02-28T15:00:00Z',
+    approvedBy: ADMIN_KWU, approvedAt: '2025-11-20T12:20:00Z', effectiveFrom: '2025-12-01T00:00:00Z', retiredAt: '2026-01-04T15:00:00Z',
     approvalRequestId: null, returnedReason: null, tenders: [], strategies: [],
   },
   {
     id: 7, tenantId: kwu, profileId: 3, versionNo: 2, status: 'approved', rules: RFQ_V2,
-    createdBy: ADMIN_KWU, createdAt: '2026-02-02T08:00:00Z', submittedBy: ADMIN_KWU, submittedAt: '2026-02-09T08:00:00Z',
-    approvedBy: ADMIN_KWU, approvedAt: '2026-02-20T11:00:00Z', effectiveFrom: '2026-03-01T00:00:00Z', retiredAt: null,
+    createdBy: ADMIN_KWU, createdAt: '2025-12-01T08:00:00Z', submittedBy: ADMIN_KWU, submittedAt: '2025-12-05T08:00:00Z',
+    approvedBy: ADMIN_KWU, approvedAt: '2025-12-18T11:00:00Z', effectiveFrom: '2026-01-05T00:00:00Z', retiredAt: null,
     approvalRequestId: null, returnedReason: null,
     tenders: [{ tenderId: 10, frozen: true }, { tenderId: 2, frozen: true }, { tenderId: 6, frozen: true }],
     strategies: [],

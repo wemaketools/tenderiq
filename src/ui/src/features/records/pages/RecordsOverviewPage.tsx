@@ -247,7 +247,7 @@ export default function RecordsOverviewPage() {
                 rows={holds.data?.items}
                 rowKey={(row) => String(row.id)}
                 rowLabel={(row) => t('records.holds.openNamed', { subject: row.subjectLabel })}
-                onRowClick={(row) => void navigate(recordsPaths.hold(row.id))}
+                rowHref={(row) => recordsPaths.hold(row.id)}
                 loading={holds.isFetching}
                 error={holds.error}
                 onRetry={holds.reload}
@@ -268,7 +268,7 @@ export default function RecordsOverviewPage() {
                 rows={blocked.data?.items}
                 rowKey={(row) => String(row.id)}
                 rowLabel={(row) => t('records.disposals.openNamed', { scope: row.scopeLabel })}
-                onRowClick={(row) => void navigate(recordsPaths.disposal(row.id))}
+                rowHref={(row) => recordsPaths.disposal(row.id)}
                 loading={blocked.isFetching}
                 error={blocked.error}
                 onRetry={blocked.reload}

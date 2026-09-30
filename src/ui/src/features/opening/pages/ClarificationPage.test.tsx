@@ -16,7 +16,7 @@ describe('ClarificationPage (EVA-03, BUY-21)', () => {
       'GET /api/v1/buyer/opening/clarifications/4103': () => ({ body: clarification() }),
       'GET /api/v1/buyer/opening/clarifications': () => ({ body: page([]) }),
       'POST /api/v1/buyer/opening/clarifications/4103/approve': () =>
-        problem(409, 'Conflict', { code: 'SELF_APPROVAL_NOT_PERMITTED', detail: 'Self.' }),
+        problem(403, 'Forbidden', { code: 'SELF_APPROVAL_NOT_PERMITTED', detail: 'Self.' }),
     });
     renderWithProviders(<ClarificationPage />, {
       state: stateFor(['evaluation.chair'], 10),

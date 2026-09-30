@@ -3,7 +3,6 @@
  * materiality, approval, revised dates, recipients and acknowledgment status. A deadline changes only through an
  * issued addendum (BR-13, BR-16).
  */
-import { useNavigate } from 'react-router';
 
 import { clarificationsEndpoints } from '@contracts/clarifications';
 import type { BuyerAddendumRow } from '@contracts/clarifications';
@@ -54,7 +53,6 @@ const DEFAULT_FILTERS = {
 type SortField = 'number' | 'issuedAt' | 'status' | 'tenderReference' | 'createdAt';
 
 export default function AddendaPage() {
-  const navigate = useNavigate();
   const tenant = useActiveTenant();
   const timeZone = tenant?.officialTimeZone ?? 'UTC';
   const canDraft = usePermission(QUESTION_PERMISSION);
@@ -207,7 +205,7 @@ export default function AddendaPage() {
           onRetry={addenda.reload}
           sort={sort}
           onSortChange={(next) => setFilters({ sort: next.key, dir: next.dir, page: 1 })}
-          onRowClick={(row) => navigate(buyerPaths.addendum(row.id))}
+          rowHref={(row) => buyerPaths.addendum(row.id)}
           rowLabel={(row) =>
             t('clarifications.addenda.rowLabel', {
               no: row.number,

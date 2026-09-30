@@ -815,7 +815,7 @@ export const requestReconsideration = defineEndpoint({
   params: DecisionParams,
   body: ReconsiderationBody,
   response: ReconsiderationRequest,
-  errors: ['DECISION_NOT_RECONSIDERABLE', 'RECONSIDERATION_ALREADY_REQUESTED', 'EVIDENCE_NOT_FOUND'],
+  errors: ['DECISION_NOT_RECONSIDERABLE', 'RECONSIDERATION_WINDOW_CLOSED', 'RECONSIDERATION_ALREADY_REQUESTED', 'EVIDENCE_NOT_FOUND'],
   screens: ['SUP-24'],
   idempotent: true,
 });

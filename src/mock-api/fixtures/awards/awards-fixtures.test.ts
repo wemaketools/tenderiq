@@ -21,9 +21,11 @@ import {
 import { awardValueBasisOf } from '../../../contracts/awards.js';
 import { add, eq, lte, sum } from '../../../contracts/decimal.js';
 import { APPROVALS } from '../approvals.js';
+import { BIDS } from '../bids/index.js';
 import { CALENDARS } from '../calendars.js';
 import { CONTRACTS, CONTRACT_HANDOVERS } from '../contracts/index.js';
 import { DOCUMENTS } from '../documents.js';
+import { ACCESS_RESTRICTIONS } from '../org-admin/access.js';
 import { TENANT_IDS } from '../platform.js';
 import { PREFERRED_BIDDERS } from '../selection/index.js';
 import {
@@ -349,5 +351,76 @@ describe('awards fixtures use plain wording', () => {
     const lot2 = chobe?.core.lots.find((row) => row.lot.lotNo === 2);
     expect(lot2?.reason).toContain('REQ-T-02');
     expect(LOT_OUTCOMES.find((row) => row.lotOutcomeId === 14012)?.reason).toContain('REQ-T-02');
+  });
+});
+
+describe('awards fixtures agree with the bids and access fixtures (AC-34 cross-fixture consistency)', () => {
+  /** Supplier tenant ids with an effective (submitted) bid on the tender, from the bids domain. */
+  function effectiveBidders(tenderId: number, lotId?: number): number[] {
+    return [
+      ...new Set(
+        BIDS.filter(
+          (bid) =>
+            bid.tenderId === tenderId &&
+            bid.submissionState === 'submitted' &&
+            (lotId === undefined || bid.lotIds.includes(lotId)),
+        ).map((bid) => bid.supplierTenantId),
+      ),
+    ].sort((a, b) => a - b);
+  }
+  const sorted = (ids: readonly number[]): number[] => [...new Set(ids)].sort((a, b) => a - b);
+
+  it('names only T-2026-0007 bidders with an effective offer in its bidders, offers, notices and supplier outcomes', () => {
+    const bidders = effectiveBidders(7);
+    expect(bidders).toHaveLength(3);
+    const tender = AWARD_TENDERS.find((row) => row.ref.tenderId === 7);
+    expect(sorted(tender?.bidders.map((row) => TENANT_IDS[row.supplierSlug]) ?? [])).toEqual(bidders);
+    const recommendation = RECOMMENDATIONS.find((row) => row.detail.recommendationId === 14)?.detail;
+    expect(sorted(recommendation?.offers.map((row) => row.supplier.supplierTenantId) ?? [])).toEqual(bidders);
+    expect(recommendation?.compliantOffersSummary).toMatch(/^Three compliant offers/);
+    for (const notice of OUTCOME_NOTICES.filter((row) => row.detail.tenderId === 7)) {
+      for (const recipient of notice.detail.recipients) {
+        expect(bidders).toContain(recipient.supplier.supplierTenantId);
+      }
+    }
+    const intent = OUTCOME_NOTICES.find((row) => row.detail.noticeId === 57)?.detail;
+    expect(sorted(intent?.recipients.map((row) => row.supplier.supplierTenantId) ?? [])).toEqual(bidders);
+    expect(intent?.recipients.filter((row) => row.deliveryStatus === 'failed')).toHaveLength(1);
+    expect(sorted(SUPPLIER_OUTCOMES.filter((row) => row.core.tenderId === 7).map((row) => row.supplierTenantId))).toEqual(
+      bidders,
+    );
+  });
+
+  it('states the conflict position of each award tender consistently with the active conflict restrictions', () => {
+    for (const { detail } of RECOMMENDATIONS) {
+      const recused = ACCESS_RESTRICTIONS.filter(
+        (row) =>
+          row.restrictionType === 'conflict' &&
+          row.scope.scopeType === 'tender' &&
+          row.scope.scopeId === detail.tender.tenderId,
+      );
+      if (recused.length > 0) {
+        expect(detail.conflictsSummary).not.toMatch(/no conflicts? declared/i);
+        expect(detail.conflictsSummary).toMatch(/recus/i);
+      }
+    }
+    const t7 = RECOMMENDATIONS.find((row) => row.detail.recommendationId === 14)?.detail;
+    expect(t7?.conflictsSummary).toContain('recused');
+    expect(t7?.unresolvedConflictCount).toBe(0);
+  });
+
+  it('never calls a cancelled lot offer the only one when several organizations bid on the lot', () => {
+    const lot2Bidders = effectiveBidders(1, 102);
+    expect(lot2Bidders.length).toBeGreaterThan(1);
+    const texts = [
+      LOT_OUTCOMES.find((row) => row.lotOutcomeId === 14012)?.reason ?? '',
+      ...SUPPLIER_OUTCOMES.filter((row) => row.core.tenderId === 1).flatMap((row) =>
+        row.core.lots.filter((lot) => lot.lot.lotNo === 2).map((lot) => lot.reason ?? ''),
+      ),
+      ...OUTCOME_NOTICES.filter((row) => row.detail.tenderId === 1).map((row) => row.detail.body),
+    ];
+    for (const text of texts) {
+      expect(text).not.toMatch(/\bthe only (lot 2 )?offer\b/i);
+    }
   });
 });

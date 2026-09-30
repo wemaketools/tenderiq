@@ -363,18 +363,18 @@ export default function NewContractPage() {
 
   if (created !== null) {
     return (
-      <>
+      <div className="tiq-page">
         <PageHeader
           title={t('contracts.create.title')}
           back={{ to: contractPaths.register, label: t('contracts.workspace.back') }}
         />
         <CreatedContract row={created} />
-      </>
+      </div>
     );
   }
 
   return (
-    <>
+    <div className="tiq-page">
       <UnsavedChangesGuard when={dirty} />
       <PageHeader
         title={t('contracts.create.title')}
@@ -607,6 +607,6 @@ export default function NewContractPage() {
           </div>
         )}
       </QueryView>
-    </>
+    </div>
   );
 }

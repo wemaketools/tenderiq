@@ -223,7 +223,11 @@ export default {
     freeParticipation: 'Free participation',
     noPlan: 'No plan (supplier)',
     noAdministrator: 'No administrator',
-    supportSummary: '{cases} cases · {grants} grants',
+    supportSummary: '{cases} · {grants}',
+    supportCases_one: '{count} case',
+    supportCases_other: '{count} cases',
+    supportGrants_one: '{count} grant',
+    supportGrants_other: '{count} grants',
     kind: { buyer: 'Buyer', supplier: 'Supplier' },
     filter: {
       kind: 'Kind',

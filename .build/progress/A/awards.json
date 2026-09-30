@@ -154,5 +154,24 @@
       "gapsFixed": 13,
       "checks": "tsc (server + SPA app) clean for awards paths; eslint clean (root + SPA, max-warnings 0); prettier clean; root unit awards 99/99; SPA awards/outcomes 62/62; browser re-check on 4113/5213 (register, T-3/T-7/T-9 award files, T-1 closeout, T-9 notices, Serowe/Limpopo/Chobe outcomes, complaint lodge flow, owner assignment dialog)"
     }
-  }
+  },
+  "qaFixes": [
+    {
+      "round": "prototype-qa",
+      "fixed": [
+        "Award, debrief, complaint and supplier outcome/complaint registers wrapped in .tiq-page (16px section gaps); award register reduced to 8 columns so Next step fits at 1440",
+        "T-2026-0007 award world matches the bids fixtures: Chobe removed from bidders, offers, notices 57/58/59 and supplier outcomes; failed intent e-mail moved to Tsodilo (recipient 5702)",
+        "T-2026-0007 recommendation states the chair's recusal (conflictsSummary, sign-off by the deputy chair)",
+        "supplier.outcomes.acceptTerms requires supplier.response.submit (authorized signatory), no longer supplier.contract.participate",
+        "Closeout register uses listAwards view=closeout (blocked/closed/archived or close/archive next step) and a closeoutStatus filter, so blocked T-2026-0001 is listed (AC-29)",
+        "T-2026-0001 lot 2 cancellation reason says both lot 2 offers failed REQ-T-02"
+      ],
+      "tests": [
+        "src/mock-api/fixtures/awards/awards-fixtures.test.ts cross-fixture block",
+        "src/mock-api/handlers/awards/awards.test.ts",
+        "src/contracts/awards/awards.test.ts",
+        "SPA register/outcome/cases tests"
+      ]
+    }
+  ]
 }

@@ -265,7 +265,7 @@ function QuestionWorkspace({
               <OfficialDeadline
                 variant="block"
                 label={t('clarifications.questionPage.responseDue')}
-                deadline={{ at: question.responseDueAt, timeZone: tz }}
+                deadline={question.responseDueAt}
                 showRemaining
               />
             )}

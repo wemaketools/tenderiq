@@ -183,7 +183,7 @@ export default function HelpCentrePage() {
                 loading={articles.isFetching}
                 error={articles.error}
                 onRetry={articles.reload}
-                onRowClick={(row) => navigate(helpPaths.article(row.slug))}
+                rowHref={(row) => helpPaths.article(row.slug)}
                 rowLabel={(row) => t('help.guidance.rowLabel', { title: row.title })}
                 empty={
                   <EmptyState
@@ -268,7 +268,7 @@ export default function HelpCentrePage() {
                 loading={cases.isFetching}
                 error={cases.error}
                 onRetry={cases.reload}
-                onRowClick={(row) => navigate(helpPaths.myCase(row.id))}
+                rowHref={(row) => helpPaths.myCase(row.id)}
                 rowLabel={(row) => t('help.cases.rowLabel', { reference: row.reference })}
                 empty={
                   <EmptyState

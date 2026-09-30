@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -149,6 +149,7 @@ describe('SubmitPage (SUP-16)', () => {
     expect(
       await within(progress).findByText('Submitted: receipt RCPT-2026-000044'),
     ).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByTestId('receipt-result')).toHaveFocus());
     const submit = calls.find((entry) => entry.id === 'supplier.bids.submit');
     expect(submit?.request.body).toEqual({
       revisionId: 1401,

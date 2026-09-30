@@ -28,6 +28,8 @@ import {
   timetableOf,
 } from '../../handlers/tenders/model.js';
 import { previewOf } from '../../handlers/tenders/preview.js';
+import { LOT_OUTCOMES } from '../awards/recommendations.js';
+import { CONTRACTS } from '../contracts/core.js';
 import { PERSONAS, TENANT_IDS } from '../platform.js';
 import {
   CORRECTIONS,
@@ -185,6 +187,36 @@ describe('fixture content quality', () => {
     ];
 
     expect(late).toEqual([]);
+  });
+
+  it('dates the T-2026-0010 authoring, release and close before its award and contract, with the contract scope', () => {
+    // Arrange
+    const tender = tenderById(10);
+    const at = (milestone: string) => MILESTONES.find((row) => row.tenderId === 10 && row.milestone === milestone)?.at ?? '';
+    const authoring = [
+      ...TEAM_MEMBERS.filter((row) => row.tenderId === 10 && (row.teamRole !== 'owner' || row.removedAt !== null)).map((row) => row.assignedAt),
+      ...EVALUATION_PLANS.filter((row) => row.tenderId === 10).map((row) => row.approvedAt ?? ''),
+      ...TENDER_TERMS.filter((row) => row.tenderId === 10).map((row) => row.updatedAt),
+      ...RELEASE_CHECKS.filter((row) => row.tenderId === 10).map((row) => row.checkedAt ?? ''),
+      ...RELEASE_APPROVALS.filter((row) => row.tenderId === 10).map((row) => row.decidedAt ?? ''),
+    ];
+    const finalAward = LOT_OUTCOMES.find((row) => row.tenderId === 10)?.finalAwardedAt ?? '';
+    const contract = CONTRACTS.find((row) => row.tender?.tenderId === 10);
+
+    // Assert
+    expect(tender?.releasedAt).not.toBeNull();
+    const releasedAt = tender?.releasedAt ?? '';
+    const closedAt = tender?.closedAt ?? '';
+    expect(authoring.filter((instant) => instant === '' || instant < (tender?.createdAt ?? '') || instant > releasedAt)).toEqual([]);
+    expect(TENDER_VERSIONS.find((row) => row.tenderId === 10 && row.versionNo === 1)?.issuedAt).toBe(releasedAt);
+    expect(releasedAt < at('questions_deadline')).toBe(true);
+    expect(at('questions_deadline') < at('submission_deadline')).toBe(true);
+    expect(at('submission_deadline')).toBe(closedAt);
+    expect(closedAt < finalAward).toBe(true);
+    expect(finalAward < (contract?.signedAt ?? '')).toBe(true);
+    expect(at('contract_start').slice(0, 10)).toBe(contract?.termStart);
+    expect(tender?.summary).toContain('86 light and heavy vehicles');
+    expect(tender?.summary).toContain('twelve months');
   });
 
   it('states a real applicability for lot-bound requirements instead of repeating the lot', () => {

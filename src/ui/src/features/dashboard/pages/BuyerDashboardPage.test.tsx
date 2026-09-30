@@ -47,6 +47,17 @@ describe('BuyerDashboardPage (BUY-01)', () => {
     expect(within(deadlines).getAllByTestId('official-deadline').length).toBeGreaterThan(0);
   });
 
+  it('labels the first column of the workload table as the owner, not a generic category', async () => {
+    routes();
+    renderWithProviders(<BuyerDashboardPage />, { state: buyerState(MANAGER) });
+
+    const workload = await screen.findByRole('table', { name: 'Workload by owner' });
+    expect(within(workload).getByRole('columnheader', { name: 'Owner' })).toBeInTheDocument();
+    expect(
+      within(workload).queryByRole('columnheader', { name: 'Category' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('states that data is incomplete instead of counting missing values as zero', async () => {
     routes();
     renderWithProviders(<BuyerDashboardPage />, { state: buyerState(MANAGER) });
@@ -70,6 +81,24 @@ describe('BuyerDashboardPage (BUY-01)', () => {
     expect(
       screen.getByText('Workload by owner is limited to procurement managers.'),
     ).toBeInTheDocument();
+  });
+
+  it('offers no "view all" link on a card the role may not read, so no link leads to a forbidden page', async () => {
+    routes({
+      ...BUYER_DASHBOARD,
+      pipelineValue: null,
+      pipelineByStage: { restricted: true, items: [] },
+      deadlines: { restricted: true, items: [] },
+      renewals: { restricted: true, items: [] },
+    });
+    renderWithProviders(<BuyerDashboardPage />, { state: buyerState(MANAGER) });
+
+    expect(
+      await screen.findByText('Your role does not include the tender pipeline.'),
+    ).toBeInTheDocument();
+    for (const name of ['View all tenders', 'View tenders', 'View contracts']) {
+      expect(screen.queryByRole('link', { name })).not.toBeInTheDocument();
+    }
   });
 
   it('sends the chosen department filter to the API', async () => {

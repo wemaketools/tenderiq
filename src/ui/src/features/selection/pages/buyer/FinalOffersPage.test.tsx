@@ -17,8 +17,11 @@ describe('FinalOffersPage', () => {
       'GET /api/v1/buyer/selection/tenders': () => ({ body: page([tenderRow()]) }),
     });
     renderSelection(<FinalOffersPage />, { path: PATH, route: PATH, permissions: OFFICER });
+    // The captioned table is already present (busy, with skeleton rows) while the rounds load: wait for the row.
     const table = await screen.findByRole('table', { name: 'Final-offer rounds' });
-    expect(within(table).getByText('Pending: process decision 2')).toBeInTheDocument();
+    expect(
+      await within(table).findByText('Pending: process decision 2', {}, { timeout: 4000 }),
+    ).toBeInTheDocument();
     expect(within(table).getByText(/Africa\/Gaborone/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Request final offers' })).toBeInTheDocument();
   });

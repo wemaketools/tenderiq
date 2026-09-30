@@ -5,7 +5,6 @@
  * invitations register: invite, reissue an expired invitation without a new identity, or revoke (FR-03).
  */
 import { useState } from 'react';
-import { useNavigate } from 'react-router';
 
 import { INVITATIONS_STATUS, MEMBERSHIPS_STATUS } from '@contracts/enums';
 import { INVITATION_SORTS, MEMBER_SORTS } from '@contracts/org-admin';
@@ -82,7 +81,6 @@ const INVITATION_DEFAULTS = {
 };
 
 function MembersTab() {
-  const navigate = useNavigate();
   const admin = useMemberAdmin();
   const timeZone = useActiveTenant()?.officialTimeZone ?? 'UTC';
   const [filters, setFilters, clearFilters] = useScreenFilters(
@@ -349,7 +347,7 @@ function MembersTab() {
           rows={query.data?.items}
           rowKey={(row) => String(row.userId)}
           rowLabel={(row) => row.fullName}
-          onRowClick={(row) => void navigate(admin.paths.user(row.userId))}
+          rowHref={(row) => admin.paths.user(row.userId)}
           loading={query.isFetching}
           error={query.error}
           onRetry={query.reload}

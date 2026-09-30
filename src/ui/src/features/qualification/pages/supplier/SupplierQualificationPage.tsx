@@ -4,7 +4,6 @@
  * applications with review status and open requests for information, and the programs it can apply to with their
  * categories, thresholds and questions. Decisions and renewals are on SUP-24.
  */
-import { useNavigate } from 'react-router';
 
 import {
   SUPPLIER_APPLICATION_SORT_FIELDS,
@@ -277,7 +276,6 @@ function OverviewSection({ overview }: { readonly overview: SupplierOverview }) 
 }
 
 function WorkSection({ buyers }: { readonly buyers: readonly { value: string; label: string }[] }) {
-  const navigate = useNavigate();
   const timeZone = useOfficialTimeZone();
   const tenant = useActiveTenant();
   const [filters, setFilters, clearFilters] = useScreenFilters('SUP-20', DEFAULTS);
@@ -574,7 +572,7 @@ function WorkSection({ buyers }: { readonly buyers: readonly { value: string; la
               rowLabel={(row) =>
                 `${row.reference ?? t('qualification.supplier.draft')} ${row.program.programName}`
               }
-              onRowClick={(row) => void navigate(supplierQualificationPaths.application(row.id))}
+              rowHref={(row) => supplierQualificationPaths.application(row.id)}
               loading={applications.isFetching}
               error={applications.error}
               onRetry={applications.reload}
@@ -617,7 +615,7 @@ function WorkSection({ buyers }: { readonly buyers: readonly { value: string; la
               rows={programs.data?.items}
               rowKey={(row) => String(row.id)}
               rowLabel={(row) => row.name}
-              onRowClick={(row) => void navigate(supplierQualificationPaths.program(row.id))}
+              rowHref={(row) => supplierQualificationPaths.program(row.id)}
               loading={programs.isFetching}
               error={programs.error}
               onRetry={programs.reload}

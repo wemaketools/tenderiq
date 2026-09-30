@@ -22,6 +22,13 @@ a {
 a:hover {
   text-decoration: underline;
 }
+/* Links in running text are underlined, so they are not identified by colour alone (WCAG 1.4.1). Styled links
+   (buttons, nav items, tabs, chips) carry a class and keep their own treatment. */
+:where(p, dd, figcaption, .tiq-banner, .tiq-text-muted, .tiq-field-hint, .tiq-cell-sub)
+  a:not([class]) {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
 
 h1,
 h2,
@@ -161,6 +168,9 @@ button:disabled {
 }
 .tiq-skip-link:focus {
   top: var(--tiq-space-2);
+}
+.tiq-skip-link:focus-visible {
+  box-shadow: var(--tiq-focus-ring), var(--tiq-shadow-raised);
 }
 
 /* ============================================================
@@ -633,10 +643,13 @@ button:disabled {
 .tiq-topbar-spacer {
   flex: 1;
 }
+/* The actions keep their size; the title truncates instead. Below 768px the primary action moves to the page head
+   (AppShell renders no action slot there), so the icons always fit a phone-width top bar. */
 .tiq-topbar-actions {
   display: flex;
   align-items: center;
   gap: var(--tiq-space-3);
+  flex: none;
 }
 .tiq-topbar-menu-btn {
   display: none;
@@ -765,11 +778,19 @@ button:disabled {
     inset: 0 auto 0 0;
     width: min(var(--tiq-sidebar-width), 86vw);
     transform: translateX(-100%);
-    transition: transform 0.2s ease;
+    /* Closed: hidden from focus and assistive technology once the slide-out ends. */
+    visibility: hidden;
+    transition:
+      transform 0.2s ease,
+      visibility 0s linear 0.2s;
     z-index: 80;
   }
   .tiq-app--drawer-open .tiq-sidebar {
     transform: translateX(0);
+    visibility: visible;
+    transition:
+      transform 0.2s ease,
+      visibility 0s linear 0s;
   }
   .tiq-app--drawer-open .tiq-drawer-scrim {
     display: block;
@@ -820,6 +841,9 @@ button:disabled {
   padding: var(--tiq-space-3) var(--tiq-space-5);
 }
 .tiq-public-brand {
+  display: inline-flex;
+  flex-direction: column;
+  line-height: 1.1;
   text-decoration: none;
 }
 .tiq-public-brand:hover {
@@ -1116,7 +1140,10 @@ button:disabled {
    Tables
    ============================================================ */
 
+/* Positioned so visually hidden content in cells (absolute) is contained and clipped by the scroll container
+   instead of widening the page. */
 .tiq-table-wrap {
+  position: relative;
   overflow-x: auto;
   min-width: 0;
 }
@@ -1155,6 +1182,12 @@ tr[aria-selected='true'] {
 }
 .tiq-table-select {
   width: 40px;
+}
+/* The trailing cell of rows that open a record: a real link or button (keyboard and screen readers). */
+.tiq-table-open {
+  width: 44px;
+  text-align: right;
+  white-space: nowrap;
 }
 .tiq-num {
   text-align: right;
@@ -1721,6 +1754,11 @@ th[aria-sort='descending'] .tiq-sort-arrow {
   margin: 0;
   padding-left: var(--tiq-space-4);
 }
+/* Links inside a banner use the banner's AA text colour (the accent fails on the tints) and stay underlined. */
+.tiq-banner a:not([class]) {
+  color: inherit;
+  font-weight: 600;
+}
 
 .tiq-toasts {
   position: fixed;
@@ -1850,6 +1888,11 @@ th[aria-sort='descending'] .tiq-sort-arrow {
   color: var(--tiq-text-primary);
   box-shadow: var(--tiq-shadow-card);
 }
+/* The selected tab keeps its lift AND shows the focus ring (roving focus always lands on it). */
+.tiq-tab--active:focus-visible,
+.tiq-tab[aria-selected='true']:focus-visible {
+  box-shadow: var(--tiq-focus-ring), var(--tiq-shadow-card);
+}
 .tiq-tab-count {
   font-size: 11px;
   font-weight: 700;
@@ -1860,6 +1903,19 @@ th[aria-sort='descending'] .tiq-sort-arrow {
 }
 .tiq-tabpanel {
   margin-top: var(--tiq-space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--tiq-space-4);
+}
+.tiq-tabpanel > * {
+  min-width: 0;
+}
+/* The panel gap already separates its children: a spaced stack inside it does not add its own top margin. */
+.tiq-tabpanel > .tiq-stack--spaced {
+  margin-top: 0;
+}
+.tiq-tabs {
+  position: relative;
 }
 
 .tiq-vtabs-layout {
@@ -1925,8 +1981,10 @@ th[aria-sort='descending'] .tiq-sort-arrow {
   padding: 0;
   gap: var(--tiq-space-2);
   overflow-x: auto;
+  position: relative;
 }
 .tiq-step {
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--tiq-space-2);
@@ -2136,6 +2194,22 @@ th[aria-sort='descending'] .tiq-sort-arrow {
   font-size: 12px;
   color: var(--tiq-text-secondary);
 }
+/* On the tinted blocking and warning items the secondary text colour and the accent fall below 4.5:1, so detail
+   text and inline actions use the primary text colour (links stay underlined). */
+.tiq-readiness-item--blocking .tiq-readiness-detail,
+.tiq-readiness-item--warning .tiq-readiness-detail,
+.tiq-readiness-item--blocking .tiq-btn--ghost,
+.tiq-readiness-item--warning .tiq-btn--ghost {
+  color: var(--tiq-text-primary);
+}
+.tiq-readiness-item--blocking .tiq-btn--link,
+.tiq-readiness-item--warning .tiq-btn--link,
+.tiq-readiness-item--blocking a:not(.tiq-btn),
+.tiq-readiness-item--warning a:not(.tiq-btn) {
+  color: var(--tiq-text-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
 
 /* ============================================================
    Official deadline block (BR-11, DD-33)
@@ -2199,7 +2273,7 @@ th[aria-sort='descending'] .tiq-sort-arrow {
 }
 .tiq-barlist-row {
   display: grid;
-  grid-template-columns: minmax(96px, 150px) minmax(60px, 1fr) 48px 44px;
+  grid-template-columns: minmax(96px, 200px) minmax(60px, 1fr) 48px 44px;
   align-items: center;
   gap: var(--tiq-space-3);
   font-size: 12.5px;
@@ -2243,6 +2317,7 @@ th[aria-sort='descending'] .tiq-sort-arrow {
   text-decoration: none;
 }
 .tiq-chart {
+  position: relative;
   width: 100%;
   min-width: 0;
   margin: 0;
@@ -2398,6 +2473,13 @@ th[aria-sort='descending'] .tiq-sort-arrow {
   flex-direction: column;
   gap: var(--tiq-space-3);
 }
+/* A stack rendered as a list has no bullets or browser indent: items align with the card content edge. */
+ul.tiq-stack,
+ol.tiq-stack {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
 .tiq-inline {
   display: flex;
   align-items: center;
@@ -2535,6 +2617,11 @@ button.tiq-org-option:hover:not(:disabled) {
 .tiq-org-option--current {
   border-color: var(--tiq-accent);
   box-shadow: inset 0 0 0 1px var(--tiq-accent);
+}
+.tiq-org-option--current:focus-visible {
+  box-shadow:
+    var(--tiq-focus-ring),
+    inset 0 0 0 1px var(--tiq-accent);
 }
 .tiq-org-option--unavailable {
   background: var(--tiq-surface-hover);

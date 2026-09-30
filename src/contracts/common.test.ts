@@ -57,6 +57,20 @@ describe('CODE|message convention', () => {
   it('falls back to INVALID for a message without a code', () => {
     expect(splitIssueMessage('plain')).toEqual({ code: 'INVALID', message: 'plain' });
   });
+
+  it('returns the whole zod default enum message under INVALID when the text before the bar is not a code', () => {
+    const result = z.enum(['report.view', 'report.manage', 'audit.view']).safeParse('bid.view');
+    expect(result.success).toBe(false);
+    const raw = result.success ? '' : (result.error.issues[0]?.message ?? '');
+    expect(raw).toContain('|');
+
+    expect(splitIssueMessage(raw)).toEqual({ code: 'INVALID', message: raw });
+  });
+
+  it('treats a lower-case or spaced prefix as part of the message, not as a code', () => {
+    expect(splitIssueMessage('Invalid option|x')).toEqual({ code: 'INVALID', message: 'Invalid option|x' });
+    expect(splitIssueMessage('bad_code|x')).toEqual({ code: 'INVALID', message: 'bad_code|x' });
+  });
 });
 
 describe('identifiers', () => {

@@ -547,7 +547,7 @@ export function organizationSettings(): OrganizationSettings {
       workingLanguages: ['en'],
       verificationStatus: 'identity_verified',
       onboardingStage: 'pilot',
-      planCode: 'buyer-professional',
+      planCode: 'pilot',
     },
     settings: {
       acceptedCurrencies: ['BWP', 'ZAR'],

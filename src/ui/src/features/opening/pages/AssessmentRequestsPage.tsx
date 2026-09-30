@@ -103,17 +103,17 @@ export default function AssessmentRequestsPage() {
       id: 'reference',
       header: t('opening.columns.reference'),
       sortable: true,
-      cell: (row) => (
-        <>
-          <Reference value={row.tenderReference} to={openingPaths.request(row.id)} />
-          <span className="tiq-cell-sub">{row.buyer.name}</span>
-        </>
-      ),
+      cell: (row) => <Reference value={row.reference} to={openingPaths.request(row.id)} />,
     },
     {
       id: 'tender',
       header: t('opening.columns.tender'),
-      cell: (row) => row.tenderTitle,
+      cell: (row) => (
+        <>
+          <span className="tiq-mono">{row.tenderReference}</span> {row.tenderTitle}
+          <span className="tiq-cell-sub">{row.buyer.name}</span>
+        </>
+      ),
     },
     {
       id: 'source',
@@ -219,7 +219,7 @@ export default function AssessmentRequestsPage() {
           onRowClick={(row) => {
             void navigate(openingPaths.request(row.id));
           }}
-          rowLabel={(row) => row.tenderReference}
+          rowLabel={(row) => row.reference}
           loading={query.isFetching}
           error={query.error}
           onRetry={query.reload}

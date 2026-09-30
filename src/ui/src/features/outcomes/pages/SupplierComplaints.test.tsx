@@ -36,6 +36,17 @@ describe('SupplierComplaintsPage (SUP-22)', () => {
     await screen.findAllByText('CMP-2026-0002');
     expect(screen.queryByRole('link', { name: /Lodge a complaint/ })).not.toBeInTheDocument();
   });
+
+  it('lays the filters, KPIs and table out in a spaced page', async () => {
+    installFetch({ 'GET /api/v1/supplier/complaints': () => ({ body: supplierComplaintPage() }) });
+    renderSupplier(<SupplierComplaintsPage />, {
+      route: '/supplier/complaints',
+      path: '/supplier/complaints',
+    });
+
+    const heading = await screen.findByRole('heading', { level: 1 });
+    expect(heading.closest('.tiq-page')).not.toBeNull();
+  });
 });
 
 describe('NewComplaintPage (SUP-22)', () => {

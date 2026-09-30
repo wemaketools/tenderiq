@@ -3,7 +3,8 @@
  *
  * The facts other domains own are DERIVED, never copied (`deriveTender`): release dates, lots and disclosed
  * milestones from the tenders fixtures; issued addenda (hence versions, the current version and a moved deadline)
- * and sessions from the clarifications fixtures; T-2026-0011's lots from the bids fixtures. Categories come from the
+ * and sessions from the clarifications fixtures; the lots the tenders fixtures do not structure (single-lot events,
+ * T-2026-0011) from the bids fixtures; the release approval decision from the tenders fixtures. Categories come from the
  * shared catalog. Ids: tender `T-2026-000N` = N, lot `tender * 100 + lotNo`, condition `tender * 10 + n`, package
  * document `7000 + tender * 10 + k` (publication-owned package files).
  *
@@ -39,7 +40,7 @@ import { BID_TENDERS } from '../bids/index.js';
 import { ADDENDA, SESSIONS } from '../clarifications/index.js';
 import type { AddendumFixture } from '../clarifications/index.js';
 import { TENANT_IDS } from '../platform.js';
-import { LOTS, MILESTONES, TENDERS as OWNER_TENDERS } from '../tenders/index.js';
+import { LOTS, MILESTONES, RELEASE_APPROVALS, TENDERS as OWNER_TENDERS } from '../tenders/index.js';
 import { OFFICIAL_TZ } from './catalog.js';
 import { packageDocument } from './documents.js';
 import type { DocumentAccessRule, FixtureDocument } from './documents.js';
@@ -185,7 +186,11 @@ function issuedAddenda(tenderId: number): AddendumFixture[] {
   );
 }
 
-/** Lots from the tenders fixtures; a tender they do not structure takes the bids fixtures' lots (T-2026-0011). */
+/**
+ * Lots from the tenders fixtures; a tender they do not structure takes the bids fixtures' lots, including a single
+ * lot (T-2026-0002 Lot 1, T-2026-0011): the clarification, addendum and bid domains cite those lots, so the notice
+ * publishes the same Lot 1 rather than "no lots" (PUB-03, PUB-04, SUP-08).
+ */
 function deriveLots(local: LocalTender): NoticeLot[] {
   const owned = LOTS.filter((entry) => entry.tenderId === local.id);
   if (owned.length > 0) {
@@ -204,7 +209,7 @@ function deriveLots(local: LocalTender): NoticeLot[] {
       .sort((a, b) => a.lotNo - b.lotNo);
   }
   const bidLots = BID_TENDERS.find((entry) => entry.id === local.id)?.lots ?? [];
-  if (bidLots.length > 1) {
+  if (bidLots.length > 0) {
     return bidLots.map((entry) => ({
       lotId: entry.id,
       lotNo: entry.lotNo,
@@ -220,6 +225,18 @@ function deriveLots(local: LocalTender): NoticeLot[] {
   return [...(local.lots ?? [])];
 }
 
+/**
+ * The release approval as the tenders fixtures record it (`approval_requests`, BUY-08): the decision time and the
+ * approved version come from there, so BUY-08 and BUY-14 show one approval record.
+ */
+function deriveReleaseApproval(local: ReleaseApprovalState): ReleaseApprovalState {
+  const owner = RELEASE_APPROVALS.find((entry) => entry.approvalId === local.approvalRequestId);
+  if (owner === undefined || owner.status !== 'approved' || local.status !== 'approved') {
+    return local;
+  }
+  return { ...local, subjectVersion: owner.subjectVersion, approvedAt: owner.decidedAt ?? local.approvedAt };
+}
+
 function lotNoOf(lots: readonly NoticeLot[], lotId: number | null): number | null {
   return lots.find((entry) => entry.lotId === lotId)?.lotNo ?? null;
 }
@@ -229,7 +246,7 @@ function lotNoOf(lots: readonly NoticeLot[], lotId: number | null): number | nul
  * - release date: the tenders fixtures (`tenders.released_at`);
  * - addenda, versions and the current version: the issued addenda of the clarifications fixtures (version 1 is the
  *   release; each issued addendum creates its resulting version);
- * - lots: the tenders fixtures (`lots`), else the bids fixtures (T-2026-0011);
+ * - lots: the tenders fixtures (`lots`), else the bids fixtures (single-lot events and T-2026-0011);
  * - timetable: the disclosed milestones of the tenders fixtures, with the submission deadline (and the opening after
  *   it) moved by the latest issued addendum that changed it;
  * - sessions and their places: the clarifications fixtures (`sessions`, `session_registrations`);
@@ -325,6 +342,7 @@ function deriveTender(local: LocalTender): FixtureTender {
   const { documentSpecs: _specs, lotDetails: _details, ...attributes } = local;
   return {
     ...attributes,
+    releaseApproval: deriveReleaseApproval(local.releaseApproval),
     releasedAt,
     currentVersionNo: versions.length,
     submissionDeadline,
@@ -413,7 +431,7 @@ const LOCAL_TENDERS: readonly LocalTender[] = [
       awardLinkPath: '/awards/kwu/T-2026-0001',
     },
     outcomeDecidedAt: '2026-09-10T10:00:00Z',
-    releaseApproval: approved(201, 2, '2026-05-29T09:00:00Z'),
+    releaseApproval: approved(201, 2, '2026-06-13T09:00:00Z'),
   },
   // T-2026-0002 — open RFQ with a material addendum (AC-10) and a failed external notice (AC-33)
   {
@@ -422,7 +440,8 @@ const LOCAL_TENDERS: readonly LocalTender[] = [
     tenantId: KWU,
     reference: 'T-2026-0002',
     title: 'Smart water meter supply',
-    summary: 'Supply of 6,000 smart ultrasonic water meters with AMR modules for the Gaborone and Lobatse networks.',
+    summary:
+      'Supply of 12,000 domestic smart ultrasonic water meters and 180 bulk district meters with AMR modules and data loggers for the Gaborone and Lobatse networks.',
     eventType: 'rfq',
     procedure: 'open',
     participation: 'open',
@@ -434,6 +453,13 @@ const LOCAL_TENDERS: readonly LocalTender[] = [
     eligibilitySummary: 'Open to registered suppliers of water metering equipment.',
     deliveryRequirements: 'Delivery to the KWU central stores, Gaborone, in two consignments.',
     contractConditions: 'KWU General Conditions of Supply 2025; 24-month meter warranty; liquidated damages 0.5% per week.',
+    lotDetails: {
+      1: {
+        description: '12,000 domestic meters and 180 bulk district meters with AMR modules and data loggers.',
+        quantityDescription: '12,000 domestic meters (DN15–DN20) and 180 bulk district meters (DN50–DN200)',
+        deliveryLocation: 'KWU central stores, Gaborone (two consignments)',
+      },
+    },
     documentSpecs: [
       { k: 1, title: 'Request for quotation — instructions', fileName: 'T-2026-0002-rfq-instructions.pdf', classification: 'public', accessRule: 'public', precedence: 1 },
       { k: 2, title: 'Meter technical specification', fileName: 'T-2026-0002-meter-specification-v2.pdf', classification: 'public', accessRule: 'public', versionNo: 2, precedence: 2, addendumNo: 1 },
@@ -442,7 +468,7 @@ const LOCAL_TENDERS: readonly LocalTender[] = [
       { k: 5, title: 'Addendum 1 — OIML R49 certificate and new deadline', fileName: 'T-2026-0002-addendum-1.pdf', classification: 'public', accessRule: 'public', addendumNo: 1 },
     ],
     conditions: [REGISTRATION(2)],
-    releaseApproval: approved(202, 2, '2026-08-28T08:30:00Z'),
+    releaseApproval: approved(202, 2, '2026-09-12T08:30:00Z'),
   },
   // T-2026-0003 — staged RFP under assessment
   {
@@ -662,7 +688,8 @@ const LOCAL_TENDERS: readonly LocalTender[] = [
     tenantId: KWU,
     reference: 'T-2026-0010',
     title: 'Fleet vehicle maintenance',
-    summary: 'Scheduled and breakdown maintenance of 140 light and heavy vehicles for three years.',
+    summary:
+      'Scheduled and breakdown maintenance of 86 light and heavy vehicles at the Gaborone and Mahalapye depots for twelve months, with one 12-month renewal option and one 3-month extension option.',
     eventType: 'rfq',
     procedure: 'open',
     participation: 'open',
@@ -673,14 +700,14 @@ const LOCAL_TENDERS: readonly LocalTender[] = [
     draftRevision: 2,
     eligibilitySummary: 'Workshops accredited by the Motor Trade Association.',
     deliveryRequirements: 'Collection and return within Greater Gaborone.',
-    contractConditions: 'KWU Services Conditions 2025; three-year term with one renewal option.',
+    contractConditions: 'KWU Services Conditions 2025; twelve-month term with one 12-month renewal option and one 3-month extension option.',
     documentSpecs: [
       { k: 1, title: 'Request for quotation', fileName: 'T-2026-0010-rfq.pdf', classification: 'public', accessRule: 'public', precedence: 1 },
     ],
     conditions: [],
     outcome: { summary: 'Awarded. The award notice lists the awarded supplier and value.', awardLinkPath: '/awards/kwu/T-2026-0010' },
-    outcomeDecidedAt: '2026-06-12T10:00:00Z',
-    releaseApproval: approved(210, 2, '2026-02-27T09:00:00Z'),
+    outcomeDecidedAt: '2026-03-06T10:00:00Z',
+    releaseApproval: approved(210, 2, '2026-01-08T09:00:00Z'),
   },
   // T-2026-0011 — ODC open RFQ (cross-buyer segregation); ODC needs no release approval
   {

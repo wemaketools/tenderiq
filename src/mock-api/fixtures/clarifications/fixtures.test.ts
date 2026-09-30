@@ -371,12 +371,12 @@ describe('demonstrable principal actions', () => {
     }
   });
 
-  it('hold a session that took place with attendance and minutes still to record (BUY-18)', () => {
+  it('hold a session that took place with its attendance recorded and its minutes still to publish (BUY-18)', () => {
     const held = SESSIONS.filter(
-      (row) => row.status === 'scheduled' && Date.parse(row.startsAt) < NOW.getTime() && row.minutesPublishedAt === null,
+      (row) => row.status === 'completed' && Date.parse(row.startsAt) < NOW.getTime() && row.minutesPublishedAt === null,
     );
     expect(held.map((row) => row.id)).toEqual([49]);
-    expect(held[0]?.registrations.every((row) => row.status === 'registered')).toBe(true);
+    expect(held[0]?.registrations.every((row) => row.status === 'attended' || row.status === 'absent')).toBe(true);
   });
 });
 

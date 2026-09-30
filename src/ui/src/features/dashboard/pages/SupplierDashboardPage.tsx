@@ -6,7 +6,11 @@
  */
 import { Link } from 'react-router';
 
-import { SUPPLIER_DASHBOARD_KPIS, reportingEndpoints } from '@contracts/reporting';
+import {
+  SUPPLIER_DASHBOARD_KPIS,
+  SUPPLIER_EVIDENCE_WINDOW_DAYS,
+  reportingEndpoints,
+} from '@contracts/reporting';
 import type {
   SupplierContractTaskItem,
   SupplierDashboard,
@@ -144,11 +148,7 @@ function SupplierBody({ data }: { readonly data: SupplierDashboard }) {
           ) : data.invitations.items.length === 0 ? (
             <EmptyState compact icon="mail" title={t('dashboard.supplier.noInvitations')} />
           ) : (
-            <ul
-              className="tiq-stack"
-              style={{ listStyle: 'none', margin: 0, padding: 0 }}
-              aria-label={t('dashboard.supplier.invitations')}
-            >
+            <ul className="tiq-stack" aria-label={t('dashboard.supplier.invitations')}>
               {data.invitations.items.map((item) => (
                 <li key={item.tenderId} className="tiq-stack" style={{ gap: 'var(--tiq-space-1)' }}>
                   <span className="tiq-inline">
@@ -186,11 +186,7 @@ function SupplierBody({ data }: { readonly data: SupplierDashboard }) {
               title={t('dashboard.supplier.noQualifications')}
             />
           ) : (
-            <ul
-              className="tiq-stack"
-              style={{ listStyle: 'none', margin: 0, padding: 0 }}
-              aria-label={t('dashboard.supplier.qualifications')}
-            >
+            <ul className="tiq-stack" aria-label={t('dashboard.supplier.qualifications')}>
               {data.qualifications.items.map((item) => (
                 <li
                   key={`${item.buyerName}-${item.programName}`}
@@ -233,18 +229,14 @@ function SupplierBody({ data }: { readonly data: SupplierDashboard }) {
 
         <Card
           title={t('dashboard.supplier.evidence')}
-          subtitle={t('dashboard.supplier.evidenceHint')}
+          subtitle={t('dashboard.supplier.evidenceHint', { days: SUPPLIER_EVIDENCE_WINDOW_DAYS })}
         >
           {data.expiringEvidence.restricted ? (
             <RestrictedState compact description={t('dashboard.supplier.evidenceRestricted')} />
           ) : data.expiringEvidence.items.length === 0 ? (
             <EmptyState compact icon="hourglass" title={t('dashboard.supplier.noEvidence')} />
           ) : (
-            <ul
-              className="tiq-stack"
-              style={{ listStyle: 'none', margin: 0, padding: 0 }}
-              aria-label={t('dashboard.supplier.evidence')}
-            >
+            <ul className="tiq-stack" aria-label={t('dashboard.supplier.evidence')}>
               {data.expiringEvidence.items.map((item) => (
                 <li
                   key={item.evidenceId}
@@ -285,11 +277,7 @@ function SupplierBody({ data }: { readonly data: SupplierDashboard }) {
           ) : data.outcomes.items.length === 0 ? (
             <EmptyState compact icon="award" title={t('dashboard.supplier.noOutcomes')} />
           ) : (
-            <ul
-              className="tiq-stack"
-              style={{ listStyle: 'none', margin: 0, padding: 0 }}
-              aria-label={t('dashboard.supplier.outcomes')}
-            >
+            <ul className="tiq-stack" aria-label={t('dashboard.supplier.outcomes')}>
               {data.outcomes.items.map((item) => (
                 <li
                   key={`${item.tenderId}-${item.lotLabel ?? 'event'}`}

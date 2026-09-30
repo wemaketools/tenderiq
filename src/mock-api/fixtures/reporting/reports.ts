@@ -463,7 +463,7 @@ const PARTICIPATION_FACTS: Readonly<Record<number, ParticipationFacts>> = {
   4: { compliant: 'RFI responses are not assessed for compliance.', scope: 'Whole event (RFI responses)', date: '2026-06-05' },
   6: { compliant: NOT_OPENED, scope: 'Whole event (invitation only)', date: '2026-10-01' },
   7: { compliant: 3, scope: 'Whole event', date: '2026-07-10' },
-  8: { compliant: 'Sealed: opening deferred to the next opening committee sitting.', scope: 'Whole event (sealed until opening)', date: '2026-09-30' },
+  8: { compliant: 'Sealed until the opening of 7 Oct 2026.', scope: 'Whole event (sealed until opening)', date: '2026-09-30' },
   9: { compliant: 3, scope: 'Whole event (restricted, two stages)', date: '2026-07-06' },
   10: { compliant: 2, scope: 'Whole event', date: '2026-06-30' },
   11: { compliant: NOT_OPENED, scope: 'Whole event', date: '2026-10-01' },

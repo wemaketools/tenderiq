@@ -464,7 +464,6 @@ function DelegationsTab({
 }
 
 function CommitteesTab() {
-  const navigate = useNavigate();
   const [filters, setFilters, clearFilters] = useScreenFilters(
     'ADM-05:committees',
     COMMITTEE_DEFAULTS,
@@ -585,7 +584,7 @@ function CommitteesTab() {
           rows={query.data?.items}
           rowKey={(row) => String(row.committeeId)}
           rowLabel={(row) => row.name}
-          onRowClick={(row) => void navigate(orgPaths.committee(row.committeeId))}
+          rowHref={(row) => orgPaths.committee(row.committeeId)}
           loading={query.isFetching}
           error={query.error}
           onRetry={query.reload}

@@ -26,6 +26,30 @@ describe('SignInPage (COM-01)', () => {
     );
   });
 
+  it('keeps keyboard focus in the form while signing in and returns it to the password field after a failure', async () => {
+    let resolve: (value: { ok: boolean }) => void = () => undefined;
+    const auth = stubAuth({
+      signIn: vi.fn(
+        () =>
+          new Promise<{ ok: boolean }>((done) => {
+            resolve = done;
+          }),
+      ),
+    });
+    renderWithProviders(<SignInPage />, { state: { session: signedOut }, auth });
+    await userEvent.type(screen.getByLabelText(/Email address/), 'someone@tenderiq.local');
+    const password = screen.getByLabelText(/Password/);
+    await userEvent.type(password, 'wrong{Enter}');
+    expect(password).not.toBeDisabled();
+    expect(password).toHaveAttribute('readonly');
+    expect(password).toHaveAttribute('aria-disabled', 'true');
+    expect(password).toHaveFocus();
+    resolve({ ok: false });
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    expect(password).toHaveFocus();
+    expect(password).not.toHaveAttribute('readonly');
+  });
+
   it('lists the demo accounts in development builds and signs in for real with the chosen persona', async () => {
     const auth = stubAuth();
     renderWithProviders(<SignInPage />, { state: { session: signedOut }, auth });

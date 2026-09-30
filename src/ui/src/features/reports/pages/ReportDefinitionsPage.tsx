@@ -5,7 +5,7 @@
  * whose audience permission they hold.
  */
 import { useState } from 'react';
-import { Link, Navigate, useNavigate } from 'react-router';
+import { Link, Navigate } from 'react-router';
 
 import { REPORT_DEFINITIONS_FAMILY } from '@contracts/enums';
 import { REPORT_DEFINITION_SORT_FIELDS, reportingEndpoints } from '@contracts/reporting';
@@ -53,7 +53,6 @@ export default function ReportDefinitionsPage() {
 }
 
 function DefinitionsList() {
-  const navigate = useNavigate();
   const tenant = useActiveTenant();
   const timeZone = tenant?.officialTimeZone ?? 'UTC';
   const [filters, setFilters, clearFilters] = useScreenFilters('ADM-13', DEFAULTS);
@@ -241,7 +240,7 @@ function DefinitionsList() {
           rows={data?.items}
           rowKey={(row) => String(row.id)}
           rowLabel={(row) => t('reports.admin.openNamed', { name: row.name })}
-          onRowClick={(row) => void navigate(`/buyer/reports/definitions/${row.id}`)}
+          rowHref={(row) => `/buyer/reports/definitions/${row.id}`}
           loading={query.isFetching}
           error={query.error}
           onRetry={query.reload}

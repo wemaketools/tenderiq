@@ -2,13 +2,25 @@
   "stage": "A",
   "unit": "reporting",
   "status": "done",
-  "gapsFixed": 9,
+  "gapsFixed": 28,
   "followUps": [
     "tenders: add the imported legacy tender T-2025-0003 (id 2503, archived, legal hold AC-35) as a fixture so drill-throughs can open /buyer/tenders/2503; until then reporting/records link it to /buyer/admin/records/audit?entityType=tender&entityId=2503",
     "approvals: align PR-2026-0003 title 'Emergency borehole pump spares' (approvals/world.ts) with the requests domain title 'Northern wellfield pipeline extension'",
     "schema-blueprint: add a DD entry for retention_classes.purpose text not null (BR-39 defined purpose) used by RetentionClass.purpose / UpdateRetentionClassBody.purpose",
     "bids vs selection/awards: T-2026-0009 bidders are Serowe, Tsodilo, Gaborone in bids/responses.ts but Serowe, Limpopo, Gaborone in selection/awards; reporting follows the bids domain for participation and pursuits",
     "bids vs awards: T-2026-0001 lot 2 has two submitted bids (Chobe bid 2, Makgadikgadi bid 3) but the awards notice says 'the only offer' failed REQ-T-02",
-    "docs: re-run npm run docs:api (SupplierPursuitItem gained bidId)"
+    "docs: re-run npm run docs:api (ExportSummary gained accessible; SUPPLIER_EVIDENCE_WINDOW_DAYS added)",
+    "clarifications: label the old deadline of an ISSUED addendum 'Previous submission deadline' (i18n key currentDeadline, src/ui/src/features/clarifications/i18n/en.ts)",
+    "operations: fixtures/operations/customers.ts continuity-plan text says T-2026-0011 closes 21 Oct; the timetable says 23 Oct 2026",
+    "bids: T-2026-0014 has no bids in fixtures/bids/responses.ts, so the participation report cannot list it (evaluation/t2026-0014.ts holds its bidders)",
+    "tenders: T-2026-0013 (borehole drilling) uses category 20 'Cleaning services'"
+  ],
+  "qaFixes": [
+    "BUY-01 counts and lists only tenders the caller may open (tenders-domain team scope), only the caller's own approvals, workload for procurement managers only, and checks every link against its page's access (handlers/reporting/access.ts)",
+    "COM-08 search filters every hit through the owning domain's access (tender team scope, document access, route permission) before counting; task hits derive from the task inbox",
+    "Dashboard deadlines derive from the tenders timetable (T-2026-0002 21 Oct, T-2026-0011 23 Oct); supplier evidence derives from the suppliers evidence library; evidence window is SUPPLIER_EVIDENCE_WINDOW_DAYS (60) shared by service and card",
+    "Reporting 'as of' is the shared demo clock (fixtures/demo-clock.ts DEMO_AS_OF)",
+    "T-2026-0013 and T-2026-0014 added to reporting facts; T-2026-0010 estimate 1,900,000 and C-2026-0002 value 4,668,000 aligned with the owning domains",
+    "Report run history marks exports the caller may not open (ExportSummary.accessible) and shows them without a link"
   ]
 }

@@ -39,6 +39,136 @@ describe('AssessmentPage (EVA-02)', () => {
     ).toBeInTheDocument();
   });
 
+  it('names the criterion and bid in every score field so identical fields are distinguishable (WCAG 2.4.6)', async () => {
+    routeCalls({ 'buyer.evaluation.assessment.get': () => assessment() });
+    renderPage(<AssessmentPage />, { ...PATH, persona: EVALUATOR });
+    await screen.findByText('Describe the telemetry architecture.');
+
+    const literal = (text: string) => text.replace(/[()]/g, '\\$&');
+    const bid = literal('Supplier A (Serowe ICT Solutions)');
+    for (const criterion of [
+      'C1 Solution quality',
+      'C2 Delivery approach',
+      'C3 Relevant experience',
+    ]) {
+      expect(
+        screen.getByRole('group', { name: new RegExp(`^Score for ${criterion}, ${bid}$`) }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('combobox', {
+          name: new RegExp(`^${literal('Rating (0–5)')} for ${criterion}, ${bid}`),
+        }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('textbox', { name: new RegExp(`^Rationale for ${criterion}, ${bid}`) }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('checkbox', {
+          name: new RegExp(`^Request clarification for ${criterion}, ${bid}`),
+        }),
+      ).toBeInTheDocument();
+    }
+  });
+
+  it('sends a flagged clarification to the chair as a draft bid clarification (EVA-02 → EVA-03)', async () => {
+    const QUESTION =
+      'Please confirm whether the Francistown project included analyser integration.';
+    const base = assessment();
+    const flagged = base.scores.map((item) =>
+      item.criterionId === 303
+        ? { ...item, clarificationNeeded: true, clarificationQuestion: QUESTION }
+        : item,
+    );
+    const calls = routeCalls({
+      'buyer.evaluation.assessment.get': () => ({ ...base, scores: flagged }),
+      'buyer.opening.raiseClarification': (request) => {
+        const body = (request as { body: Record<string, string> }).body;
+        return {
+          id: 900,
+          tenderId: 3,
+          tenderReference: 'T-2026-0003',
+          bidId: 3001,
+          supplier: { tenantId: 21, name: 'Serowe ICT Solutions' },
+          source: 'evaluation',
+          question: body.question,
+          permittedScope: body.permittedScope,
+          dueAt: { at: body.dueAt, timeZone: 'Africa/Gaborone' },
+          status: 'draft',
+          raisedBy: { userId: 13, fullName: 'Amantle Segwai' },
+          raisedAt: '2026-09-30T08:00:00Z',
+          approvedBy: null,
+          consolidatedIntoId: null,
+          consolidatedCount: 0,
+          respondedAt: null,
+          effect: null,
+          responseText: null,
+          respondedBy: null,
+          effectNote: null,
+          attachments: [],
+          consolidated: [],
+          distributedTo: [],
+        };
+      },
+    });
+    renderPage(<AssessmentPage />, { ...PATH, persona: EVALUATOR });
+
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: /^Send to the chair for C3 Relevant experience, Supplier A/,
+      }),
+    );
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByLabelText(/^Question to the supplier/)).toHaveValue(QUESTION);
+    fireEvent.change(within(dialog).getByLabelText(/^Permitted scope/), {
+      target: { value: 'Confirmation of the project scope only; no change to the offer.' },
+    });
+    fireEvent.change(within(dialog).getByLabelText('Date'), { target: { value: '2026-10-20' } });
+    fireEvent.change(within(dialog).getByLabelText('Time'), { target: { value: '12:00' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Create draft for the chair' }));
+
+    expect(
+      (await screen.findAllByText('Draft clarification CL-900 sent to the chair.')).length,
+    ).toBeGreaterThan(0);
+    expect(screen.getByRole('link', { name: 'Open bid clarifications' })).toHaveAttribute(
+      'href',
+      '/buyer/bid-clarifications',
+    );
+    expect(calls.at(-1)).toEqual({
+      id: 'buyer.opening.raiseClarification',
+      request: {
+        body: {
+          bidId: 3001,
+          source: 'evaluation',
+          question: QUESTION,
+          permittedScope: 'Confirmation of the project scope only; no change to the offer.',
+          dueAt: '2026-10-20T10:00:00Z',
+        },
+      },
+    });
+  });
+
+  it('refuses to send a clarification without a permitted scope and keeps the dialog open', async () => {
+    const base = assessment();
+    const flagged = base.scores.map((item) =>
+      item.criterionId === 303
+        ? { ...item, clarificationNeeded: true, clarificationQuestion: 'Please confirm the scope.' }
+        : item,
+    );
+    const calls = routeCalls({
+      'buyer.evaluation.assessment.get': () => ({ ...base, scores: flagged }),
+    });
+    renderPage(<AssessmentPage />, { ...PATH, persona: EVALUATOR });
+
+    fireEvent.click(await screen.findByRole('button', { name: /^Send to the chair for C3/ }));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Create draft for the chair' }));
+
+    expect(
+      await within(dialog).findByText('State what the supplier may clarify (BR-22).'),
+    ).toBeInTheDocument();
+    expect(calls.some((item) => item.id === 'buyer.opening.raiseClarification')).toBe(false);
+  });
+
   it('saves only the changed cells as a draft', async () => {
     const calls = routeCalls({
       'buyer.evaluation.assessment.get': () => assessment(),
@@ -202,7 +332,12 @@ describe('AssessmentPage (EVA-02)', () => {
       (await screen.findAllByRole('button', { name: 'Correct score' }))[0] as HTMLElement,
     );
     const dialog = await screen.findByRole('dialog');
-    fireEvent.change(within(dialog).getByLabelText('Corrected rating'), { target: { value: '5' } });
+    fireEvent.change(
+      within(dialog).getByRole('combobox', {
+        name: /^Corrected rating for C1 Solution quality, Supplier A/,
+      }),
+      { target: { value: '5' } },
+    );
     fireEvent.change(within(dialog).getByLabelText(/Reason for the correction/), {
       target: { value: 'Misread the redundancy drawing.' },
     });

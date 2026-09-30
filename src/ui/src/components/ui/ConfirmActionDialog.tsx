@@ -7,7 +7,7 @@
  * errors bound to the reason input.
  */
 import { useState } from 'react';
-import type { ReactNode } from 'react';
+import type { ReactNode, RefObject } from 'react';
 
 import { useAppSelector } from '../../app/hooks';
 import type { ApiError } from '../../api/client';
@@ -44,6 +44,8 @@ export interface ConfirmActionDialogProps {
   readonly children?: ReactNode;
   /** Dialog width; form-heavy confirmations use `lg` (default `md`). */
   readonly size?: 'sm' | 'md' | 'lg';
+  /** Where focus goes when the dialog closes, for example the result banner (see Dialog). */
+  readonly returnFocusRef?: RefObject<HTMLElement | null>;
 }
 
 export function ConfirmActionDialog({
@@ -62,6 +64,7 @@ export function ConfirmActionDialog({
   error = null,
   children,
   size = 'md',
+  returnFocusRef,
 }: ConfirmActionDialogProps) {
   const activeTenant = useAppSelector((state) => state.session.activeTenant);
   const [reasonText, setReasonText] = useState('');
@@ -87,6 +90,7 @@ export function ConfirmActionDialog({
       title={title}
       onClose={close}
       dismissible={!pending}
+      returnFocusRef={returnFocusRef}
       footer={
         <>
           <Button onClick={close} disabled={pending}>

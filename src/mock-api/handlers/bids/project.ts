@@ -557,7 +557,7 @@ export function toBidSummary(bid: FixtureBid): BidSummary {
   const tender = requireTender(bid);
   const working = workingRevision(bid);
   const receipt = effectiveReceipt(bid);
-  const all = revisionsOf(bid.id);
+  const all = revisionsOf(bid);
   const shown = working ?? effectiveRevision(bid) ?? all[all.length - 1] ?? null;
   return {
     id: bid.id,
@@ -596,7 +596,7 @@ function lotOptionsOf(bid: FixtureBid, tender: FixtureBidTender): BidLotOption[]
 export function toBidDetail(bid: FixtureBid, permissions: readonly PermissionCode[], now: Date): BidDetail {
   const tender = requireTender(bid);
   const summary = toBidSummary(bid);
-  const shown = workingRevision(bid) ?? effectiveRevision(bid) ?? revisionsOf(bid.id).at(-1) ?? null;
+  const shown = workingRevision(bid) ?? effectiveRevision(bid) ?? revisionsOf(bid).at(-1) ?? null;
   const open = windowOpen(tender, bid.roundType, now);
   return {
     ...summary,

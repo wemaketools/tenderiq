@@ -154,6 +154,15 @@ export interface FixtureTimelineEvent {
   readonly title: string;
   readonly actorUserId: number | null;
   readonly detail: string | null;
+  /**
+   * What the detail discloses, when it is not for every committee member:
+   * - `committee_results`: committee scores, moderation outcomes or the ranking; withheld from an evaluator whose own
+   *   assessment is not submitted or whose conflict awaits review (PRD §4.3).
+   * - `conflict_detail`: the nature of a conflict declaration; shown only to the chair and `subjectUserId` (the
+   *   declarant).
+   */
+  readonly sensitivity?: 'committee_results' | 'conflict_detail';
+  readonly subjectUserId?: number;
 }
 
 /** One evaluation: a tender evaluated as a whole, or one lot of it. */

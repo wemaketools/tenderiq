@@ -755,8 +755,8 @@ describe('authority (ADM-05)', () => {
     expect(parsed(ep.createDelegation, await api.callAs(admin, ep.createDelegation, { tenant: 'kwu', body: { ...body, legalEntityId: 1 } })).legalEntity?.id).toBe(1);
     const qualification = { ...body, delegatorUserId: 4, decisionTypes: ['qualification_decision'] };
     expect(problemCode(await api.callAs(admin, ep.createDelegation, { tenant: 'kwu', body: qualification }))).toBe('DELEGATION_EXCEEDS_SCOPE');
-    expect(problemCode(await api.callAs(admin, ep.createDelegation, { tenant: 'kwu', body: { ...qualification, categoryId: 34 } }))).toBe('DELEGATION_EXCEEDS_SCOPE');
-    expect(parsed(ep.createDelegation, await api.callAs(admin, ep.createDelegation, { tenant: 'kwu', body: { ...qualification, categoryId: 32 } })).category?.name).toBe('Pumps and mechanical');
+    expect(problemCode(await api.callAs(admin, ep.createDelegation, { tenant: 'kwu', body: { ...qualification, categoryId: 4 } }))).toBe('DELEGATION_EXCEEDS_SCOPE');
+    expect(parsed(ep.createDelegation, await api.callAs(admin, ep.createDelegation, { tenant: 'kwu', body: { ...qualification, categoryId: 2 } })).category?.name).toBe('Pumps and mechanical equipment');
   });
 
   it('refuses a delegation that outlasts the delegator’s own limit (BR-06)', async () => {
@@ -899,7 +899,7 @@ describe('organization and structure (ADM-01, ADM-02)', () => {
     expect(problemCode(await api.callAs(admin, ep.departmentsCreate, { tenant: 'kwu', body: { ...dept, name: 'Asset Management', parentId: 62 } }))).toBe('PARENT_NOT_FOUND');
     expect(problemCode(await api.callAs(admin, ep.departmentsUpdate, { tenant: 'kwu', params: { valueId: 11 }, body: { ...dept, parentId: 12 } }))).toBe('PARENT_CYCLE');
     expect(problemCode(await api.callAs(admin, ep.costCentersUpdate, { tenant: 'kwu', params: { valueId: 46 }, body: { code: 'CC-RWS-900', name: 'Rural', departmentId: null } }))).toBe('VALUE_INACTIVE');
-    expect(parsed(ep.categoriesCreate, await api.callAs(admin, ep.categoriesCreate, { tenant: 'kwu', body: { name: 'Borehole drilling', code: 'WTR-DRILL', parentId: 31, catalogCode: 'WTR-INFRA' } })).parent?.name).toBe('Water infrastructure');
+    expect(parsed(ep.categoriesCreate, await api.callAs(admin, ep.categoriesCreate, { tenant: 'kwu', body: { name: 'Borehole drilling', code: 'WTR-DRILL', parentId: 1, catalogCode: 'WTR-INFRA' } })).parent?.name).toBe('Water infrastructure');
     expect((await api.callAs(admin, ep.fundingSourcesCreate, { tenant: 'kwu', body: { code: 'bad code', name: 'Bad', sourceType: 'grant', externalReference: null } })).status).toBe(422);
   });
 });
@@ -912,7 +912,7 @@ describe('supplier authority (SUP-04, AC-03)', () => {
     expect(problemCode(await api.callAs(admin, ep.createTenderAssignment, { tenant: 'tsodilo', body: base }))).toBe('RESPONSIBILITY_REQUIRES_AUTHORITY');
     expect(problemCode(await api.callAs(admin, ep.createTenderAssignment, { tenant: 'tsodilo', body: { ...base, responsibility: 'reviewer', canViewPricing: true } }))).toBe('PRICING_REQUIRES_PERMISSION');
     expect(problemCode(await api.callAs(admin, ep.createTenderAssignment, { tenant: 'tsodilo', body: { ...base, responsibility: 'contributor' } }))).toBe('ALREADY_ASSIGNED');
-    expect(problemCode(await api.callAs(admin, ep.createTenderAssignment, { tenant: 'tsodilo', body: { ...base, responsibility: 'contributor', tenderId: 2 } }))).toBe('TENDER_NOT_AVAILABLE');
+    expect(problemCode(await api.callAs(admin, ep.createTenderAssignment, { tenant: 'tsodilo', body: { ...base, responsibility: 'contributor', tenderId: 9 } }))).toBe('TENDER_NOT_AVAILABLE');
     expect(problemCode(await api.callAs(admin, ep.createTenderAssignment, { tenant: 'tsodilo', body: { ...base, userId: 121, responsibility: 'contributor' } }))).toBe('USER_NOT_ACTIVE');
     expect(problemCode(await api.callAs(admin, ep.createTenderAssignment, { tenant: 'tsodilo', body: { ...base, userId: 24 } }))).toBe('SELF_GRANT_FORBIDDEN');
     const ok = parsed(ep.createTenderAssignment, await api.callAs(admin, ep.createTenderAssignment, { tenant: 'tsodilo', body: { ...base, responsibility: 'reviewer', tenderId: 3, sectionScope: ['Commissioning plan'] } }));

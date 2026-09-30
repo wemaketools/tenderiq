@@ -149,7 +149,7 @@ export function questionDetail(overrides: Partial<BuyerQuestionDetail> = {}) {
     owner: PERSON,
     status: 'draft_answer',
     audience: 'all_participants',
-    responseDueAt: '2026-10-02T10:00:00Z',
+    responseDueAt: { at: '2026-10-02T10:00:00Z', timeZone: 'Africa/Gaborone' },
     publishedAt: null,
     addendumId: null,
     addendumNumber: null,

@@ -2,7 +2,7 @@
  * Selection overview: the tenders in the selection stage with their shortlist, preferred-bidder, diligence and
  * negotiation status and the number of blocked actions (entry point of BUY-22..BUY-25, BUY-27).
  */
-import { Navigate, useNavigate } from 'react-router';
+import { Navigate } from 'react-router';
 
 import { TENDERS_PROCEDURE, TENDERS_STATUS } from '@contracts/enums';
 import { selectionEndpoints } from '@contracts/selection';
@@ -56,7 +56,6 @@ export default function SelectionRegisterPage() {
 
 /** The register itself (the caller holds a selection read permission). */
 function SelectionRegister() {
-  const navigate = useNavigate();
   const timeZone = useOfficialTimeZone();
   const [filters, setFilters, clearFilters] = useScreenFilters('BUY-SELECTION', DEFAULTS);
 
@@ -290,7 +289,7 @@ function SelectionRegister() {
           rows={query.data?.items}
           rowKey={(row) => String(row.tenderId)}
           rowLabel={(row) => `${row.reference} ${row.title}`}
-          onRowClick={(row) => void navigate(selectionPaths.tender(row.tenderId))}
+          rowHref={(row) => selectionPaths.tender(row.tenderId)}
           loading={query.isFetching}
           error={query.error}
           onRetry={query.reload}

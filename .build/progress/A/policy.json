@@ -34,5 +34,12 @@
       "description": "Optional: seed approval_requests with subject_type 'policy_profile' or 'template' if the prototype should show an approval record for policy and template versions",
       "detail": "The policy fixtures now carry approvalRequestId null, and a test checks that any non-null id resolves to a matching subjectType."
     }
+  ],
+  "qaFixes": [
+    {
+      "finding": "Financial reviewer (AC-08) sees buyer-defined qualification fields as Restricted",
+      "fix": "CUSTOM_FIELD_FORM_READ now includes qualification.financial_review",
+      "test": "src/mock-api/handlers/policy/policy.test.ts (restricted financial reviewer reads qualification_application form)"
+    }
   ]
 }

@@ -3,7 +3,7 @@
  * (`submissionState`), the working revision, progress, the official deadline and the effective receipt. Internal
  * approval is shown as a revision status, never as submission (AC-11).
  */
-import { useNavigate, useSearchParams } from 'react-router';
+import { useSearchParams } from 'react-router';
 
 import { BID_LIST_SORTS, listBids } from '@contracts/bids';
 import type { BidSummary } from '@contracts/bids';
@@ -32,6 +32,7 @@ import type { DataTableColumn } from '../../../components/ui';
 import { formatCount, formatDateTime } from '../../../lib/format';
 import { t, tEnum } from '../../../lib/i18n';
 import { ProgressMeter } from '../components/ProgressMeter';
+import { StartResponsePanel } from '../components/StartResponsePanel';
 import { useOfficialTimeZone } from '../lib/hooks';
 import { compact, directionOf, fromDate, oneOf, sortOf, tableSort, toDate } from '../lib/lists';
 import { nextActionOf } from '../lib/nextAction';
@@ -52,7 +53,6 @@ const DEFAULTS = {
 };
 
 export default function ResponsesPage() {
-  const navigate = useNavigate();
   const timeZone = useOfficialTimeZone();
   const [search, setSearch] = useSearchParams();
   const tenderParam = search.get('tenderId');
@@ -196,6 +196,7 @@ export default function ResponsesPage() {
   return (
     <div className="tiq-page">
       <PageHeader title={t('responses.list.title')} subtitle={t('responses.list.intro')} />
+      {tenderId !== undefined && <StartResponsePanel tenderId={tenderId} />}
       <FilterBar label={t('responses.list.filters')} onClear={clearAll} canClear={filtered}>
         <SearchField
           label={t('responses.common.search')}
@@ -289,7 +290,7 @@ export default function ResponsesPage() {
           rows={query.data?.items}
           rowKey={(row) => String(row.id)}
           rowLabel={(row) => `${row.tender.reference} ${row.tender.title}`}
-          onRowClick={(row) => void navigate(responsePaths.answers(row.id))}
+          rowHref={(row) => responsePaths.answers(row.id)}
           loading={query.isFetching}
           error={query.error}
           onRetry={query.reload}

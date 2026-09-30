@@ -363,6 +363,11 @@ export default {
     startBlocked: 'Response preparation cannot start yet',
     pursuit: 'Bid/no-bid',
     clarifications: 'Questions and clarifications',
+    clarificationsRestrictedTitle: 'Questions and briefings',
+    clarificationsRestrictedNotParticipating:
+      'Questions, published answers and briefing sessions open to organizations that take part in this event. Register interest or accept an invitation to see them.',
+    clarificationsRestrictedParticipant:
+      'Questions, published answers and briefing sessions open once the buyer lists your organization in the event’s clarification channel.',
     openSession: 'Open session',
     kpi: {
       readiness: 'Participation readiness',
@@ -419,7 +424,7 @@ export default {
     placesLeft_one: '{count} place left',
     placesLeft_other: '{count} places left',
     notBooked: 'Not booked',
-    registerBy: 'Register by {at}',
+    registerBy: 'Register by',
     locked: 'Locked',
     col: {
       select: 'Select',
@@ -441,6 +446,8 @@ export default {
     readOnly: 'Your role can read this pursuit but not change it.',
     stateSaved: 'Assessment (private)',
     stateSavedHint: 'Saved, not decided',
+    stateNotStartedHint: 'Not started',
+    stateDecidedSavedHint: 'Saved; decision recorded',
     stateDecided: 'Decision (private)',
     stateDecidedHint: 'Recorded for your organization only',
     stateShared: 'Shared with the buyer',

@@ -5,7 +5,7 @@
  * appropriate route: a signed-in supplier goes to its subscriptions, others register or sign in. The filters live in
  * the URL so a search can be shared.
  */
-import { useNavigate, useSearchParams } from 'react-router';
+import { useSearchParams } from 'react-router';
 
 import { TENDERS_EVENT_TYPE, TENDERS_PROCEDURE, TENDERS_STATUS } from '@contracts/enums';
 import { PUBLIC_NOTICE_SORT_FIELDS, publicationEndpoints } from '@contracts/publication';
@@ -68,7 +68,6 @@ function optionsOf(options: readonly FilterOption[] | undefined): SelectOption[]
 }
 
 export default function OpportunitySearchPage() {
-  const navigate = useNavigate();
   const viewer = usePortalViewer();
   const [params, setParams] = useSearchParams();
   const value = (key: FilterKey): string => params.get(key) ?? '';
@@ -279,7 +278,7 @@ export default function OpportunitySearchPage() {
           rows={query.data?.items}
           rowKey={(row) => `${row.buyer.slug}/${row.reference}`}
           rowLabel={(row) => `${row.reference} ${row.title}`}
-          onRowClick={(row) => void navigate(row.linkPath)}
+          rowHref={(row) => row.linkPath}
           loading={query.isFetching}
           error={dateError === null ? query.error : null}
           onRetry={query.reload}

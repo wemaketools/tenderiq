@@ -2,7 +2,6 @@
  * BUY-25 — Due-diligence cases: the preferred bidder's case per tender with its owner, findings by disposition,
  * award-blocking findings and the next due date (FR-16, AC-24).
  */
-import { useNavigate } from 'react-router';
 
 import { DUE_DILIGENCE_CASES_STATUS, DUE_DILIGENCE_FINDINGS_AREA } from '@contracts/enums';
 import { selectionEndpoints } from '@contracts/selection';
@@ -51,7 +50,6 @@ const DEFAULTS = {
 };
 
 export default function DiligenceCasesPage() {
-  const navigate = useNavigate();
   const timeZone = useOfficialTimeZone();
   const [filters, setFilters, clearFilters] = useScreenFilters('BUY-25', DEFAULTS);
   const [tender, setTender, clearTenderLink] = useTenderFilter(filters.tender, (value) =>
@@ -289,7 +287,7 @@ export default function DiligenceCasesPage() {
           rows={query.data?.items}
           rowKey={(row) => String(row.caseId)}
           rowLabel={(row) => `${row.tender.reference} ${row.bid.supplierName}`}
-          onRowClick={(row) => void navigate(selectionPaths.diligenceCase(row.caseId))}
+          rowHref={(row) => selectionPaths.diligenceCase(row.caseId)}
           loading={query.isFetching}
           error={query.error}
           onRetry={query.reload}

@@ -14,6 +14,7 @@ import {
   BidPage,
   BidPricing,
   BidReadiness,
+  BidStartOptions,
   ClosingRecord,
   InternalReview,
   MonitoringDetail,
@@ -626,6 +627,60 @@ describe('response workspace commands', () => {
     const response = await api.callAs(TSODILO_MANAGER, bidEndpoints.startBid, { tenant: 'tsodilo', body: { tenderId: 6 } });
     expect(response.status).toBe(409);
     expect(problemCode(response)).toBe('BID_ALREADY_EXISTS');
+  });
+
+  it('opens a started workspace by its id for the team that started it and hides it from other suppliers', async () => {
+    // Arrange
+    const started = BidDetail.parse(
+      (await api.callAs(at('serowe-ict.bidmanager'), bidEndpoints.startBid, { tenant: 'serowe-ict', body: { tenderId: 11 } })).body,
+    );
+
+    // Act
+    const reread = await api.callAs(at('serowe-ict.bidmanager'), bidEndpoints.getBid, { tenant: 'serowe-ict', params: { bidId: started.id } });
+    const answers = await api.callAs(at('serowe-ict.bidmanager'), bidEndpoints.listAnswers, { tenant: 'serowe-ict', params: { bidId: started.id } });
+    const readiness = await api.callAs(at('serowe-ict.bidmanager'), bidEndpoints.getReadiness, { tenant: 'serowe-ict', params: { bidId: started.id } });
+    const foreign = await api.callAs(TSODILO_MANAGER, bidEndpoints.getBid, { tenant: 'tsodilo', params: { bidId: started.id } });
+
+    // Assert
+    expect(BidDetail.parse(reread.body)).toMatchObject({ id: started.id, submissionState: 'not_submitted', workingRevision: { revisionNo: 1, status: 'draft' } });
+    expect(started.workingRevision).toEqual(BidDetail.parse(reread.body).workingRevision);
+    expect(AnswerPage.parse(answers.body).editable).toBe(true);
+    expect(BidReadiness.parse(readiness.body).ready).toBe(false);
+    expect(foreign.status).toBe(404);
+    expect(problemCode(foreign)).toBe('BID_NOT_FOUND');
+  });
+
+  it('offers to start a response when the supplier has none for an open tender', async () => {
+    // Act
+    const response = await api.callAs(at('serowe-ict.bidmanager'), bidEndpoints.getBidStartOptions, { tenant: 'serowe-ict', params: { tenderId: 11 } });
+
+    // Assert
+    const options = BidStartOptions.parse(response.body);
+    expect(options.tender.reference).toBe('T-2026-0011');
+    expect(options.deadline.timeZone).toBe('Africa/Gaborone');
+    expect(options.alternativesAllowed).toBe(false);
+    expect(options.options).toEqual([{ isAlternative: false, canStart: true, blockedBy: null, existingBidId: null }]);
+  });
+
+  it('points to the existing response instead of offering a second workspace for the same round', async () => {
+    // Act
+    const response = await api.callAs(TSODILO_MANAGER, bidEndpoints.getBidStartOptions, { tenant: 'tsodilo', params: { tenderId: 6 } });
+
+    // Assert
+    const main = BidStartOptions.parse(response.body).options[0];
+    expect(main).toMatchObject({ isAlternative: false, canStart: false, blockedBy: 'BID_ALREADY_EXISTS' });
+    expect(main?.existingBidId).toBe(BIDS.find((bid) => bid.tenderId === 6 && bid.supplierTenantId === TENANT_IDS.tsodilo && !bid.isAlternative)?.id);
+  });
+
+  it('reports a closed tender as not open and hides an invitation-only tender from a supplier that was not invited', async () => {
+    // Act
+    const closed = await api.callAs(TSODILO_MANAGER, bidEndpoints.getBidStartOptions, { tenant: 'tsodilo', params: { tenderId: 8 } });
+    const hidden = await api.callAs(at('serowe-ict.bidmanager'), bidEndpoints.getBidStartOptions, { tenant: 'serowe-ict', params: { tenderId: 6 } });
+
+    // Assert
+    expect(BidStartOptions.parse(closed.body).options[0]).toMatchObject({ canStart: false, blockedBy: 'TENDER_NOT_OPEN' });
+    expect(hidden.status).toBe(404);
+    expect(problemCode(hidden)).toBe('TENDER_NOT_FOUND');
   });
 
   it('filters answers by assignee and reports sections', async () => {

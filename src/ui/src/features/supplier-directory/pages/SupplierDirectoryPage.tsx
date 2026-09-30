@@ -4,7 +4,6 @@
  * invite a supplier, request qualification, flag duplicates and open authorized relationship records.
  */
 import { useState } from 'react';
-import { useNavigate } from 'react-router';
 
 import {
   BUYER_SUPPLIER_RELATIONSHIPS_RISK_RATING,
@@ -100,7 +99,6 @@ type Dialog =
   | null;
 
 export default function SupplierDirectoryPage() {
-  const navigate = useNavigate();
   const canManage = usePermission('supplier.relationship.manage');
   const canFlag = usePermission('supplier.duplicates.review');
   const [filters, setFilters, clearFilters] = useScreenFilters('BUY-31', DEFAULTS);
@@ -526,7 +524,7 @@ export default function SupplierDirectoryPage() {
           rows={data?.items}
           rowKey={(row) => String(row.supplierTenantId)}
           rowLabel={(row) => row.legalName}
-          onRowClick={(row) => void navigate(directoryPaths.record(row.supplierTenantId))}
+          rowHref={(row) => directoryPaths.record(row.supplierTenantId)}
           loading={query.isFetching}
           error={query.error}
           onRetry={query.reload}

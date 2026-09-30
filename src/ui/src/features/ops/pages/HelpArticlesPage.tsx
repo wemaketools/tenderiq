@@ -3,7 +3,6 @@
  * Actions: write an article, publish it after review, archive it. General guidance never overrides the binding
  * conditions of a tender.
  */
-import { useNavigate } from 'react-router';
 
 import { operationsEndpoints } from '@contracts/operations';
 import type { HelpArticleRow } from '@contracts/operations';
@@ -46,7 +45,6 @@ const DEFAULTS = {
 type SortField = 'title' | 'topic' | 'audience' | 'status' | 'publishedAt' | 'updatedAt';
 
 export default function HelpArticlesPage() {
-  const navigate = useNavigate();
   const tenant = useActiveTenant();
   const timeZone = tenant?.officialTimeZone ?? 'UTC';
   const canManage = usePermission(CONTENT_MANAGE);
@@ -137,7 +135,7 @@ export default function HelpArticlesPage() {
           onRetry={articles.reload}
           sort={{ key: filters.sort, dir: filters.dir as 'asc' | 'desc' }}
           onSortChange={(next) => setFilters({ sort: next.key, dir: next.dir, page: 1 })}
-          onRowClick={(row) => navigate(opsPaths.helpArticle(row.id))}
+          rowHref={(row) => opsPaths.helpArticle(row.id)}
           rowLabel={(row) => row.title}
           empty={<EmptyState compact icon="bookOpen" title={t('ops.content.noArticles')} />}
           pagination={

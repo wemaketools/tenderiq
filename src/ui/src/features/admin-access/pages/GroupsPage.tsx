@@ -100,7 +100,6 @@ function CreateGroupDialog({ onClose }: { readonly onClose: () => void }) {
 
 export default function GroupsPage() {
   const admin = useMemberAdmin();
-  const navigate = useNavigate();
   const timeZone = useOfficialTimeZone();
   const [creating, setCreating] = useState(false);
   const [filters, setFilters, clearFilters] = useScreenFilters(
@@ -205,7 +204,7 @@ export default function GroupsPage() {
           rows={query.data?.items}
           rowKey={(row) => String(row.groupId)}
           rowLabel={(row) => row.name}
-          onRowClick={(row) => void navigate(admin.paths.group(row.groupId))}
+          rowHref={(row) => admin.paths.group(row.groupId)}
           loading={query.isFetching}
           error={query.error}
           onRetry={query.reload}

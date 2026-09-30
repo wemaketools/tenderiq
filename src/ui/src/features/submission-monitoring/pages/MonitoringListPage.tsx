@@ -3,7 +3,6 @@
  * unique suppliers with an effective submission (never revisions, never drafts), receipt counts, the official
  * deadline, the closing status and service incidents. There is no access to sealed content (BR-17).
  */
-import { useNavigate } from 'react-router';
 
 import { CLOSING_STATUSES, listMonitoring } from '@contracts/bids';
 import type { MonitoringRow } from '@contracts/bids';
@@ -54,7 +53,6 @@ function oneOf<T extends string>(value: string, allowed: readonly T[]): T[] | un
 }
 
 export default function MonitoringListPage() {
-  const navigate = useNavigate();
   const timeZone = useActiveTenant()?.officialTimeZone ?? 'UTC';
   const [filters, setFilters, clearFilters] = useScreenFilters('BUY-19', DEFAULTS);
   const sort = (SORTS as readonly string[]).includes(filters.sort)
@@ -286,7 +284,7 @@ export default function MonitoringListPage() {
           rows={query.data?.items}
           rowKey={(row) => String(row.tenderId)}
           rowLabel={(row) => `${row.reference} ${row.title}`}
-          onRowClick={(row) => void navigate(monitoringPaths.tender(row.tenderId))}
+          rowHref={(row) => monitoringPaths.tender(row.tenderId)}
           loading={query.isFetching}
           error={query.error}
           onRetry={query.reload}

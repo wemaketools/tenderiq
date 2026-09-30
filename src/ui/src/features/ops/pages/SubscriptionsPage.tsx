@@ -3,7 +3,6 @@
  * subscription dates, agreed limits, invoices and disputes. Principal action: manage service entitlements (on the
  * subscription page) without changing competition results or supplier eligibility. Suppliers never pay to take part.
  */
-import { useNavigate } from 'react-router';
 
 import { PLAN_CODES, operationsEndpoints } from '@contracts/operations';
 import type { PlanCode, PlanDefinition, SubscriptionRow } from '@contracts/operations';
@@ -88,7 +87,6 @@ function PlanCard({ plan }: { readonly plan: PlanDefinition }) {
 }
 
 export default function SubscriptionsPage() {
-  const navigate = useNavigate();
   const tenant = useActiveTenant();
   const timeZone = tenant?.officialTimeZone ?? 'UTC';
   const canSeePlans = usePermission(PLANS_READ);
@@ -186,7 +184,7 @@ export default function SubscriptionsPage() {
           onRetry={subscriptions.reload}
           sort={{ key: filters.sort, dir: filters.dir as 'asc' | 'desc' }}
           onSortChange={(next) => setFilters({ sort: next.key, dir: next.dir, page: 1 })}
-          onRowClick={(row) => navigate(opsPaths.subscription(row.id))}
+          rowHref={(row) => opsPaths.subscription(row.id)}
           rowLabel={(row) => t('ops.plans.rowLabel', { name: row.customer.name })}
           empty={
             <EmptyState

@@ -161,16 +161,61 @@ function uniquePermissions(codes: readonly PermissionCode[]): EndpointPermission
   return [first, ...rest];
 }
 
-/** Anyone who may request or decide some approval, or view the records approvals are about. */
-const APPROVAL_VIEW_PERMISSIONS = uniquePermissions([
-  'approval.decide',
-  'request.view_all',
-  'tender.view',
-  'contract.view',
-  'supplier.directory.view',
-  ...Object.values(APPROVAL_REQUEST_PERMISSIONS),
-  ...Object.values(APPROVAL_DECISION_PERMISSIONS),
-]);
+/**
+ * Who may READ the approvals of each subject type on the buyer approval endpoints (`getApproval`,
+ * `getSubjectApprovals`): the subject type's request permission, its decision permission, the subject's own read
+ * permission(s) and `audit.view`. An approval packet carries the subject's content (a justification, the
+ * requirement and finding of an exclusion, a contract value), so seeing it needs access to that content: an
+ * organization administrator's `org.*` permissions open only the policy and template approvals, never bid,
+ * evaluation, award or contract approvals (PRD §4.1 "administration is not content access"; BR-26).
+ *
+ * The service (and the mock) answers `APPROVAL_NOT_FOUND` (getApproval) or `SUBJECT_NOT_FOUND`
+ * (getSubjectApprovals), status 404, when the caller holds none of the permissions listed for the approval's
+ * subject type, exactly as for an approval of another tenant, so the response does not reveal that it exists.
+ * Use `canViewApprovalSubject`. The approver assigned to a step always reads it on `/api/v1/me/approvals`.
+ */
+export const APPROVAL_VIEW_PERMISSIONS_BY_SUBJECT = {
+  procurement_request: ['request.create', 'request.approve', 'request.view_all', 'request.review', 'audit.view'],
+  funding: ['request.review', 'request.funding_confirm', 'request.view_all', 'audit.view'],
+  strategy: ['strategy.manage', 'strategy.approve', 'audit.view'],
+  tender_release: ['tender.edit', 'tender.release_approve', 'tender.view', 'audit.view'],
+  addendum: ['tender.clarifications.manage', 'tender.addenda.approve', 'tender.view', 'audit.view'],
+  exclusion: ['compliance.assess', 'exclusion.approve', 'evaluation.chair', 'bid.monitor', 'audit.view'],
+  shortlist: ['selection.manage', 'shortlist.approve', 'evaluation.chair', 'audit.view'],
+  preferred_bidder: ['selection.manage', 'shortlist.approve', 'evaluation.chair', 'audit.view'],
+  negotiation_mandate: ['negotiation.conduct', 'negotiation.approve', 'selection.manage', 'audit.view'],
+  final_offer_round: ['selection.manage', 'negotiation.approve', 'negotiation.conduct', 'audit.view'],
+  award: ['award.recommend', 'award.approve', 'evaluation.chair', 'audit.view'],
+  contract: ['contract.prepare', 'contract.approve', 'contract.view', 'audit.view'],
+  contract_signature: ['contract.prepare', 'contract.sign', 'contract.view', 'audit.view'],
+  contract_change: ['contract.manage', 'contract.change.approve', 'contract.view', 'audit.view'],
+  renewal: ['contract.manage', 'contract.renewal.decide', 'contract.view', 'audit.view'],
+  qualification_decision: ['qualification.review', 'qualification.decide', 'audit.view'],
+  late_submission_exception: ['tender.edit', 'exclusion.approve', 'bid.monitor', 'audit.view'],
+  policy_profile: ['org.policy.manage', 'org.policy.approve', 'audit.view'],
+  template: ['org.templates.manage', 'org.templates.approve', 'audit.view'],
+  disposal: ['records.retention.manage', 'records.disposal.approve', 'audit.view'],
+  process_decision: ['tender.edit', 'tender.cancel', 'tender.view', 'audit.view'],
+  hold_release: ['records.hold.manage', 'audit.view'],
+  obligation_waiver: ['contract.manage', 'contract.change.approve', 'contract.view', 'audit.view'],
+  security_release: ['contract.manage', 'contract.change.approve', 'contract.view', 'audit.view'],
+  dispute_decision: ['contract.manage', 'contract.change.approve', 'contract.view', 'audit.view'],
+  contract_difference: ['contract.prepare', 'contract.approve', 'contract.view', 'audit.view'],
+  final_award: ['award.recommend', 'award.approve', 'evaluation.chair', 'audit.view'],
+} as const satisfies Record<SubjectType, readonly [PermissionCode, ...PermissionCode[]]>;
+
+/** True when a caller holding `granted` may read the approvals of a subject type (see the map above). */
+export function canViewApprovalSubject(
+  subjectType: SubjectType,
+  granted: Iterable<string> | ReadonlySet<string>,
+): boolean {
+  const held = granted instanceof Set ? (granted as ReadonlySet<string>) : new Set(granted);
+  const allowed: readonly PermissionCode[] = APPROVAL_VIEW_PERMISSIONS_BY_SUBJECT[subjectType];
+  return allowed.some((code) => held.has(code));
+}
+
+/** The route-level any-of list of the buyer approval reads: every permission of the per-subject map. */
+const APPROVAL_VIEW_PERMISSIONS = uniquePermissions(Object.values(APPROVAL_VIEW_PERMISSIONS_BY_SUBJECT).flat());
 
 const APPROVAL_REQUEST_ANY = uniquePermissions(Object.values(APPROVAL_REQUEST_PERMISSIONS));
 
@@ -196,6 +241,8 @@ export const APPROVAL_BLOCKERS = [
   'conflict_unresolved',
   'version_changed',
   'hold_active',
+  /** A gate of the subject is not met yet (for example an open award-blocking due-diligence finding, AC-24). */
+  'subject_gate_blocked',
 ] as const;
 export const ApprovalBlocker = z.enum(APPROVAL_BLOCKERS);
 export type ApprovalBlocker = z.infer<typeof ApprovalBlocker>;
@@ -394,6 +441,14 @@ export const ApprovalInvalidation = z.object({
 });
 export type ApprovalInvalidation = z.infer<typeof ApprovalInvalidation>;
 
+/** One unmet gate of the subject under approval; while any is open nobody can decide (BR-10, AC-24). */
+export const ApprovalSubjectGate = z.object({
+  /** Stable key of the gate, e.g. `diligence`, `negotiation`. */
+  code: z.string().min(1),
+  detail: z.string().min(1),
+});
+export type ApprovalSubjectGate = z.infer<typeof ApprovalSubjectGate>;
+
 /** Everything COM-05 shows: exact version, amount, scope, justification, evidence, previous decisions, conflicts, authority. */
 export const ApprovalDetail = ApprovalSummary.extend({
   organization: OrganizationLabel,
@@ -427,6 +482,8 @@ export const ApprovalDetail = ApprovalSummary.extend({
   invalidation: ApprovalInvalidation.nullable().optional(),
   /** Earlier approvals of the same subject (previous versions and decisions), newest first. */
   relatedApprovals: z.array(ApprovalSummary).optional(),
+  /** Unmet gates of the subject (`subject_gate_blocked`); empty or absent when nothing blocks the decision. */
+  subjectGates: z.array(ApprovalSubjectGate).optional(),
 });
 export type ApprovalDetail = z.infer<typeof ApprovalDetail>;
 
@@ -549,6 +606,7 @@ export const decideApproval = defineEndpoint({
     'CONFLICT_UNRESOLVED',
     'CONDITIONS_NOT_PERMITTED',
     'HOLD_BLOCKS_ACTION',
+    'SUBJECT_NOT_READY_FOR_APPROVAL',
   ],
   screens: ['COM-05'],
   summary:
@@ -605,7 +663,7 @@ export const getSubjectApprovals = defineEndpoint({
   errors: ['SUBJECT_NOT_FOUND'],
   screens: [...SUBJECT_SCREENS],
   summary:
-    'The approval status and history of one subject. The service applies the view rules of the subject’s domain.',
+    'The approval status and history of one subject. A caller holding none of APPROVAL_VIEW_PERMISSIONS_BY_SUBJECT[subjectType] gets 404 SUBJECT_NOT_FOUND; the service also applies the view rules of the subject’s domain.',
 });
 
 /** GET /api/v1/buyer/approvals/:approvalId: one approval of the active buyer tenant. */
@@ -619,6 +677,8 @@ export const getApproval = defineEndpoint({
   response: ApprovalDetail,
   errors: ['APPROVAL_NOT_FOUND'],
   screens: ['COM-05', ...SUBJECT_SCREENS],
+  summary:
+    'One approval with its subject snapshot. A caller holding none of APPROVAL_VIEW_PERMISSIONS_BY_SUBJECT for the approval’s subject type gets 404 APPROVAL_NOT_FOUND, as for another tenant’s approval.',
 });
 
 export const RequestApprovalBody = z.object({

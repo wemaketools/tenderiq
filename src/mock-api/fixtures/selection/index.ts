@@ -323,6 +323,11 @@ export interface FixtureNegotiation {
 export interface FixtureFinalOfferInvitee {
   readonly bidId: number;
   readonly supplierTenantId: number;
+  /**
+   * The supplier's response in the response workspace (bids domain id) where the final offer is prepared and
+   * submitted; SUP-19 links to it. Null when the supplier has no response there.
+   */
+  readonly responseBidId: number | null;
   readonly notifiedAt: string | null;
   readonly finalOfferReceivedAt: string | null;
   readonly finalOffer: Money | null;
@@ -413,7 +418,7 @@ export const SELECTION_TENDERS: readonly FixtureSelectionTender[] = [
       conditionsNote:
         'Stage-two conditions §7.2: negotiation is permitted only with the approved preferred bidder on its conforming offer, within the approved mandate. No best and final offer round is provided for, and variant offers are evaluated as submitted.',
     },
-    lots: [{ lotId: 901, lotNo: 1, title: 'Acoustic leak detection services (3-year term)' }],
+    lots: [{ lotId: 901, lotNo: 1, title: 'Acoustic leak detection services' }],
     criteria: [
       { criterionId: 9501, lotId: null, name: 'Survey approach and productivity', weight: '30' },
       { criterionId: 9505, lotId: null, name: 'Correlator and listening equipment', weight: '10' },
@@ -1096,6 +1101,23 @@ export const PROCESS_DECISIONS: readonly FixtureProcessDecision[] = [
     createdAt: '2026-09-29T08:00:00Z',
     updatedAt: '2026-09-29T14:00:00Z',
   },
+  {
+    tenantId: KWU,
+    processDecisionId: 4,
+    tenderId: 1,
+    lotId: 103,
+    decisionType: 'reopen_round',
+    reason:
+      'Both Lot 3 prices read at opening exceed the approved Lot 3 budget. Instead of cancelling the lot, request one best and final offer round, limited to Lot 3 prices and the delivery programme, on identical instructions and deadline for both bidders. The telemetry panel gate and the technical results are unchanged.',
+    status: 'approved',
+    proposedBy: U.tebogo,
+    decidedBy: U.mpho,
+    approval: { approvalRequestId: 1209, status: 'approved', requestedAt: '2026-09-24T08:00:00Z', decidedAt: '2026-09-25T09:00:00Z' },
+    version: 1,
+    contentHash: '5db710c5683a3b002b1207ae9f8c4aa1089c3649adef889b64ade5b2c04f4046',
+    createdAt: '2026-09-24T08:00:00Z',
+    updatedAt: '2026-09-25T09:00:00Z',
+  },
 ];
 
 // ---------------------------------------------------------------------------------------------------------
@@ -1478,8 +1500,57 @@ export const FINAL_OFFER_ROUNDS: readonly FixtureFinalOfferRound[] = [
     version: 1,
     contentHash: 'c5d3577bdf8eab6febe542ed28dee9f3cc0dd20553402219cc597e942ee4d32b',
     invitees: [
-      { bidId: 910, supplierTenantId: TENANT_IDS['limpopo-env'], notifiedAt: null, finalOfferReceivedAt: null, finalOffer: null },
+      {
+        bidId: 910,
+        supplierTenantId: TENANT_IDS['limpopo-env'],
+        responseBidId: 25,
+        notifiedAt: null,
+        finalOfferReceivedAt: null,
+        finalOffer: null,
+      },
     ],
     updatedAt: '2026-09-30T06:30:00Z',
+  },
+  // SUP-19 with content: an issued round on T-2026-0001 Lot 3, authorized by the approved reopen-round decision on
+  // the over-budget Lot 3 offers and open on equal terms to both bidders; neither final offer is in yet.
+  {
+    tenantId: KWU,
+    roundId: 2,
+    tenderId: 1,
+    lotId: 103,
+    instructions:
+      'Submit a best and final offer for Lot 3 (pump controls and telemetry panels) through your response workspace. Revise only the items listed as permitted changes; everything else in your offer stands as submitted.',
+    permittedChanges:
+      'Lot 3 unit prices and the delivery programme only. The specification, the telemetry panel test result and the contract terms are unchanged.',
+    deadline: '2026-10-16T08:00:00Z',
+    openingRules:
+      'Both final offers are opened together after the deadline by the Bid Opening Officer with a witness. A final offer received after the deadline is rejected and the earlier offer stands.',
+    evaluationTreatment:
+      'Final prices replace the Lot 3 prices read at opening; technical results and the telemetry pass/fail gate are unchanged.',
+    proceduralAuthorityRef:
+      'Reopen-round decision on the over-budget Lot 3 offers, approved by the Procurement Manager on 25 Sep 2026',
+    status: 'issued',
+    approval: null,
+    version: 1,
+    contentHash: '154261e1c959fa316faa7e570a224a58461c59bab827089b7e5df41d759dd35d',
+    invitees: [
+      {
+        bidId: SELECTION_BID_IDS.lot3Tsodilo,
+        supplierTenantId: TENANT_IDS.tsodilo,
+        responseBidId: 1,
+        notifiedAt: '2026-09-26T07:00:00Z',
+        finalOfferReceivedAt: null,
+        finalOffer: null,
+      },
+      {
+        bidId: SELECTION_BID_IDS.lot3Chobe,
+        supplierTenantId: TENANT_IDS['chobe-pipe'],
+        responseBidId: 2,
+        notifiedAt: '2026-09-26T07:00:00Z',
+        finalOfferReceivedAt: null,
+        finalOffer: null,
+      },
+    ],
+    updatedAt: '2026-09-26T07:00:00Z',
   },
 ];

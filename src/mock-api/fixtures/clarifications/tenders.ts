@@ -97,9 +97,13 @@ const TENDER_SPECS: readonly TenderSpec[] = [
   { id: 1, onPublicPortal: true, registeredWithoutResponse: [] },
   { id: 2, onPublicPortal: true, registeredWithoutResponse: [] },
   { id: 3, onPublicPortal: true, registeredWithoutResponse: [] },
+  // Public notices without clarification traffic: PUB-03 links every public notice to its PUB-04 edition, which
+  // must resolve to an empty edition rather than a dead link.
+  { id: 4, onPublicPortal: true, registeredWithoutResponse: [] },
   { id: 6, onPublicPortal: false, registeredWithoutResponse: [] },
   { id: 7, onPublicPortal: true, registeredWithoutResponse: [] },
   { id: 8, onPublicPortal: true, registeredWithoutResponse: [TENANT_IDS.makgadikgadi] },
+  { id: 10, onPublicPortal: true, registeredWithoutResponse: [] },
   { id: 11, onPublicPortal: true, registeredWithoutResponse: [] },
 ];
 

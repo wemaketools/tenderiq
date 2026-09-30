@@ -728,7 +728,7 @@ export default {
     notSent:
       'Your response is sent to the buyer only when you submit it. Leaving this page discards it.',
     confirmTitle: 'Submit the response',
-    scope: '{reference} · {buyer}',
+    scope: '{request} · {reference} · {buyer}',
     result:
       'The response is sent to the buyer and attached to this request. It cannot be changed afterwards and it does not change your bid.',
     done: 'Response submitted.',

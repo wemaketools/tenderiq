@@ -300,8 +300,8 @@ export const BuyerQuestionRow = z.object({
   owner: PersonRef.nullable(),
   status: QuestionsStatus,
   audience: QuestionsAudience,
-  /** Target date for the answer (question handling policy); `null` once closed. */
-  responseDueAt: Instant.nullable(),
+  /** Target date for the answer (question handling policy) in the tender's official zone (DD-33); `null` once closed. */
+  responseDueAt: OfficialDeadline.nullable(),
   publishedAt: Instant.nullable(),
   addendumId: Id.nullable(),
   addendumNumber: z.number().int().positive().nullable(),
@@ -932,7 +932,7 @@ export const PublicClarifications = z.object({
 });
 export type PublicClarifications = z.infer<typeof PublicClarifications>;
 
-export const PublicClarificationsParams = z.object({ buyerSlug: Slug, ref: Reference });
+export const PublicClarificationsParams = z.object({ buyerSlug: Slug, reference: Reference });
 export const PublicClarificationsQuery = z.object({
   q: z.string().trim().max(200, issue('QUERY_TOO_LONG', 'At most 200 characters.')).optional(),
   lotId: IdParam.optional(),
@@ -1560,7 +1560,7 @@ export const clarificationsEndpoints = {
   publicEdition: defineEndpoint({
     id: 'public.clarifications.edition',
     method: 'GET',
-    path: '/api/v1/public/clarifications/:buyerSlug/:ref',
+    path: '/api/v1/public/clarifications/:buyerSlug/:reference',
     audience: 'public',
     params: PublicClarificationsParams,
     query: PublicClarificationsQuery,

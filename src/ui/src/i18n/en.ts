@@ -209,6 +209,8 @@ export const shellCatalog = {
       empty: 'Nothing to show yet.',
       selectAll: 'Select all rows on this page',
       selectRow: 'Select {row}',
+      openColumn: 'Open',
+      openRowNumber: 'Open row {number}',
       selected_one: '{count} selected',
       selected_other: '{count} selected',
     },
@@ -459,6 +461,19 @@ export const shellCatalog = {
       title: 'Page not found',
       description: 'The address may be mistyped, or the page may have moved.',
       home: 'Go to the start page',
+    },
+    routeError: {
+      reload: 'Reload the page',
+      chunk: {
+        title: 'This page could not be loaded',
+        description:
+          'The connection may have dropped, or a newer version of TenderIQ is available. Reload the page to continue.',
+      },
+      unexpected: {
+        title: 'Something went wrong',
+        description:
+          'This page stopped because of an unexpected error. Reload the page, or go back to the start page.',
+      },
     },
     forbidden: {
       title: 'Not available in your role',

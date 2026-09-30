@@ -1324,6 +1324,12 @@ export const SupplierDecision = z.object({
   supplierExplanation: z.string().nullable(),
   appealRoute: z.string().nullable(),
   decidedAt: Instant,
+  /**
+   * The end of the stated reconsideration window (decision instant plus the program's window, in the buyer's
+   * official time zone). After it the supplier can no longer request reconsideration (SUP-24). Stage B derives it
+   * from a `reconsideration_window_days` program column (blueprint follow-up).
+   */
+  reconsiderationDeadline: OfficialDeadline,
   supersededById: Id.nullable(),
   current: z.boolean(),
 });

@@ -203,6 +203,7 @@ export function overview(): EvaluationOverview {
         detail: '3 submissions.',
       },
     ],
+    detailLevel: 'full',
   };
 }
 

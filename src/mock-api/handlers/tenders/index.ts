@@ -347,7 +347,7 @@ export function register(app: MockApp): void {
     switch (body.source) {
       case 'blank': {
         if (policy !== null && !policy.permittedProcedures.includes(body.procedure)) {
-          ctx.fail(422, 'PROCEDURE_NOT_PERMITTED', `The ${policy.profileName} does not permit the ${body.procedure} procedure.`);
+          ctx.fail(409, 'PROCEDURE_NOT_PERMITTED', `The ${policy.profileName} does not permit the ${body.procedure} procedure.`);
         }
         if ((body.eventType === 'rfi') !== (body.procedure === 'rfi')) {
           ctx.fail(422, 'EVENT_TYPE_PROCEDURE_MISMATCH', 'A request for information uses the RFI procedure, and only it does.');
@@ -581,7 +581,7 @@ export function register(app: MockApp): void {
     const { tender } = state;
     const policy = policyOf(tender);
     if (body.procedure !== undefined && policy !== null && !policy.permittedProcedures.includes(body.procedure)) {
-      ctx.fail(422, 'PROCEDURE_NOT_PERMITTED', `The ${policy.profileName} does not permit the ${body.procedure} procedure.`);
+      ctx.fail(409, 'PROCEDURE_NOT_PERMITTED', `The ${policy.profileName} does not permit the ${body.procedure} procedure.`);
     }
     if (body.negotiationPermitted === true && policy !== null && !policy.negotiationPermitted) {
       ctx.fail(422, 'NEGOTIATION_NOT_PERMITTED_BY_POLICY', `The ${policy.profileName} does not permit negotiation.`);
@@ -1063,7 +1063,7 @@ export function register(app: MockApp): void {
     const documentId = body.documentId ?? null;
     const doc = documentId === null ? undefined : PACKAGE_DOCUMENTS.find((row) => row.documentId === documentId && row.tenderId === state.tender.id);
     if (documentId !== null && doc === undefined) {
-      ctx.fail(422, 'DOCUMENT_NOT_FOUND', 'The document is not part of this tender package.');
+      ctx.fail(404, 'DOCUMENT_NOT_FOUND', 'The document is not part of this tender package.');
     }
     const existing = TENDER_TERMS.find((row) => row.tenderId === state.tender.id && row.termType === params.termType);
     return {
@@ -1182,7 +1182,7 @@ export function register(app: MockApp): void {
     }
     const persona = ctx.requirePersona();
     if (persona.userId === state.tender.ownerUserId) {
-      ctx.fail(409, 'SELF_APPROVAL_NOT_PERMITTED', 'The tender owner cannot approve its own evaluation plan.');
+      ctx.fail(403, 'SELF_APPROVAL_NOT_PERMITTED', 'The tender owner cannot approve its own evaluation plan.');
     }
     const plan: FxEvaluationPlan = { ...existing, status: 'approved', approvedAt: iso(now), approvedBy: persona.userId };
     const draft = { ...state, plans: state.plans.map((row) => (row.id === plan.id ? plan : row)) };
@@ -1202,7 +1202,7 @@ export function register(app: MockApp): void {
     requireRevision(ctx, state, body.expectedDraftRevision);
     const calendarId = body.calendarId === undefined ? state.tender.calendarId : body.calendarId;
     if (calendarId !== null && !CALENDARS.some((row) => row.id === calendarId && row.tenantId === state.tender.tenantId)) {
-      ctx.fail(422, 'CALENDAR_NOT_FOUND', 'No such working-day calendar in your organization.');
+      ctx.fail(404, 'CALENDAR_NOT_FOUND', 'No such working-day calendar in your organization.');
     }
     const milestones: FxMilestone[] = body.milestones.map((row, index) => {
       const lotId = row.lotId ?? null;

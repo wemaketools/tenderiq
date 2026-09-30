@@ -257,9 +257,16 @@ function DefinitionDetail({
           <span className="tiq-text-muted">{t('reports.definition.runs.noExport')}</span>
         ) : (
           <span className="tiq-inline">
-            <Link to={exportPath(row.export.id)}>
-              {row.export.fileName ?? t('reports.exports.number', { id: row.export.id })}
-            </Link>
+            {row.export.accessible ? (
+              <Link to={exportPath(row.export.id)}>
+                {row.export.fileName ?? t('reports.exports.number', { id: row.export.id })}
+              </Link>
+            ) : (
+              <span>
+                {row.export.fileName ?? t('reports.exports.number', { id: row.export.id })}
+                <span className="tiq-cell-sub">{t('reports.definition.runs.exportNotYours')}</span>
+              </span>
+            )}
             <StatusChip enum="exports.status" value={row.export.status} size="sm" />
           </span>
         ),
@@ -469,11 +476,7 @@ function DefinitionDetail({
           {definition.recipients.length === 0 ? (
             <p className="tiq-text-muted">{t('reports.preview.noRecipients')}</p>
           ) : (
-            <ul
-              className="tiq-stack"
-              style={{ listStyle: 'none', margin: 0, padding: 0 }}
-              aria-label={t('reports.definition.recipients')}
-            >
+            <ul className="tiq-stack" aria-label={t('reports.definition.recipients')}>
               {definition.recipients.map((recipient) => (
                 <li key={recipient.user.userId} className="tiq-inline">
                   <Chip tone={recipient.authorized ? 'success' : 'danger'} size="sm">

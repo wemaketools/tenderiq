@@ -1,6 +1,8 @@
 import { screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { SUPPLIER_EVIDENCE_WINDOW_DAYS } from '@contracts/reporting';
+
 import { installFetch } from '../../../test/fetchMock';
 import { renderWithProviders } from '../../../test/render';
 import { supplierState } from '../../reports/testSession';
@@ -48,6 +50,19 @@ describe('SupplierDashboardPage (SUP-01)', () => {
     expect(row).not.toBeNull();
     expect(within(row as HTMLElement).getByText('Withdrawn')).toBeInTheDocument();
     expect(within(row as HTMLElement).queryByText(/^Receipt /)).toBeNull();
+  });
+
+  it('states the expiring-evidence window the service applies', async () => {
+    installFetch({ 'GET /api/v1/supplier/dashboard': () => ({ body: SUPPLIER_DASHBOARD }) });
+    renderWithProviders(<SupplierDashboardPage />, {
+      state: supplierState(['supplier.dashboard.view']),
+    });
+
+    expect(
+      await screen.findByText(
+        `Documents expired or expiring within ${SUPPLIER_EVIDENCE_WINDOW_DAYS} days`,
+      ),
+    ).toBeInTheDocument();
   });
 
   it('shows restricted panels without counts when the capacity may not read them', async () => {

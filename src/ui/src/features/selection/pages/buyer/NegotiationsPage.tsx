@@ -3,7 +3,6 @@
  * approval, round history and status. Negotiation requires explicit procedural authority (BR-30); where it is not
  * permitted the action is refused with the reason (AC-23).
  */
-import { useNavigate } from 'react-router';
 
 import { NEGOTIATIONS_STATUS } from '@contracts/enums';
 import { selectionEndpoints } from '@contracts/selection';
@@ -54,7 +53,6 @@ const DEFAULTS = {
 };
 
 export default function NegotiationsPage() {
-  const navigate = useNavigate();
   const timeZone = useOfficialTimeZone();
   const canConduct = usePermission(NEGOTIATION_CONDUCT);
   const [filters, setFilters, clearFilters] = useScreenFilters('BUY-27', DEFAULTS);
@@ -279,7 +277,7 @@ export default function NegotiationsPage() {
           rows={query.data?.items}
           rowKey={(row) => String(row.negotiationId)}
           rowLabel={(row) => `${row.tender.reference} ${row.bid.supplierName}`}
-          onRowClick={(row) => void navigate(selectionPaths.negotiation(row.negotiationId))}
+          rowHref={(row) => selectionPaths.negotiation(row.negotiationId)}
           loading={query.isFetching}
           error={query.error}
           onRetry={query.reload}

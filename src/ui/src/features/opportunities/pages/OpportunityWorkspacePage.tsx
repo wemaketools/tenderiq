@@ -47,7 +47,7 @@ import {
   useToast,
 } from '../../../components/ui';
 import type { DataTableColumn, ReadinessItem } from '../../../components/ui';
-import { formatCalendarDate, formatDateTime, formatOfficialTime } from '../../../lib/format';
+import { formatCalendarDate, formatDateTime } from '../../../lib/format';
 import { t, tEnum } from '../../../lib/i18n';
 import {
   AmendmentHistory,
@@ -180,7 +180,9 @@ function WorkspaceView({
         <Button size="sm" onClick={() => setDialog('confidentiality')}>
           {t('opportunities.confidentiality.accept')}
         </Button>
-      ) : check.status !== 'passed' && check.id.startsWith('session_') ? (
+      ) : check.status !== 'passed' &&
+        check.id.startsWith('session_') &&
+        capabilities.canViewClarifications ? (
         <ButtonLink
           size="sm"
           to={opportunityPaths.briefing(Number(check.id.slice('session_'.length)))}
@@ -292,7 +294,11 @@ function WorkspaceView({
       header: t('opportunities.workspace.col.session'),
       cell: (session) => (
         <>
-          <Reference value={session.title} to={opportunityPaths.briefing(session.sessionId)} />
+          {capabilities.canViewClarifications ? (
+            <Reference value={session.title} to={opportunityPaths.briefing(session.sessionId)} />
+          ) : (
+            <strong>{session.title}</strong>
+          )}
           <span className="tiq-cell-sub">
             {tEnum('sessions.session_type', session.sessionType)}
             {session.lotNo === null
@@ -347,9 +353,8 @@ function WorkspaceView({
           )}
           {session.registrationDeadline !== null && (
             <span className="tiq-cell-sub">
-              {t('opportunities.workspace.registerBy', {
-                at: formatOfficialTime(session.registrationDeadline, timeZone),
-              })}
+              {t('opportunities.workspace.registerBy')}{' '}
+              <OfficialDeadline deadline={session.registrationDeadline} showLocal={false} />
             </span>
           )}
         </>
@@ -417,18 +422,29 @@ function WorkspaceView({
             <ButtonLink to={opportunityPaths.pursuit(tender.tenderId)} icon="target">
               {t('opportunities.workspace.pursuit')}
             </ButtonLink>
-            <ButtonLink
-              to={opportunityPaths.clarifications(tender.tenderId)}
-              icon="messageQuestion"
-            >
-              {t('opportunities.workspace.clarifications')}
-            </ButtonLink>
+            {capabilities.canViewClarifications && (
+              <ButtonLink
+                to={opportunityPaths.clarifications(tender.tenderId)}
+                icon="messageQuestion"
+              >
+                {t('opportunities.workspace.clarifications')}
+              </ButtonLink>
+            )}
           </>
         }
       />
       <Banner tone="info">
         <p>{t('opportunities.workspace.privacy')}</p>
       </Banner>
+      {!capabilities.canViewClarifications && (
+        <Banner tone="info" title={t('opportunities.workspace.clarificationsRestrictedTitle')}>
+          <p>
+            {workspace.participation === null
+              ? t('opportunities.workspace.clarificationsRestrictedNotParticipating')
+              : t('opportunities.workspace.clarificationsRestrictedParticipant')}
+          </p>
+        </Banner>
+      )}
       {startError !== null && (
         <Banner tone="error" title={t('opportunities.workspace.startBlocked')}>
           <p>{startError}</p>

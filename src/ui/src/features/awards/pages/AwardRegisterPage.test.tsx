@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -66,6 +66,22 @@ describe('AwardRegisterPage (BUY-26)', () => {
     );
   });
 
+  it('lays the sections out in a spaced page and keeps the next step within eight columns', async () => {
+    installFetch({ [LIST]: () => ({ body: registerPage() }) });
+    renderBuyer(<AwardRegisterPage />, { route: '/buyer/awards', path: '/buyer/awards' });
+
+    const heading = await screen.findByRole('heading', { name: 'Awards' });
+    expect(heading.closest('.tiq-page')).not.toBeNull();
+    const headers = screen
+      .getAllByRole('columnheader')
+      .filter((header) => !header.classList.contains('tiq-table-open'));
+    expect(headers.length).toBeLessThanOrEqual(8);
+    expect(headers.some((header) => header.textContent?.includes('Next step'))).toBe(true);
+    expect(headers.some((header) => header.textContent?.includes('Owner and last update'))).toBe(
+      true,
+    );
+  });
+
   it('shows the empty state when no tender is at the award stage', async () => {
     installFetch({ [LIST]: () => ({ body: { items: [], total: 0, page: 1, pageSize: 25 } }) });
     renderBuyer(<AwardRegisterPage />, { route: '/buyer/awards', path: '/buyer/awards' });
@@ -74,16 +90,44 @@ describe('AwardRegisterPage (BUY-26)', () => {
 });
 
 describe('CloseoutRegisterPage (BUY-30)', () => {
-  it('asks the API only for files whose next step is closing or archiving', async () => {
+  it('asks the API for the closeout view instead of restricting the next step', async () => {
     const { requests } = installFetch({ [LIST]: () => ({ body: registerPage() }) });
     renderBuyer(<CloseoutRegisterPage />, { route: '/buyer/closeout', path: '/buyer/closeout' });
 
     expect(await screen.findByRole('heading', { name: 'Event closeout' })).toBeInTheDocument();
     await waitFor(() =>
-      expect(requests.some((request) => request.search.includes('nextStep=close_event'))).toBe(
+      expect(requests.some((request) => request.search.includes('view=closeout'))).toBe(true),
+    );
+    expect(requests.some((request) => request.search.includes('nextStep='))).toBe(false);
+    expect((await screen.findAllByText('In progress')).length).toBeGreaterThan(0);
+  });
+
+  it('lists a blocked closeout whose next step is still upstream, matching the blocked KPI (AC-29)', async () => {
+    const blocked = registerRow({
+      tender: { ...registerRow().tender, tenderId: 1, reference: 'T-2026-0001' },
+      closeoutStatus: 'blocked',
+      nextStep: 'prepare_recommendation',
+    });
+    installFetch({ [LIST]: () => ({ body: registerPage([blocked]) }) });
+    renderBuyer(<CloseoutRegisterPage />, { route: '/buyer/closeout', path: '/buyer/closeout' });
+
+    const [reference] = await screen.findAllByText('T-2026-0001');
+    const row = reference?.closest('tr');
+    expect(row).toBeInstanceOf(HTMLElement);
+    expect(within(row as HTMLElement).getByText('Blocked')).toBeInTheDocument();
+  });
+
+  it('sends the chosen closeout status filter to the API', async () => {
+    const { requests } = installFetch({ [LIST]: () => ({ body: registerPage() }) });
+    renderBuyer(<CloseoutRegisterPage />, { route: '/buyer/closeout', path: '/buyer/closeout' });
+    await screen.findAllByText('T-2026-0007');
+
+    await userEvent.selectOptions(screen.getByLabelText('Closeout status'), 'blocked');
+
+    await waitFor(() =>
+      expect(requests.some((request) => request.search.includes('closeoutStatus=blocked'))).toBe(
         true,
       ),
     );
-    expect((await screen.findAllByText('In progress')).length).toBeGreaterThan(0);
   });
 });

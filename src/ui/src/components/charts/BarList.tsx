@@ -41,7 +41,9 @@ export function BarList({ items, label, total, showShare = true }: BarListProps)
         const share = sum === 0 ? 0 : Math.round((item.value / sum) * 100);
         const row = (
           <>
-            <span className="tiq-barlist-label">{item.label}</span>
+            <span className="tiq-barlist-label" title={item.label}>
+              {item.label}
+            </span>
             <span className="tiq-barlist-track" aria-hidden="true">
               <span
                 className="tiq-barlist-fill"

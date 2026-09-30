@@ -20,7 +20,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { z } from 'zod';
 
-import { Problem } from '../../src/contracts/common.js';
+import { Problem, errorStatus } from '../../src/contracts/common.js';
 import type { AnyEndpoint } from '../../src/contracts/endpoint.js';
 import { HEALTH_PATH, endpointPermissions, tenantHeaderMode } from '../../src/contracts/endpoint.js';
 
@@ -199,6 +199,31 @@ function problemRef(description: string): JsonSchema {
   return { description, content: { 'application/problem+json': { schema: { $ref: '#/components/schemas/Problem' } } } };
 }
 
+/** What a declared business error of each status means (docs/technical/07-api.md §4.4). */
+const DOMAIN_STATUS_TEXT: Readonly<Record<number, string>> = {
+  403: 'The action is denied to the caller (assignment, separation of duties, authority, restricted content).',
+  404: "The record named by the path does not exist in the caller's scope.",
+  409: "The record's current state forbids the action.",
+  410: 'A time-limited artefact (upload slot, signed download link) is gone.',
+  422: 'The request refers to something invalid or breaks an input rule.',
+};
+
+/**
+ * The endpoint's declared error codes grouped by their ONE registry status (`errorStatus`, DOMAIN_ERROR_STATUS),
+ * in ascending status order. Throws on a code without a registry status, so the document never guesses one.
+ */
+export function declaredErrorsByStatus(endpoint: Pick<AnyEndpoint, 'id' | 'errors'>): Array<[number, string[]]> {
+  const groups = new Map<number, string[]>();
+  for (const code of endpoint.errors) {
+    const status = errorStatus(code);
+    if (status === undefined) {
+      throw new Error(`Error code ${code} of ${endpoint.id} has no registry status (DOMAIN_ERROR_STATUS).`);
+    }
+    groups.set(status, [...(groups.get(status) ?? []), code]);
+  }
+  return [...groups.entries()].sort(([a], [b]) => a - b);
+}
+
 function operation(endpoint: AnyEndpoint): JsonSchema {
   const responses: Record<string, JsonSchema> = {};
   responses[String(endpoint.status)] =
@@ -217,8 +242,11 @@ function operation(endpoint: AnyEndpoint): JsonSchema {
   if (endpoint.params !== undefined || endpoint.query !== undefined || endpoint.body !== undefined) {
     responses['422'] = problemRef('The request does not satisfy the contract (errors[] lists each field).');
   }
-  if (endpoint.errors.length > 0) {
-    responses['409'] = problemRef(`Declared business errors: ${endpoint.errors.join(', ')}.`);
+  for (const [status, codes] of declaredErrorsByStatus(endpoint)) {
+    const key = String(status);
+    const base = responses[key]?.description;
+    const declared = `Declared business errors: ${codes.join(', ')}.`;
+    responses[key] = problemRef(typeof base === 'string' ? `${base} ${declared}` : `${DOMAIN_STATUS_TEXT[status] ?? 'Business error.'} ${declared}`);
   }
   responses['500'] = problemRef('Unexpected error (sanitized detail and correlationId).');
 

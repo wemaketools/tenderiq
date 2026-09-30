@@ -106,6 +106,7 @@ export default {
     restricted:
       'You are not on this tender’s team. Ask the accountable owner to add you if you need access.',
     revision: 'Draft revision {revision}',
+    issuedVersion: 'Issued version {version}',
     noApproval: 'No release approval',
     approvalLabel: 'Release approval:',
     submissionDeadline: 'Submission deadline',
@@ -314,6 +315,7 @@ export default {
     noDecisions: 'No outstanding decisions.',
     versionTitle: 'Version',
     draftRevision: 'Draft revision',
+    packageRevision: 'Package revision',
     saved: 'Saved, not submitted',
     issuedVersion: 'Issued version',
     notIssued: 'Not issued yet',
@@ -397,7 +399,8 @@ export default {
   },
   readiness: {
     title: 'Readiness',
-    subtitle: 'Blocking items stop the release approval request and publication; warnings do not.',
+    subtitle:
+      'Blocking items stop the release approval request. Warnings do not stop the request, but publication stays blocked until every release check passes and the approval covers the current revision.',
     label: 'Readiness by section',
     empty: 'Nothing to check yet.',
     open: 'Open',
@@ -409,6 +412,11 @@ export default {
     cannotRequest: 'Resolve the blocking items before requesting release approval.',
     awaitingApproval: 'Release approval #{id} for this revision is awaiting a decision.',
     approvalGranted: 'Release approval #{id} covers this revision.',
+    releasedTitle: 'Released',
+    releasedDetail:
+      'Released on {date}. Issued version {version} is live; changes now go through an addendum (BR-16).',
+    cancelledTitle: 'Cancelled',
+    closedTitle: 'No longer authored in place',
   },
   lots: {
     title_one: '{count} lot',
@@ -823,6 +831,8 @@ export default {
       covers: 'Covers',
       coversCurrent: 'Covers revision {revision} (current)',
       coversOld: 'Covers revision {revision}; the package is now revision {current}',
+      coversReleased:
+        'Covered revision {revision}, the package approved for release; later changes are issued by addendum',
       decided: 'Decided by',
       forRevision: 'revision {revision}',
       requestedBy: 'Requested by {name} on {date}',

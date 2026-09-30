@@ -1,6 +1,6 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -39,6 +39,81 @@ describe('Dialog', () => {
     await userEvent.keyboard('{Escape}');
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(opener).toHaveFocus();
+  });
+
+  it('sends focus to the main region when the opener is disabled after confirming, never to <body>', async () => {
+    function Harness() {
+      const [open, setOpen] = useState(false);
+      const [busy, setBusy] = useState(false);
+      return (
+        <main id="tiq-main" tabIndex={-1}>
+          <button type="button" disabled={busy} onClick={() => setOpen(true)}>
+            submit
+          </button>
+          <Dialog open={open} title="Submit" onClose={() => setOpen(false)}>
+            <button
+              type="button"
+              onClick={() => {
+                setBusy(true);
+                setOpen(false);
+              }}
+            >
+              submit now
+            </button>
+          </Dialog>
+        </main>
+      );
+    }
+    render(<Harness />);
+    await userEvent.click(screen.getByRole('button', { name: 'submit' }));
+    await userEvent.click(screen.getByRole('button', { name: 'submit now' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByRole('main')).toHaveFocus();
+  });
+
+  it('sends focus to the main region when the opener was removed, or to returnFocusRef when given', async () => {
+    function Harness({ withTarget }: { readonly withTarget: boolean }) {
+      const [open, setOpen] = useState(false);
+      const [done, setDone] = useState(false);
+      const result = useRef<HTMLParagraphElement>(null);
+      return (
+        <main id="tiq-main" tabIndex={-1}>
+          {!done && (
+            <button type="button" onClick={() => setOpen(true)}>
+              approve
+            </button>
+          )}
+          <p ref={result} tabIndex={-1}>
+            result
+          </p>
+          <Dialog
+            open={open}
+            title="Approve"
+            onClose={() => setOpen(false)}
+            returnFocusRef={withTarget ? result : undefined}
+          >
+            <button
+              type="button"
+              onClick={() => {
+                setDone(true);
+                setOpen(false);
+              }}
+            >
+              confirm
+            </button>
+          </Dialog>
+        </main>
+      );
+    }
+    const { unmount } = render(<Harness withTarget={false} />);
+    await userEvent.click(screen.getByRole('button', { name: 'approve' }));
+    await userEvent.click(screen.getByRole('button', { name: 'confirm' }));
+    expect(screen.getByRole('main')).toHaveFocus();
+    unmount();
+    render(<Harness withTarget />);
+    await userEvent.click(screen.getByRole('button', { name: 'approve' }));
+    await userEvent.click(screen.getByRole('button', { name: 'confirm' }));
+    expect(screen.getByText('result')).toHaveFocus();
   });
 
   it('cannot be dismissed while not dismissible', async () => {

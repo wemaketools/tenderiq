@@ -32,11 +32,7 @@ export function AttentionList({
     return <EmptyState compact icon="checkCircle" title={empty} />;
   }
   return (
-    <ul
-      className="tiq-stack"
-      style={{ listStyle: 'none', margin: 0, padding: 0 }}
-      aria-label={label}
-    >
+    <ul className="tiq-stack" aria-label={label}>
       {items.map((item) => (
         <li key={item.id}>
           <Link

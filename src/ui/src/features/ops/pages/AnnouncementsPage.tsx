@@ -3,7 +3,6 @@
  * publication. Actions: write an announcement, publish it after review. Product announcements are not formal tender
  * notices; those are issued from the tender by the buyer.
  */
-import { useNavigate } from 'react-router';
 
 import { operationsEndpoints } from '@contracts/operations';
 import type { Announcement } from '@contracts/operations';
@@ -47,7 +46,6 @@ const DEFAULTS = {
 type SortField = 'title' | 'audience' | 'status' | 'publishedAt' | 'updatedAt';
 
 export default function AnnouncementsPage() {
-  const navigate = useNavigate();
   const tenant = useActiveTenant();
   const timeZone = tenant?.officialTimeZone ?? 'UTC';
   const canManage = usePermission(CONTENT_MANAGE);
@@ -132,7 +130,7 @@ export default function AnnouncementsPage() {
           onRetry={announcements.reload}
           sort={{ key: filters.sort, dir: filters.dir as 'asc' | 'desc' }}
           onSortChange={(next) => setFilters({ sort: next.key, dir: next.dir, page: 1 })}
-          onRowClick={(row) => navigate(opsPaths.announcement(row.id))}
+          rowHref={(row) => opsPaths.announcement(row.id)}
           rowLabel={(row) => row.title}
           empty={<EmptyState compact icon="megaphone" title={t('ops.content.noAnnouncements')} />}
           pagination={

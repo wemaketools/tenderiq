@@ -94,7 +94,7 @@ function OutcomeBody({
   const tenant = useActiveTenant();
   const timeZone = outcome.officialTimeZone;
   const canAcknowledge = usePermission('supplier.notices.acknowledge');
-  const canAccept = usePermission('supplier.contract.participate');
+  const canAccept = usePermission(acceptOutcomeNoticeTerms.permission);
   const canComplain = usePermission('supplier.complaint.submit');
   const [acks, setAcks] = useState<Readonly<Record<number, NoticeAcknowledgment>>>({});
   const [debrief, setDebrief] = useState<SupplierDebrief | null>(outcome.debrief);

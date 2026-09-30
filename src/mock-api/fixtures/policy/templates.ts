@@ -146,7 +146,7 @@ export const TEMPLATES: readonly FixtureTemplate[] = Object.freeze([
     usage: [{ recordType: 'contract', recordId: 2, adoptedVersionNo: 1, adoptedAt: '2026-09-02T09:00:00Z' }],
   },
   {
-    id: 9, tenantId: kwu, kind: 'contract', name: 'Services contract (2024 edition)', procedure: null, categoryId: 7,
+    id: 9, tenantId: kwu, kind: 'contract', name: 'Services contract (2024 edition)', procedure: null, categoryId: 9,
     audience: 'supplier_visible', ownerUserId: MASEGO, status: 'retired', effectiveFrom: '2024-03-01T00:00:00Z', reviewDate: '2026-03-01',
     currentVersionId: 12, sourceTenderId: null, createdAt: '2024-02-12T08:00:00Z', updatedAt: '2026-04-30T15:00:00Z',
     retiredAt: '2026-04-30T15:00:00Z', retirementReason: 'Replaced by the 2026 services terms under legal review; existing contracts keep this edition.',

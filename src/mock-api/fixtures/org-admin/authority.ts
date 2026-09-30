@@ -63,7 +63,7 @@ export const AUTHORITY_LIMITS: readonly FixtureAuthorityLimit[] = Object.freeze(
   userLimit(1, KWU, 'mpho.manager', 'request_approval', '2000000.00'),
   userLimit(2, KWU, 'mpho.manager', 'release_approval', '2000000.00'),
   userLimit(3, KWU, 'mpho.manager', 'strategy_approval', '2000000.00'),
-  userLimit(4, KWU, 'mpho.manager', 'qualification_decision', null, { categoryId: 31 }),
+  userLimit(4, KWU, 'mpho.manager', 'qualification_decision', null, { categoryId: 1 }),
   userLimit(5, KWU, 'mpho.manager', 'change_approval', '2000000.00', { legalEntityId: 1, effectiveTo: '2027-03-31T23:59:59Z' }),
   userLimit(6, KWU, 'keabetswe.approver', 'award_approval', '10000000.00', { approvedByUserId: null }),
   userLimit(7, KWU, 'keabetswe.approver', 'request_approval', '10000000.00', { approvedByUserId: null }),

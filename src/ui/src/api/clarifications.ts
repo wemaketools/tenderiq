@@ -383,7 +383,7 @@ export function supplierRegistrationCancel(
   return send('supplierRegistrationCancel', request, options);
 }
 
-/** GET /api/v1/public/clarifications/:buyerSlug/:ref (`public.clarifications.edition`). */
+/** GET /api/v1/public/clarifications/:buyerSlug/:reference (`public.clarifications.edition`). */
 export function publicEdition(
   request: ClarificationsRequest<'publicEdition'>,
   options?: CallOptions,

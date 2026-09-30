@@ -38,19 +38,52 @@
       "kind": "wiring",
       "description": "Regenerate docs/technical/api/openapi.json (npm run docs:api)",
       "detail": "Bids contract changes: SubmissionPreview.representative is now nullable (null when the caller lacks supplier.response.submit, FR-11), Receipt gains lateRejection {attemptId, deadlineAtAttempt, lateBySeconds, reason} | null (AC-13), and MonitoringIncident.severity is the ServiceIncidentSeverity enum."
+    },
+    {
+      "kind": "wiring",
+      "description": "Regenerate docs/technical/api/openapi.json (npm run docs:api) for supplier.bids.startOptions",
+      "detail": "New endpoint GET /api/v1/supplier/bid-starts/:tenderId (BidStartOptions, BID_START_BLOCKS) used by the SUP-12 start-response panel; scripts/docs/generate-openapi.test.ts fails until the committed document is regenerated."
+    },
+    {
+      "kind": "other",
+      "description": "domain:policy option endpoints still have no UI",
+      "detail": "policy.listPolicyVersionOptions (src/contracts/policy/profiles.ts:544, screens BUY-06/BUY-08), policy.listTemplateOptions and policy.resolveTemplateOption (src/contracts/policy/templates.ts:439,455, screens BUY-07/CON-02) are not referenced by the SPA. The strategy/tender/contract feature owners must wire the pickers, or domain:policy must remove the endpoints and their screen claims."
     }
   ],
   "steps": {
-    "contract-and-mock": { "status": "done", "endpoints": 42 },
+    "contract-and-mock": {
+      "status": "done",
+      "endpoints": 43
+    },
     "ui": {
       "status": "done",
-      "screens": ["SUP-12", "SUP-13", "SUP-14", "SUP-15", "SUP-16", "SUP-17", "BUY-19"]
+      "screens": [
+        "SUP-12",
+        "SUP-13",
+        "SUP-14",
+        "SUP-15",
+        "SUP-16",
+        "SUP-17",
+        "BUY-19"
+      ]
     },
-    "review": { "status": "done", "verdict": "gaps", "gaps": 7 },
+    "review": {
+      "status": "done",
+      "verdict": "gaps",
+      "gaps": 7
+    },
     "fix": {
       "status": "done",
       "gapsFixed": 7,
       "checks": "typecheck and typecheck:ui clean on bids paths; eslint (root) and eslint --max-warnings 0 + prettier (SPA) clean on owned paths; vitest unit bids 83/83 (real Supabase Auth); SPA responses + submission-monitoring + api/bids 61/61; live flows on 4109/5209 re-screenshotted (SUP-16 submit, SUP-16 contributor, SUP-17 withdrawal, receipts register, late receipt, BUY-19 list, T-2026-0002 incident, T-2026-0008 close) with no console errors"
+    },
+    "qa-fix": {
+      "status": "done",
+      "findings": [
+        "endpoint-without-ui startBid (SUP-12)",
+        "evidence expiry rendered with time (SUP-12 AnswerPage)"
+      ],
+      "checks": "tsc server+ui clean on bids paths; eslint + prettier clean on owned paths; vitest unit bids (contracts, fixtures, handlers) 88/88; SPA responses 55/55"
     }
   }
 }

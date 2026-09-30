@@ -719,7 +719,7 @@ export function assignableTender(tenderId: number) {
     reference: tender.reference,
     title: tender.title,
     buyerName: tenantName(tender.buyerTenantId),
-    submissionDeadline: tender.submissionDeadline === null ? null : { at: tender.submissionDeadline, timeZone: 'Africa/Gaborone' },
+    submissionDeadline: tender.submissionDeadline === null ? null : { at: tender.submissionDeadline, timeZone: tender.officialTimeZone },
   };
 }
 

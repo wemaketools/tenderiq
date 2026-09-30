@@ -1,13 +1,16 @@
 /**
  * Dialog (`.tiq-scrim` + `.tiq-dialog`): a modal rendered in a portal, labelled by its title, with the focus kept
- * inside while open, Escape to close, and the focus returned to the opener on close.
+ * inside while open, Escape to close, and the focus returned on close: to `returnFocusRef` when given, otherwise to
+ * the opener; when that element is gone or disabled (a confirmed action replaced or disabled its button), focus
+ * goes to the page's main region (`#tiq-main`) instead of being dropped to <body>.
  */
 import { useEffect, useId, useRef } from 'react';
-import type { KeyboardEvent, ReactNode } from 'react';
+import type { KeyboardEvent, ReactNode, RefObject } from 'react';
 import { createPortal } from 'react-dom';
 
 import { t } from '../../lib/i18n';
 import { IconButton } from './Button';
+import { restoreFocus } from './focusReturn';
 
 export interface DialogProps {
   readonly open: boolean;
@@ -20,6 +23,8 @@ export interface DialogProps {
   /** False while a request is running: Escape and the scrim do not close the dialog. */
   readonly dismissible?: boolean;
   readonly description?: ReactNode;
+  /** Where focus goes when the dialog closes (default: the element that had focus when it opened). */
+  readonly returnFocusRef?: RefObject<HTMLElement | null>;
 }
 
 const FOCUSABLE =
@@ -37,6 +42,7 @@ export function Dialog({
   size = 'md',
   dismissible = true,
   description,
+  returnFocusRef,
 }: DialogProps) {
   const titleId = useId();
   const descriptionId = useId();
@@ -54,9 +60,10 @@ export function Dialog({
       panel;
     first?.focus();
     return () => {
-      opener?.focus();
+      // Read at close time: the preferred target (for example a result banner) may render after opening.
+      restoreFocus(returnFocusRef, opener);
     };
-  }, [open]);
+  }, [open, returnFocusRef]);
 
   if (!open) {
     return null;

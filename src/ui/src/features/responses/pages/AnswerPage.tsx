@@ -49,7 +49,7 @@ import {
   useToast,
 } from '../../../components/ui';
 import type { DataTableColumn } from '../../../components/ui';
-import { formatBytes, formatDateTime } from '../../../lib/format';
+import { formatBytes, formatDateTime, formatInstantDate } from '../../../lib/format';
 import { t, tEnum } from '../../../lib/i18n';
 import { ResponseWorkspace } from '../components/ResponseWorkspace';
 import { responseErrorMessage } from '../lib/errors';
@@ -544,7 +544,7 @@ function AttachmentsCard({
                     ? option.title
                     : t('responses.attachments.evidenceOption', {
                         title: option.title,
-                        date: formatDateTime(option.expiresAt, bid.officialTimeZone),
+                        date: formatInstantDate(option.expiresAt, bid.officialTimeZone),
                       }),
               }))}
               onChange={setEvidenceItemId}

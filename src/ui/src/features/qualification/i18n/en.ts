@@ -1109,6 +1109,7 @@ export default {
     supply: 'Supply updated evidence',
     renew: 'Renew',
     reconsider: 'Request reconsideration',
+    reconsiderUntil: 'Reconsideration requests accepted until',
     buyerSpecificTitle: 'Decision of {buyer}',
     buyerSpecific: 'This decision applies only to tenders of {buyer}.',
     expiringTitle_one: '{count} evidence item expires soon or has expired',
@@ -1195,6 +1196,8 @@ export default {
     PROGRAM_RETIRED: 'The program is retired.',
     PROGRAM_VERSION_NOT_FOUND: 'The criteria version was not found.',
     RECONSIDERATION_ALREADY_REQUESTED: 'Reconsideration was already requested for this decision.',
+    RECONSIDERATION_WINDOW_CLOSED:
+      'The reconsideration window of this decision has closed. Use the escalation route in its appeal terms.',
     RENEWAL_ALREADY_REQUESTED: 'A renewal was already requested.',
     RESULTING_DECISION_REQUIRED: 'Record the new decision before choosing "action taken".',
     SCOPE_EXCEEDS_PROGRAM: 'The scope exceeds the program’s value limit.',

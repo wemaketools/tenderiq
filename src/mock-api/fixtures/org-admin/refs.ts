@@ -1,32 +1,48 @@
 /**
  * Org-admin fixtures: references to records owned by other domains (tenders, contracts, qualification
  * applications), by the storyline's natural keys (docs/plan/demo-storyline.md). Ids follow the reference number
- * (`T-2026-0003` → tender id 3). The cross-fixture consistency test resolves them against the owning domains.
+ * (`T-2026-0003` → tender id 3). Tender references are projected from the tender register and its timetable
+ * (`../tenders/`), so the title, buyer and official submission deadline can never drift from the other screens
+ * (DD-33). The cross-fixture consistency test resolves the other references against the owning domains.
  */
+import { DEMO_AS_OF } from '../demo-clock.js';
 import { PERSONAS, PERSONA_EMAIL_DOMAIN, TENANT_IDS } from '../platform.js';
+import { TENDERS } from '../tenders/tenders.js';
+import { MILESTONES } from '../tenders/timetable.js';
 
 export interface FixtureTenderRef {
   readonly tenderId: number;
   readonly buyerTenantId: number;
   readonly reference: string;
   readonly title: string;
-  /** Submission deadline (Africa/Gaborone official zone); `null` for an RFI without a bid deadline. */
+  /** The tender-level official submission deadline (UTC instant); `null` when the timetable has none. */
   readonly submissionDeadline: string | null;
+  /** The IANA official time zone of the event (DD-33). */
+  readonly officialTimeZone: string;
 }
 
-export const TENDER_REFS: readonly FixtureTenderRef[] = Object.freeze([
-  { tenderId: 1, buyerTenantId: TENANT_IDS.kwu, reference: 'T-2026-0001', title: 'Borehole pump replacement programme', submissionDeadline: '2026-07-15T10:00:00Z' },
-  { tenderId: 2, buyerTenantId: TENANT_IDS.kwu, reference: 'T-2026-0002', title: 'Smart water meter supply', submissionDeadline: '2026-10-21T10:00:00Z' },
-  { tenderId: 3, buyerTenantId: TENANT_IDS.kwu, reference: 'T-2026-0003', title: 'SCADA telemetry upgrade', submissionDeadline: '2026-08-28T10:00:00Z' },
-  { tenderId: 4, buyerTenantId: TENANT_IDS.kwu, reference: 'T-2026-0004', title: 'Leak-detection market consultation', submissionDeadline: null },
-  { tenderId: 5, buyerTenantId: TENANT_IDS.kwu, reference: 'T-2026-0005', title: 'Water treatment chemicals framework', submissionDeadline: null },
-  { tenderId: 6, buyerTenantId: TENANT_IDS.kwu, reference: 'T-2026-0006', title: 'Chlorine dosing equipment', submissionDeadline: '2026-10-22T10:00:00Z' },
-  { tenderId: 7, buyerTenantId: TENANT_IDS.kwu, reference: 'T-2026-0007', title: 'Reservoir rehabilitation works', submissionDeadline: '2026-06-30T10:00:00Z' },
-  { tenderId: 8, buyerTenantId: TENANT_IDS.kwu, reference: 'T-2026-0008', title: 'Pipeline valves bulk supply', submissionDeadline: '2026-09-24T10:00:00Z' },
-  { tenderId: 9, buyerTenantId: TENANT_IDS.kwu, reference: 'T-2026-0009', title: 'Acoustic leak detection services', submissionDeadline: '2026-08-14T10:00:00Z' },
-  { tenderId: 10, buyerTenantId: TENANT_IDS.kwu, reference: 'T-2026-0010', title: 'Fleet vehicle maintenance', submissionDeadline: '2026-05-20T10:00:00Z' },
-  { tenderId: 11, buyerTenantId: TENANT_IDS.odc, reference: 'T-2026-0011', title: 'Office cleaning services', submissionDeadline: '2026-10-23T10:00:00Z' },
-] satisfies FixtureTenderRef[]);
+/** The tenders that org-admin screens reference (supplier tender assignments, access scopes, authority records). */
+const REFERENCED_TENDER_IDS: readonly number[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+
+function projectTender(tenderId: number): FixtureTenderRef {
+  const tender = TENDERS.find((candidate) => candidate.id === tenderId && !candidate.isTemplate);
+  if (tender === undefined) {
+    throw new Error(`Tender ${tenderId} is missing from the tender register.`);
+  }
+  const deadline = MILESTONES.find(
+    (milestone) => milestone.tenderId === tenderId && milestone.lotId === null && milestone.milestone === 'submission_deadline',
+  );
+  return {
+    tenderId: tender.id,
+    buyerTenantId: tender.tenantId,
+    reference: tender.reference,
+    title: tender.title,
+    submissionDeadline: deadline?.at ?? null,
+    officialTimeZone: tender.officialTimeZone,
+  };
+}
+
+export const TENDER_REFS: readonly FixtureTenderRef[] = Object.freeze(REFERENCED_TENDER_IDS.map(projectTender));
 
 export interface FixtureRecordRef {
   readonly id: number;
@@ -61,5 +77,5 @@ export function uid(localPart: string): number {
   return persona.userId;
 }
 
-/** The fixed "as of" instant the fixtures are written around (storyline, end of September 2026). */
-export const FIXTURE_AS_OF = '2026-09-30T06:00:00Z';
+/** The fixed "as of" instant the fixtures are written around: the one storyline clock (`../demo-clock.ts`). */
+export const FIXTURE_AS_OF = DEMO_AS_OF;

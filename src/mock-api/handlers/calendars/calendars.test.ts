@@ -21,6 +21,23 @@ describe('calendars module', () => {
   });
 });
 
+describe('support access (DD-11, ADR 0013)', () => {
+  it('lets support.agent under the authorized metadata grant read the KWU calendars, and refuses its commands', async () => {
+    // Act
+    const list = await api.callAs('support.agent@tenderiq.local', calendarEndpoints.listCalendars, { tenant: 'kwu' });
+    const create = await api.callAs('support.agent@tenderiq.local', calendarEndpoints.createCalendar, {
+      tenant: 'kwu',
+      body: { name: 'Support-created calendar', timeZone: 'Africa/Gaborone', workingDays: [1, 2, 3, 4, 5] },
+    });
+
+    // Assert
+    expect(list.status).toBe(200);
+    expect(calendarEndpoints.listCalendars.response.parse(list.body).items.length).toBeGreaterThan(0);
+    expect(create.status).toBe(403);
+    expect(create.body).toMatchObject({ code: 'FORBIDDEN' });
+  });
+});
+
 describe('buyer.calendars.list / get', () => {
   it('lists only the active buyer’s calendars', async () => {
     const kwu = await api.callAs(ADMIN, calendarEndpoints.listCalendars, { tenant: 'kwu' });

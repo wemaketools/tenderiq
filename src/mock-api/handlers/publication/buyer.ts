@@ -61,6 +61,7 @@ import {
   publicationRow,
   publicationsOf,
   requiredAcknowledgments,
+  requiredAcknowledgmentsFor,
   requiresConfidentiality,
   sortRows,
   supplierParty,
@@ -217,7 +218,8 @@ function overviewOf(tender: FixtureTender, permissions: readonly PermissionCode[
           : tender.participation === 'invitation_only'
             ? 'Invited legal suppliers only. The event never appears on the public portal.'
             : 'Suppliers admitted after an access request. The event never appears on the public portal.',
-      publicNoticePath: tender.participation === 'open' && (tender.releasedAt === null || isPubliclyVisible(tender)) ? noticePath(tender) : null,
+      // Only a released, public notice has a public page (v_public_tenders): an unreleased tender links nowhere.
+      publicNoticePath: isPubliclyVisible(tender) ? noticePath(tender) : null,
       invitedCount: invited.length,
       pendingInvitationCount: pendingInvitations(tender).length,
       failedDeliveryCount: participants.filter((participant) => latestDeliveryStatus(participant) === 'failed').length,
@@ -252,7 +254,7 @@ function participantDetail(tender: FixtureTender, participant: FixtureParticipan
     accessDecisionReason: participant.accessDecisionReason,
     confidentialityAcceptedBy: personOf(participant.confidentialityAcceptedByUserId),
     qualification: qualificationOf(tender, participant.supplierTenantId),
-    acknowledgmentItems: requiredAcknowledgments(tender).map((subject) => {
+    acknowledgmentItems: requiredAcknowledgmentsFor(tender, participant).map((subject) => {
       const ack = participant.acknowledgments.find((entry) => entry.subjectType === subject.subjectType && entry.subjectId === subject.subjectId);
       return {
         subjectType: subject.subjectType,
@@ -576,7 +578,9 @@ export function registerBuyer(app: MockApp): void {
         acknowledgedCount: participants.filter((participant) =>
           participant.acknowledgments.some((ack) => ack.subjectType === subject.subjectType && ack.subjectId === subject.subjectId),
         ).length,
-        requiredCount: participants.length,
+        requiredCount: participants.filter((participant) =>
+          requiredAcknowledgmentsFor(tender, participant).some((entry) => entry.subjectId === subject.subjectId),
+        ).length,
       })),
       capabilities: {
         canInvite: access.permissions.includes('tender.participants.manage') && MANAGEABLE.has(tender.status),
@@ -668,7 +672,8 @@ export function registerBuyer(app: MockApp): void {
       sharedNoBidReason: null,
       intentChangedAt: null,
       qualificationGate: qualification === null ? ('not_required' as const) : ('met' as const),
-      acknowledgments: { required: requiredAcknowledgments(tender).length, acknowledged: 0 },
+      // A new invitee receives the current version: addenda issued before the invitation are not asked of it.
+      acknowledgments: { required: requiredAcknowledgments(tender).filter((subject) => invitedAt <= subject.requiredSince).length, acknowledged: 0 },
       deliveryStatus: tender.releasedAt === null ? null : ('pending' as const),
       selectedLotNos: [],
       registeredAt: invitedAt,

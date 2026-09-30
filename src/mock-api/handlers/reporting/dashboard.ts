@@ -1,7 +1,11 @@
 /**
  * BUY-01 and SUP-01 dashboard handlers. KPIs and panels are computed from the dashboard fixtures after the
- * dimension filters and the caller's permissions are applied: a panel the caller may not read is `restricted` with
+ * dimension filters and the caller's access are applied: a panel the caller may not read is `restricted` with
  * no items and no count (BR-43). A supplier only ever sees its own rows.
+ *
+ * Only records the caller may open are counted or listed: tender-keyed rows (pipeline, deadlines, active events,
+ * complaints, tender exceptions) follow the tenders domain's team scope, approvals are the caller's own (requester,
+ * approver or delegate) and every row's link is checked against the page it opens (`./access.ts`).
  */
 import { gt, lt, round, sum } from '../../../contracts/decimal.js';
 import type { Money } from '../../../contracts/common.js';
@@ -14,7 +18,7 @@ import type {
   SupplierDashboard,
   SupplierDashboardKpiKey,
 } from '../../../contracts/reporting.js';
-import { getBuyerDashboard, getSupplierDashboard } from '../../../contracts/reporting.js';
+import { SUPPLIER_EVIDENCE_WINDOW_DAYS, getBuyerDashboard, getSupplierDashboard } from '../../../contracts/reporting.js';
 import { mockRoute } from '../../app.js';
 import type { MockApp } from '../../app.js';
 import {
@@ -47,6 +51,8 @@ import {
 } from '../../fixtures/reporting/index.js';
 import type { FixtureTenderFact } from '../../fixtures/reporting/index.js';
 import { findTenantById, personRef } from '../../persona.js';
+import { approvalAccessible, linkAccessible, tenderAccessible } from './access.js';
+import type { Viewer } from './access.js';
 import { hasAny } from './engine.js';
 
 /** Statuses counted as active events (released and not yet decided). */
@@ -87,8 +93,9 @@ function kpi<K extends string>(
 }
 
 export function registerDashboards(app: MockApp): void {
-  mockRoute(app, getBuyerDashboard, ({ requireTenant, query, fail }) => {
+  mockRoute(app, getBuyerDashboard, ({ requireTenant, requirePersona, query, fail }) => {
     const { tenant, permissions } = requireTenant();
+    const viewer: Viewer = { tenantId: tenant.id, userId: requirePersona().userId, permissions };
     if (query.from !== undefined && query.to !== undefined && query.from > query.to) {
       fail(422, 'INVALID_DATE_RANGE', 'The start date must be on or before the end date.');
     }
@@ -123,10 +130,15 @@ export function registerDashboards(app: MockApp): void {
       if (query.to !== undefined && row.openedOn > query.to) return false;
       return true;
     };
-    const tenders = tenantTenders.filter(matches);
+    /** Tenders the caller may open (the tenders domain's team scope); nothing else is counted (BR-43). */
+    const visibleTenders = tenantTenders.filter((row) => tenderAccessible(viewer, row.id));
+    const dimensionTenderIds = new Set(tenantTenders.filter(matches).map((row) => row.id));
+    const tenders = visibleTenders.filter(matches);
     const tenderIds = new Set(tenders.map((row) => row.id));
-    const inScope = (tenderId: number | null): boolean => (tenderId === null ? !dimensional : tenderIds.has(tenderId));
+    /** Dimension scope of a row keyed by another record (contract, approval): the filters of its tender, if any. */
+    const inScope = (tenderId: number | null): boolean => (tenderId === null ? !dimensional : dimensionTenderIds.has(tenderId));
     const can = (codes: readonly PermissionCode[]): boolean => hasAny(permissions, codes);
+    const link = (to: string): string | null => (linkAccessible(viewer, to) ? to : null);
     const delta = (key: BuyerDashboardKpiKey) =>
       anyFilter ? undefined : DASHBOARD_KPI_DELTAS.find((row) => row.tenantId === tenant.id && row.key === key);
 
@@ -134,6 +146,8 @@ export function registerDashboards(app: MockApp): void {
     const canContracts = can(['contract.view']);
     const canComplaints = can(['complaint.manage', 'tender.view']);
     const canApprovals = can(['tender.view', 'approval.decide', 'request.view_all', 'contract.view']);
+    /** Workload by owner spans every event and person of the organization: procurement managers only. */
+    const canWorkload = canTenders && can(['tender.release_approve']);
 
     const active = tenders.filter((row) => ACTIVE_STATUSES.includes(row.status));
     const horizon = addDays(REPORTING_AS_OF, 7);
@@ -141,11 +155,14 @@ export function registerDashboards(app: MockApp): void {
       a.at.localeCompare(b.at),
     );
     const closingSoon = new Set(deadlines.filter((row) => row.milestone === 'submission_deadline' && row.at <= horizon).map((row) => row.tenderId));
-    const approvals = DASHBOARD_APPROVALS.filter((row) => row.tenantId === tenant.id && can(row.visibleWith) && inScope(row.tenderId));
+    /** The caller's own pending approvals (requester, approver or delegate), as `/me/approvals` lists them. */
+    const approvals = DASHBOARD_APPROVALS.filter(
+      (row) => row.tenantId === tenant.id && approvalAccessible(viewer, row.approvalId) && inScope(row.tenderId),
+    );
     const complaints = DASHBOARD_COMPLAINTS.filter((row) => row.tenantId === tenant.id && row.open && tenderIds.has(row.tenderId));
     const onlyComplaint = complaints.length === 1 ? complaints[0] : undefined;
     const complaintsLink =
-      complaints.length === 0 ? null : onlyComplaint === undefined ? LINKS.buyerComplaints() : LINKS.buyerComplaint(onlyComplaint.complaintId);
+      complaints.length === 0 ? null : link(onlyComplaint === undefined ? LINKS.buyerComplaints() : LINKS.buyerComplaint(onlyComplaint.complaintId));
     const renewals = DASHBOARD_RENEWALS.filter(
       (row) => row.tenantId === tenant.id && !row.decided && inScope(row.tenderId) && daysBetween(REPORTING_AS_OF_DATE, row.noticeWindowOpensOn) <= 90,
     );
@@ -208,8 +225,8 @@ export function registerDashboards(app: MockApp): void {
         legalEntities: LEGAL_ENTITIES.filter((row) => row.tenantId === tenant.id).map(({ id, label, code }) => ({ id, label, code })),
         departments: DEPARTMENTS.filter((row) => row.tenantId === tenant.id).map(({ id, label, code }) => ({ id, label, code })),
         categories: CATEGORIES.filter((row) => row.tenantId === tenant.id).map(({ id, label, code }) => ({ id, label, code })),
-        owners: canTenders ? [...new Set(tenantTenders.map((row) => row.ownerUserId))].map((userId) => personRef(userId)) : [],
-        stages: TENDERS_STATUS.filter((stage) => tenantTenders.some((row) => row.status === stage)),
+        owners: canTenders ? [...new Set(visibleTenders.map((row) => row.ownerUserId))].map((userId) => personRef(userId)) : [],
+        stages: TENDERS_STATUS.filter((stage) => visibleTenders.some((row) => row.status === stage)),
       },
       kpis: [
         kpi('active_events', active.length, !canTenders, LINKS.buyerTenders('open'), `${active.length} of ${tenders.length} events in scope`, delta('active_events')),
@@ -239,7 +256,7 @@ export function registerDashboards(app: MockApp): void {
             })
           : [],
       },
-      workload: { restricted: !canTenders, items: canTenders ? workload : [] },
+      workload: { restricted: !canWorkload, items: canWorkload ? workload : [] },
       approvals: {
         restricted: !canApprovals,
         items: canApprovals
@@ -275,9 +292,14 @@ export function registerDashboards(app: MockApp): void {
             })
           : [],
       },
-      attention: DASHBOARD_ATTENTION.filter((row) => row.tenantId === tenant.id && can(row.visibleWith) && inScope(row.tenderId)).map(
-        ({ key, label, detail, count, tone, to }) => ({ key, label, detail, count, tone, to }),
-      ),
+      attention: DASHBOARD_ATTENTION.filter(
+        (row) =>
+          row.tenantId === tenant.id &&
+          can(row.visibleWith) &&
+          inScope(row.tenderId) &&
+          (!row.tenderScoped || (row.tenderId !== null && tenderIds.has(row.tenderId))) &&
+          linkAccessible(viewer, row.to),
+      ).map(({ key, label, detail, count, tone, to }) => ({ key, label, detail, count, tone, to })),
       completeness: {
         complete: missingEstimates.length === 0,
         note:
@@ -312,7 +334,7 @@ export function registerDashboards(app: MockApp): void {
       .sort((a, b) => a.at.localeCompare(b.at));
     const evidence = own(SUPPLIER_EVIDENCE)
       .map((row) => ({ ...row, daysRemaining: daysBetween(REPORTING_AS_OF_DATE, row.expiresAt) }))
-      .filter((row) => row.daysRemaining <= 90)
+      .filter((row) => row.daysRemaining <= SUPPLIER_EVIDENCE_WINDOW_DAYS)
       .sort((a, b) => a.daysRemaining - b.daysRemaining);
     const contractTasks = own(SUPPLIER_CONTRACT_TASKS).sort((a, b) => a.dueOn.localeCompare(b.dueOn));
     const openInvitations = invitations.filter((row) => row.invitationStatus === 'invited' || row.invitationStatus === 'accepted');

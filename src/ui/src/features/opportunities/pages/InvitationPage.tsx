@@ -227,9 +227,11 @@ function InvitationView({
                 {t('opportunities.access.requestAgain')}
               </Button>
             )}
-            <ButtonLink to={detail.opportunityPath} icon="arrowRight">
-              {t('opportunities.invitation.openWorkspace')}
-            </ButtonLink>
+            {detail.opportunityPath !== null && (
+              <ButtonLink to={detail.opportunityPath} icon="arrowRight">
+                {t('opportunities.invitation.openWorkspace')}
+              </ButtonLink>
+            )}
           </>
         }
       />

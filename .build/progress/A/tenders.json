@@ -59,6 +59,8 @@
         "src/ui/src/features/tender-authoring/lib/errors.ts",
         "src/ui/src/features/tender-authoring/lib/hooks.ts",
         "src/ui/src/features/tender-authoring/lib/labels.ts",
+        "src/ui/src/features/tender-authoring/lib/lifecycle.test.ts",
+        "src/ui/src/features/tender-authoring/lib/lifecycle.ts",
         "src/ui/src/features/tender-authoring/lib/lists.ts",
         "src/ui/src/features/tender-authoring/lib/nextAction.ts",
         "src/ui/src/features/tender-authoring/lib/options.ts",
@@ -93,5 +95,16 @@
   },
   "task4": {
     "checks": "tsc server + ui clean on tenders paths; eslint (backend + SPA --max-warnings 0) and prettier clean; unit tenders 94/94; SPA tender-authoring 56/56; screenshots on 4106/5206 of BUY-10 pricing, BUY-12 T-0012 timetable, BUY-09 scope, BUY-07 create, BUY-13 release after request"
+  },
+  "qaFix": {
+    "findings": 5,
+    "fixed": [
+      "released tenders show a Released banner (official release time, issued version, addendum rule) instead of Ready for publication",
+      "readiness released item uses the official DD-33 format",
+      "header shows Issued version N for released tenders; overview hides Saved, not submitted and phrases approval coverage against the release",
+      "pending release check wording and readiness subtitle distinguish the approval request from publication",
+      "T-2026-0010 authoring/release/close moved to Dec 2025 - 3 Feb 2026 and scope aligned with C-2026-0001 (86 vehicles, 12 months + options)"
+    ],
+    "checks": "typecheck + typecheck:ui clean on tenders paths; eslint/prettier clean; unit tenders fixtures+handlers 69/69; SPA tender-authoring 60/60; cross-domain T-2026-0010 projections in bids/publication/policy/org-admin await their owners"
   }
 }

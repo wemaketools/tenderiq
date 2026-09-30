@@ -41,7 +41,7 @@ export default {
     invite: 'Invite supplier',
     open: 'Open',
     openApproval: 'Open approval',
-    openTask: 'Open task',
+    openTask: 'Open in task inbox',
     publish: 'Publish or schedule',
     reconcile: 'Reconcile',
     refresh: 'Refresh',

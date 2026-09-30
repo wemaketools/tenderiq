@@ -2,7 +2,6 @@
  * CON-01 — Contract register: parties, owner, scope, value, remaining ceiling, term, status and renewal dates, with
  * filters, owner assignment and the upcoming decisions each contract needs (FR-18, FR-19).
  */
-import { useNavigate } from 'react-router';
 
 import { CONTRACT_SORT_FIELDS, contractsEndpoints } from '@contracts/contracts';
 import type { ContractRow } from '@contracts/contracts';
@@ -60,12 +59,31 @@ const DEFAULTS = {
 
 const RENEWAL_WINDOWS = ['30', '60', '90', '180'] as const;
 
-function termText(row: ContractRow): string | null {
-  if (row.termStart === null && row.termEnd === null) return null;
-  return t('contracts.register.term', {
-    start: row.termStart === null ? '…' : formatCalendarDate(row.termStart),
-    end: row.termEnd === null ? '…' : formatCalendarDate(row.termEnd),
-  });
+/** The contract column keeps enough room for the reference and title so the actions column stays visible at 1440. */
+const CONTRACT_COLUMN_WIDTH = '10rem';
+
+/** Term dates stay on one line each ("From 1 Feb 2025", "To 31 Jan 2026"). */
+const NO_WRAP = { whiteSpace: 'nowrap' } as const;
+
+/** The term as two short lines (start, then end) so the column stays narrow. */
+function TermCell({ row }: { readonly row: ContractRow }) {
+  if (row.termStart === null && row.termEnd === null) {
+    return <OrDash>{null}</OrDash>;
+  }
+  return (
+    <>
+      <span style={NO_WRAP}>
+        {t('contracts.register.termFrom', {
+          date: row.termStart === null ? EMPTY_VALUE : formatCalendarDate(row.termStart),
+        })}
+      </span>
+      <span className="tiq-cell-sub" style={NO_WRAP}>
+        {t('contracts.register.termTo', {
+          date: row.termEnd === null ? EMPTY_VALUE : formatCalendarDate(row.termEnd),
+        })}
+      </span>
+    </>
+  );
 }
 
 /**
@@ -102,7 +120,6 @@ function RenewalWindowCell({ row }: { readonly row: ContractRow }) {
 }
 
 export default function ContractRegisterPage() {
-  const navigate = useNavigate();
   const canCreate = usePermission(CONTRACT_PREPARE);
   const canAssign = usePermission(CONTRACT_MANAGE_OR_PREPARE);
   const [filters, setFilters, clearFilters] = useScreenFilters('CON-01', DEFAULTS);
@@ -147,6 +164,7 @@ export default function ContractRegisterPage() {
       id: 'reference',
       header: t('contracts.register.col.contract'),
       sortable: true,
+      width: CONTRACT_COLUMN_WIDTH,
       cell: (row) => (
         <>
           <Reference value={row.reference} to={contractPaths.overview(row.id)} />
@@ -161,21 +179,17 @@ export default function ContractRegisterPage() {
     },
     {
       id: 'supplier',
-      header: t('contracts.register.col.parties'),
+      header: t('contracts.register.col.partiesOwner'),
       sortable: true,
       cell: (row) => (
         <>
           <span>{row.supplier.name}</span>
           <span className="tiq-cell-sub">{row.legalEntity.name}</span>
-        </>
-      ),
-    },
-    {
-      id: 'owner',
-      header: t('contracts.register.col.owner'),
-      cell: (row) => (
-        <>
-          <OrDash>{row.owner?.fullName}</OrDash>
+          <span className="tiq-cell-sub">
+            {row.owner === null
+              ? t('contracts.register.noOwner')
+              : t('contracts.register.owner', { name: row.owner.fullName })}
+          </span>
           <span className="tiq-cell-sub">
             {row.contractManager === null
               ? t('contracts.register.noManager')
@@ -210,17 +224,17 @@ export default function ContractRegisterPage() {
       id: 'termEnd',
       header: t('contracts.register.col.term'),
       sortable: true,
-      cell: (row) => <OrDash>{termText(row)}</OrDash>,
+      cell: (row) => <TermCell row={row} />,
     },
     {
       id: 'status',
       header: t('contracts.register.col.status'),
       sortable: true,
       cell: (row) => (
-        <span className="tiq-inline">
+        <span className="tiq-stack tiq-stack--start">
           <StatusChip enum="contracts.status" value={row.status} size="sm" />
           {row.differsFromAward && (
-            <Chip tone="warning" size="sm" icon="alertTriangle">
+            <Chip tone="warning" size="sm">
               {t('contracts.workspace.differs')}
             </Chip>
           )}
@@ -267,7 +281,7 @@ export default function ContractRegisterPage() {
   ];
 
   return (
-    <>
+    <div className="tiq-page">
       <PageHeader
         title={t('contracts.register.title')}
         subtitle={t('contracts.register.intro')}
@@ -396,7 +410,7 @@ export default function ContractRegisterPage() {
           rows={query.data?.items}
           rowKey={(row) => String(row.id)}
           rowLabel={(row) => `${row.reference} ${row.title}`}
-          onRowClick={(row) => void navigate(contractPaths.overview(row.id))}
+          rowHref={(row) => contractPaths.overview(row.id)}
           loading={query.isFetching}
           error={query.error}
           onRetry={query.reload}
@@ -432,6 +446,6 @@ export default function ContractRegisterPage() {
           onClose={assign.close}
         />
       )}
-    </>
+    </div>
   );
 }

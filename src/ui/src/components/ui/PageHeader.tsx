@@ -2,7 +2,8 @@
  * PageHeader (architecture-plan §7, docs/technical/09-frontend.md §6). Inside the app shell the page TITLE and the
  * one PRIMARY ACTION render into the top bar (as in the reference screenshots); secondary actions, the subtitle, a
  * back link and record meta (reference, stage chip, official deadline, next action; PRD §19) render in the page-local
- * head row. Outside the shell (public pages) everything renders inline. It also sets the document title.
+ * head row. Outside the shell (public pages), and inside it when the top bar has no primary action slot (below
+ * 768px), the primary action renders inline in the head row. It also sets the document title.
  */
 import { useEffect } from 'react';
 import type { ReactNode } from 'react';
@@ -41,8 +42,11 @@ export function PageHeader({
   }, [title]);
 
   const inShell = slots !== null && slots.title !== null;
+  const actionInTopbar = inShell && slots.primaryAction !== null;
+  const inlinePrimary = actionInTopbar ? undefined : primaryAction;
   const hasHeadRow =
     !inShell ||
+    inlinePrimary !== undefined ||
     subtitle !== undefined ||
     meta !== undefined ||
     actions !== undefined ||
@@ -51,7 +55,7 @@ export function PageHeader({
   return (
     <>
       {inShell && slots.title !== null && createPortal(title, slots.title)}
-      {inShell &&
+      {actionInTopbar &&
         slots.primaryAction !== null &&
         primaryAction !== undefined &&
         createPortal(primaryAction, slots.primaryAction)}
@@ -68,10 +72,10 @@ export function PageHeader({
             {subtitle !== undefined && <p className="tiq-page-intro">{subtitle}</p>}
             {meta !== undefined && <div className="tiq-page-meta">{meta}</div>}
           </div>
-          {(actions !== undefined || (!inShell && primaryAction !== undefined)) && (
+          {(actions !== undefined || inlinePrimary !== undefined) && (
             <div className="tiq-page-actions">
               {actions}
-              {!inShell && primaryAction}
+              {inlinePrimary}
             </div>
           )}
         </div>

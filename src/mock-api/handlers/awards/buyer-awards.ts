@@ -4,6 +4,7 @@
  * record is a 404. Commands check the state the fixtures imply and answer with a static outcome (nothing persists).
  */
 import {
+  AWARD_CLOSEOUT_NEXT_STEPS,
   createOutcomeNotice,
   createRecommendation,
   decideRecommendation,
@@ -25,7 +26,9 @@ import {
   updateRecommendation,
 } from '../../../contracts/awards.js';
 import type {
+  AwardNextStep,
   AwardReconciliation,
+  AwardRegisterRow,
   GateCheck,
   LotOutcome,
   OutcomeNoticeDetail,
@@ -116,6 +119,17 @@ function reconcile(tenderLots: readonly { lotId: number; lotNo: number }[], outc
   };
 }
 
+/**
+ * A file belongs to the closeout register when its closure is blocked, closed or archived, or when its next step is
+ * closing or archiving: exactly the files the closeout KPIs count (AC-29).
+ */
+function inCloseoutStage(row: AwardRegisterRow): boolean {
+  return (
+    (row.closeoutStatus !== null && row.closeoutStatus !== 'in_progress') ||
+    (AWARD_CLOSEOUT_NEXT_STEPS as readonly AwardNextStep[]).includes(row.nextStep)
+  );
+}
+
 export function registerBuyerAwardRoutes(app: MockApp): void {
   // ---------------------------------------------------------------------------------------------------
   // Register and overview
@@ -134,6 +148,9 @@ export function registerBuyerAwardRoutes(app: MockApp): void {
         (query.recommendationStatus === undefined ||
           (row.latestRecommendation !== null && query.recommendationStatus.includes(row.latestRecommendation.status))) &&
         (query.nextStep === undefined || query.nextStep.includes(row.nextStep)) &&
+        (query.closeoutStatus === undefined ||
+          (row.closeoutStatus !== null && query.closeoutStatus.includes(row.closeoutStatus))) &&
+        (query.view !== 'closeout' || inCloseoutStage(row)) &&
         (query.ownerUserId === undefined || row.owner.userId === query.ownerUserId) &&
         (query.hasActiveHold === undefined || (row.activeHoldCount > 0) === query.hasActiveHold) &&
         inDateRange(row.updatedAt, query.updatedFrom, query.updatedTo),
@@ -264,7 +281,7 @@ export function registerBuyerAwardRoutes(app: MockApp): void {
         return fail(422, 'CURRENCY_MISMATCH', `Awarded values must be in ${tender.ref.currency}.`);
       }
       if (input.bidId !== null && !current.offers.some((offer) => offer.bidId === input.bidId && offer.complianceStatus === 'compliant')) {
-        return fail(422, 'BID_NOT_ELIGIBLE', `Offer ${input.bidId} is not a compliant offer in this recommendation.`);
+        return fail(409, 'BID_NOT_ELIGIBLE', `Offer ${input.bidId} is not a compliant offer in this recommendation.`);
       }
     }
     const missing = scopeLotIds.find((lotId) => !body.lotOutcomes.some((row) => row.lotId === lotId));

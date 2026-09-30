@@ -1,6 +1,7 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
+import { MemoryRouter, Route, Routes } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
 import { ApiError } from '../../api/client';
@@ -89,7 +90,7 @@ describe('DataTable', () => {
     ).toHaveLength(2);
   });
 
-  it('opens a row with click or keyboard but leaves links inside the row alone', async () => {
+  it('opens a row through a named open button (keyboard) or a row click, leaving links in the row alone', async () => {
     const onRowClick = vi.fn();
     render(
       <DataTable
@@ -102,11 +103,45 @@ describe('DataTable', () => {
       />,
     );
     const row = screen.getByRole('row', { name: 'Open T-2026-0003' });
-    row.focus();
+    expect(row).not.toHaveAttribute('tabindex');
+    expect(screen.getByRole('columnheader', { name: 'Open' })).toBeInTheDocument();
+    const open = within(row).getByRole('button', { name: 'Open T-2026-0003' });
+    open.focus();
     await userEvent.keyboard('{Enter}');
+    expect(onRowClick).toHaveBeenCalledTimes(1);
     expect(onRowClick).toHaveBeenCalledWith(rows[0]);
     await userEvent.click(within(row).getByText('SCADA telemetry upgrade'));
     expect(onRowClick).toHaveBeenCalledTimes(1);
+    await userEvent.click(within(row).getByText('T-2026-0003'));
+    expect(onRowClick).toHaveBeenCalledTimes(2);
+  });
+
+  it('renders a real link to the record when rowHref is given, and names it by position without a rowLabel', async () => {
+    render(
+      <MemoryRouter initialEntries={['/tenders']}>
+        <Routes>
+          <Route
+            path="/tenders"
+            element={
+              <DataTable
+                caption="Tenders"
+                columns={columns}
+                rows={rows}
+                rowKey={(row) => row.id}
+                rowHref={(row) => `/tenders/${row.id}`}
+              />
+            }
+          />
+          <Route path="/tenders/:id" element={<p>record page</p>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole('link', { name: 'Open row 1' })).toHaveAttribute(
+      'href',
+      '/tenders/T-2026-0003',
+    );
+    await userEvent.click(screen.getByText('T-2026-0002'));
+    expect(screen.getByText('record page')).toBeInTheDocument();
   });
 
   it('shows loading, empty, restricted and error states', async () => {

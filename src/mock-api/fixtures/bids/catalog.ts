@@ -48,6 +48,7 @@ import type {
   TendersStatus,
 } from '../../../contracts/enums.js';
 import type { ServiceIncidentSeverity } from '../../../contracts/operations/shared.js';
+import { INCIDENT_SLOW_UPLOADS_WINDOW } from '../operations/incidents.js';
 import { TENANT_IDS } from '../platform.js';
 
 export const GABORONE = 'Africa/Gaborone';
@@ -202,7 +203,7 @@ export const BID_TENDERS: readonly FixtureBidTender[] = Object.freeze([
     closedAt: '2026-06-05T13:00:00Z',
     closedByUserId: null,
     invitedSupplierTenantIds: null,
-    lots: [lot(4, 1, 'Market consultation', 'closed')],
+    lots: [lot(4, 1, 'Leak-detection market consultation', 'closed')],
   },
   {
     id: 5,
@@ -248,7 +249,7 @@ export const BID_TENDERS: readonly FixtureBidTender[] = Object.freeze([
     closedAt: null,
     closedByUserId: null,
     invitedSupplierTenantIds: [TENANT_IDS.tsodilo, TENANT_IDS['chobe-pipe']],
-    lots: [lot(6, 1, 'Gas chlorinators with automatic changeover', 'open', 'Four gas dosing skids with residual analysers for two treatment works.')],
+    lots: [lot(6, 1, 'Chlorine dosing equipment', 'open', 'Gas chlorinators with automatic changeover: four gas dosing skids with residual analysers for two treatment works.')],
   },
   {
     id: 7,
@@ -343,8 +344,8 @@ export const BID_TENDERS: readonly FixtureBidTender[] = Object.freeze([
     alternativesAllowed: false,
     maxLotsPerSupplier: null,
     currentVersionNo: 1,
-    rounds: [{ roundType: 'initial', deadline: '2026-04-03T08:00:00Z' }],
-    closedAt: '2026-04-03T08:00:00Z',
+    rounds: [{ roundType: 'initial', deadline: '2026-02-03T08:00:00Z' }],
+    closedAt: '2026-02-03T08:00:00Z',
     closedByUserId: null,
     invitedSupplierTenantIds: null,
     lots: [lot(10, 1, 'Fleet vehicle maintenance', 'awarded')],
@@ -991,8 +992,8 @@ export const BID_TENDER_INCIDENTS: readonly FixtureTenderIncident[] = Object.fre
     title: 'Slow document uploads',
     severity: 'high',
     status: 'resolved',
-    startedAt: '2026-09-24T13:20:00Z',
-    resolvedAt: '2026-09-24T14:05:00Z',
+    startedAt: INCIDENT_SLOW_UPLOADS_WINDOW.startedAt,
+    resolvedAt: INCIDENT_SLOW_UPLOADS_WINDOW.resolvedAt,
     impactNote:
       'Uploads to submission storage were delayed for 45 minutes. One replacement attempt on T-2026-0002 did not complete; the earlier receipt stayed effective.',
     buyerDecisionNote:

@@ -415,6 +415,10 @@ export const request: RequestDetail = {
       decidedAt: '2026-09-23T08:15:00Z',
       reason: 'Total commitment BWP 5,120,000 exceeds my BWP 2,000,000 request authority.',
     },
+    awaitingDecisionFrom: {
+      userId: 18,
+      fullName: 'Keabetswe Nkwe',
+    },
   },
   links: [
     {
@@ -1086,6 +1090,10 @@ export const decision: RequestDecisionView = {
     },
     requestedAt: '2026-09-23T08:15:00Z',
     dueAt: '2026-10-07T15:00:00Z',
+  },
+  awaitingDecisionFrom: {
+    userId: 18,
+    fullName: 'Keabetswe Nkwe',
   },
   funding: {
     status: 'approved_budget',

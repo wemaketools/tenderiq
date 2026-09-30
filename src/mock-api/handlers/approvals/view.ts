@@ -32,6 +32,7 @@ import { findPersonaById, organizationLabel, personRef } from '../../persona.js'
 import { latestConfirmed } from '../documents/access.js';
 import type { AccessScope } from '../documents/access.js';
 import { canRead } from '../documents/access.js';
+import { subjectLinkFor } from './links.js';
 
 export { findFixtureApproval };
 
@@ -232,6 +233,9 @@ export function blockersFor(approval: FixtureApproval, userId: number, permissio
   if (approval.holdActive) {
     blockers.push('hold_active');
   }
+  if (approval.status === 'pending' && (approval.subjectGates ?? []).length > 0) {
+    blockers.push('subject_gate_blocked');
+  }
   return blockers;
 }
 
@@ -376,7 +380,7 @@ export function toApprovalDetail(
     justification: approval.justification,
     legalEntity: approval.legalEntity,
     category: approval.category,
-    subjectLinkPath: approval.subjectLinkPath,
+    subjectLinkPath: viewer === null ? approval.subjectLinkPath : subjectLinkFor(approval.subjectLinkPath, viewer.permissions),
     currentSubjectVersion: approval.currentSubjectVersion,
     conditions: approval.conditions,
     invalidatedReason: approval.invalidatedReason,
@@ -439,6 +443,7 @@ export function toApprovalDetail(
             changes: approval.invalidation.changes.map((change) => ({ ...change })),
             replacementApprovalId: approval.invalidation.replacementApprovalId,
           },
+    subjectGates: approval.status === 'pending' ? (approval.subjectGates ?? []).map((gate) => ({ ...gate })) : [],
     relatedApprovals: related.map(toApprovalSummary),
   };
 }

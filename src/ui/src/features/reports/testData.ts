@@ -1796,6 +1796,7 @@ export const DEFINITION = ReportDefinition.parse({
         format: 'xlsx',
         status: 'running',
         fileName: null,
+        accessible: true,
       },
       recipients: [
         {
@@ -1828,6 +1829,7 @@ export const DEFINITION = ReportDefinition.parse({
         format: 'csv',
         status: 'ready',
         fileName: 'pipeline-2026-09-28.csv',
+        accessible: true,
       },
       recipients: [
         {
@@ -1869,6 +1871,7 @@ export const DEFINITION = ReportDefinition.parse({
         format: 'csv',
         status: 'ready',
         fileName: 'pipeline-2026-09-21.csv',
+        accessible: false,
       },
       recipients: [
         {

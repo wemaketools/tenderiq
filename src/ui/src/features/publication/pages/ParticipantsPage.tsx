@@ -6,7 +6,6 @@
  * the bid intent a supplier chose to share (DD-41).
  */
 import { useState } from 'react';
-import { useNavigate } from 'react-router';
 
 import {
   NOTICE_RECIPIENTS_DELIVERY_STATUS,
@@ -148,7 +147,6 @@ function ParticipantsView({
   readonly summary: ParticipantSummary;
   readonly reloadSummary: () => void;
 }) {
-  const navigate = useNavigate();
   const toast = useToast();
   const organizationZone = useOfficialTimeZone();
   const timeZone = summary.tender.submissionDeadline?.timeZone ?? organizationZone;
@@ -597,7 +595,7 @@ function ParticipantsView({
           rows={rows}
           rowKey={(row) => String(row.id)}
           rowLabel={(row) => row.supplier.legalName}
-          onRowClick={(row) => void navigate(publicationPaths.participant(tenderId, row.id))}
+          rowHref={(row) => publicationPaths.participant(tenderId, row.id)}
           loading={query.isFetching}
           error={query.error}
           onRetry={query.reload}

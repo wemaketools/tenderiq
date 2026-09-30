@@ -3,12 +3,18 @@
   "unit": "evaluation",
   "status": "done",
   "gapsFixed": 9,
-  "screens": ["EVA-01", "EVA-02", "EVA-04", "EVA-05", "EVA-06"],
+  "screens": [
+    "EVA-01",
+    "EVA-02",
+    "EVA-04",
+    "EVA-05",
+    "EVA-06"
+  ],
   "endpoints": 33,
   "checks": {
     "typecheck": "clean for evaluation paths (root and SPA)",
     "lint": "eslint clean (root and SPA --max-warnings 0), prettier clean",
-    "tests": "root unit 89/89 (contract, fixtures, handlers); SPA src/features/evaluation 60/60"
+    "tests": "root unit evaluation 94/94; SPA src/features/evaluation 67/67"
   },
   "followUps": [
     {
@@ -25,6 +31,33 @@
       "kind": "permission",
       "description": "Only one persona (refilwe.commercial) holds evaluation.commercial",
       "detail": "Arithmetic corrections in the fixtures are proposed by lesego.finance so the commercial reviewer can approve them; a second commercial reviewer persona would let the self-approval rule be demonstrated end to end."
+    }
+  ],
+  "qaFixes": [
+    {
+      "finding": "EVA-02 score fields lacked criterion/bid in their accessible names",
+      "fix": "Each criterion's field stack is role=group 'Score for {criterion}, {bid}'; every field (and the correction dialog fields) carries a visually hidden '{label} for {criterion}, {bid}' name",
+      "test": "AssessmentPage.test.tsx 'names the criterion and bid in every score field'"
+    },
+    {
+      "finding": "EVA-02 'Request clarification' never reached EVA-03",
+      "fix": "A flagged, saved cell offers 'Send to the chair' (CellClarificationDialog, COM-02) that calls buyer.opening.raiseClarification with source 'evaluation', the prefilled question, permitted scope and official deadline, then links to the bid clarifications queue",
+      "test": "AssessmentPage.test.tsx clarification tests"
+    },
+    {
+      "finding": "EVA-05 spread precision inconsistent",
+      "fix": "Mock rounds the spread to 1 place; UI formats ratings, spreads, threshold and agreed scores at RATING_PLACES=1",
+      "test": "ModerationPage.test.tsx and handler spread test"
+    },
+    {
+      "finding": "Overview leaked draft results, gate note and competitor data",
+      "fix": "EvaluationOverview.detailLevel (full | own_assessment_pending | conflict_pending_review); sensitive timeline details withheld, gate note nulled (overview and list), bids withheld on pending conflict, conflict details for chair and declarant only; UI banner explains",
+      "test": "handler tests for amantle.eval, sam.dual, thato.eval, chair; EvaluationOverviewPage tests"
+    },
+    {
+      "finding": "T-2026-0003 gate wording and header next action",
+      "fix": "Gate note records the outstanding C3 score; label 'Non-price moderation confirmed complete'; new next action resolve_blockers when the computed ranking still has blocking readiness items",
+      "test": "handler list next-action and chair overview tests"
     }
   ]
 }

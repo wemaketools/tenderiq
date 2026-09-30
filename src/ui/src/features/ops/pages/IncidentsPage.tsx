@@ -308,7 +308,7 @@ export default function IncidentsPage() {
           onRetry={incidents.reload}
           sort={{ key: filters.sort, dir: filters.dir as 'asc' | 'desc' }}
           onSortChange={(next) => setFilters({ sort: next.key, dir: next.dir, page: 1 })}
-          onRowClick={(row) => navigate(opsPaths.incident(row.id))}
+          rowHref={(row) => opsPaths.incident(row.id)}
           rowLabel={(row) => t('ops.incidents.rowLabel', { reference: row.reference })}
           empty={
             <EmptyState

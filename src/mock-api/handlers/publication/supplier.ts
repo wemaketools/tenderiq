@@ -80,6 +80,7 @@ import type {
   FixtureSubscription,
   FixtureTender,
 } from '../../fixtures/publication.js';
+import { CLARIFICATION_TENDERS } from '../../fixtures/clarifications/index.js';
 import { allPersonas, findTenantById, findTenantRole, membershipPermissions } from '../../persona.js';
 import type { Persona } from '../../persona.js';
 import {
@@ -127,6 +128,44 @@ function visibleTender(supplierTenantId: number, tenderId: number, fail: Fail): 
     return fail(404, 'OPPORTUNITY_NOT_FOUND', 'No opportunity with this id is available to your organization.');
   }
   return tender;
+}
+
+/**
+ * The tender an organization may ask access to: a visible one, or one it already asked for (a pending or denied
+ * request, followed under /supplier/invitations), so a denied applicant can ask again without seeing the event.
+ */
+function requestableTender(supplierTenantId: number, tenderId: number, fail: Fail): FixtureTender {
+  const tender = tenderById(tenderId);
+  const participant = tender === undefined ? undefined : participantOf(tender.id, supplierTenantId);
+  if (tender !== undefined && tender.releasedAt !== null && participant?.source === 'access_request') {
+    return tender;
+  }
+  return visibleTender(supplierTenantId, tenderId, fail);
+}
+
+/**
+ * The organization takes part in the event's clarification channel (SUP-10, SUP-11): the clarifications domain serves
+ * the questions, published answers and sessions of an event to its participants only.
+ */
+function takesPartInClarifications(tenderId: number, supplierTenantId: number): boolean {
+  return (
+    CLARIFICATION_TENDERS.find((entry) => entry.id === tenderId)?.participants.some((entry) => entry.supplierTenantId === supplierTenantId) ?? false
+  );
+}
+
+/** The declared qualification gate: the `qualification_required` condition, blocking or informational (AC-07). */
+function qualificationGateOf(tender: FixtureTender): { blocking: boolean } | null {
+  if (tender.qualificationProgram === null) {
+    return null;
+  }
+  const declared = tender.conditions.find((condition) => condition.conditionType === 'qualification_required');
+  return { blocking: declared?.blocking ?? true };
+}
+
+/** True when the declared gate keeps this participant from responding (a blocking gate that is not met). */
+function blockedByQualification(tender: FixtureTender, participant: FixtureParticipant | undefined): boolean {
+  const gate = qualificationGateOf(tender);
+  return gate !== null && gate.blocking && participant !== undefined && participant.qualificationGate !== 'met' && participant.qualificationGate !== 'not_required';
 }
 
 function requireParticipant(tender: FixtureTender, supplierTenantId: number, fail: Fail): FixtureParticipant {
@@ -394,14 +433,32 @@ function readinessOf(tender: FixtureTender, participant: FixtureParticipant | un
         : { id: 'confidentiality', label: 'Confidentiality undertaking accepted', status: 'blocking', detail: 'An authorized representative must accept it.' },
     );
   }
-  if (tender.qualificationProgram !== null) {
-    checks.push(
-      participant.qualificationGate === 'met'
-        ? { id: 'qualification', label: 'Qualification gate', status: 'passed', detail: tender.qualificationProgram }
-        : participant.qualificationGate === 'pending'
-          ? { id: 'qualification', label: 'Qualification gate', status: 'warning', detail: 'Your qualification decision is pending.' }
-          : { id: 'qualification', label: 'Qualification gate', status: 'blocking', detail: `A current "${tender.qualificationProgram}" qualification is required.` },
-    );
+  const gate = qualificationGateOf(tender);
+  if (gate !== null && tender.qualificationProgram !== null) {
+    const program = tender.qualificationProgram;
+    const pending = participant.qualificationGate === 'pending';
+    if (participant.qualificationGate === 'met' || participant.qualificationGate === 'not_required') {
+      checks.push({ id: 'qualification', label: 'Qualification gate', status: 'passed', detail: program });
+    } else if (!gate.blocking) {
+      // An informational gate (for example "before award") never blocks participation (AC-07).
+      checks.push({
+        id: 'qualification',
+        label: 'Qualification before award',
+        status: 'warning',
+        detail: pending
+          ? `A current "${program}" qualification is needed before award; your application awaits a decision.`
+          : `A current "${program}" qualification is needed before award; you may respond meanwhile.`,
+      });
+    } else {
+      checks.push({
+        id: 'qualification',
+        label: 'Qualification gate',
+        status: 'blocking',
+        detail: pending
+          ? `A current "${program}" qualification is required to respond; your application awaits a decision.`
+          : `A current "${program}" qualification is required to respond.`,
+      });
+    }
   }
   const outstanding = outstandingAcknowledgments(tender, participant);
   checks.push(
@@ -442,7 +499,7 @@ function workspaceOf(tender: FixtureTender, supplierTenantId: number, userId: nu
   const accepting = isAcceptingResponses(tender, now);
   const readiness = readinessOf(tender, participant, now);
   const qualification = qualificationFor(tender, supplierTenantId);
-  const eligibleForLots = participant === undefined || participant.qualificationGate !== 'not_met';
+  const eligibleForLots = !blockedByQualification(tender, participant);
   return {
     tender: {
       ...tenderLabel(tender),
@@ -500,7 +557,7 @@ function workspaceOf(tender: FixtureTender, supplierTenantId: number, userId: nu
       mandatory: session.mandatory,
       capacity: session.capacity,
       placesLeft: session.placesLeft,
-      registrationDeadline: session.registrationDeadline,
+      registrationDeadline: session.registrationDeadline === null ? null : { at: session.registrationDeadline, timeZone: tender.officialTimeZone },
       status: session.status,
       registrationStatus: participant?.sessionRegistrations.find((entry) => entry.sessionId === session.sessionId)?.status ?? null,
     })),
@@ -534,6 +591,7 @@ function workspaceOf(tender: FixtureTender, supplierTenantId: number, userId: nu
       canStartResponse:
         (has(permissions, 'supplier.response.edit') || has(permissions, 'supplier.pursuit.manage')) &&
         readiness.every((check) => check.status !== 'blocking'),
+      canViewClarifications: takesPartInClarifications(tender.id, supplierTenantId),
     },
   };
 }
@@ -582,7 +640,7 @@ function invitationDetail(participant: FixtureParticipant, tender: FixtureTender
     accessDecisionReason: participant.accessDecisionReason,
     sharedNoBidReason: participant.sharedNoBidReason,
     history: participantHistory(participant),
-    opportunityPath: `/supplier/opportunities/${tender.id}`,
+    opportunityPath: isVisibleToSupplier(tender, participant.supplierTenantId) ? `/supplier/opportunities/${tender.id}` : null,
     capabilities: {
       canRespond: canRespond && participant.invitationStatus === 'invited',
       canAcceptConfidentiality:
@@ -837,7 +895,7 @@ export function registerSupplier(app: MockApp): void {
 
   mockRoute(app, requestAccess, ({ requireTenant, params, now, fail }) => {
     const supplierId = requireTenant().tenant.id;
-    const tender = visibleTender(supplierId, params.tenderId, fail);
+    const tender = requestableTender(supplierId, params.tenderId, fail);
     if (!requiresAccessDecision(tender)) {
       return fail(409, 'ACCESS_NOT_REQUIRED', 'This event’s documents need no access decision.');
     }
@@ -936,17 +994,17 @@ export function registerSupplier(app: MockApp): void {
     for (const lotId of body.lotIds) {
       const entry = tender.lots.find((candidate) => candidate.lotId === lotId);
       if (entry === undefined) {
-        return fail(404, 'LOT_NOT_FOUND', `Lot ${lotId} is not part of ${tender.reference}.`);
+        return fail(422, 'LOT_NOT_FOUND', `Lot ${lotId} is not part of ${tender.reference}.`);
       }
       if (entry.stage !== 'open' || !isAcceptingResponses(tender, now)) {
         return fail(409, 'LOT_NOT_OPEN', `Lot ${entry.lotNo} is not open for responses.`);
       }
     }
-    if (participant.qualificationGate === 'not_met') {
+    if (blockedByQualification(tender, participant)) {
       return fail(409, 'LOT_NOT_ELIGIBLE', 'The qualification gate of this event is not met.');
     }
     if (tender.maxLotsPerSupplier !== null && body.lotIds.length > tender.maxLotsPerSupplier) {
-      return fail(409, 'MAX_LOTS_EXCEEDED', `At most ${tender.maxLotsPerSupplier} lots per supplier.`);
+      return fail(422, 'MAX_LOTS_EXCEEDED', `At most ${tender.maxLotsPerSupplier} lots per supplier.`);
     }
     return { participantId: participant.id, selectedLotIds: [...body.lotIds], updatedAt: isoInstant(now) };
   });

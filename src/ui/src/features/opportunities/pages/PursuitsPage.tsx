@@ -2,7 +2,6 @@
  * SUP-09 pursuits register: every private pursuit of the supplier organization with its decision, attractiveness,
  * effort, owner, team size and the intent the buyer can see (shared only through "Notify buyer", DD-41).
  */
-import { useNavigate } from 'react-router';
 
 import { PURSUITS_DECISION } from '@contracts/enums';
 import { PURSUIT_SORT_FIELDS, publicationEndpoints } from '@contracts/publication';
@@ -55,7 +54,6 @@ const DEFAULTS = {
 };
 
 export default function PursuitsPage() {
-  const navigate = useNavigate();
   const timeZone = useOfficialTimeZone();
   const [filters, setFilters, clearFilters] = useScreenFilters('SUP-09', DEFAULTS);
   const query = useApiQuery(publicationEndpoints.listPursuits, {
@@ -253,7 +251,7 @@ export default function PursuitsPage() {
           rows={query.data?.items}
           rowKey={(row) => String(row.id)}
           rowLabel={(row) => `${row.tender.reference} ${row.tender.title}`}
-          onRowClick={(row) => void navigate(opportunityPaths.pursuit(row.tender.tenderId))}
+          rowHref={(row) => opportunityPaths.pursuit(row.tender.tenderId)}
           loading={query.isFetching}
           error={query.error}
           onRetry={query.reload}

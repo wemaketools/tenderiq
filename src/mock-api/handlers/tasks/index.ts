@@ -316,7 +316,7 @@ export function register(app: MockApp): void {
     }
     const candidate = candidatesFor(task, persona.userId).find((entry) => entry.userId === body.assigneeUserId);
     if (candidate === undefined) {
-      return fail(422, 'REASSIGNEE_NOT_ELIGIBLE', 'This colleague does not hold the capacity the task needs.');
+      return fail(409, 'REASSIGNEE_NOT_ELIGIBLE', 'This colleague does not hold the capacity the task needs.');
     }
     const at = iso(now);
     const note = `Reassigned to ${candidate.fullName}: ${body.reason}`;

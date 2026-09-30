@@ -4,7 +4,6 @@
  * review, publish to the correct audience, escalate to an addendum) run on the question page.
  */
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router';
 
 import { clarificationsEndpoints } from '@contracts/clarifications';
 import type { BuyerQuestionRow } from '@contracts/clarifications';
@@ -58,7 +57,6 @@ const DEFAULT_FILTERS = {
 type SortField = 'submittedAt' | 'responseDueAt' | 'status' | 'tenderReference';
 
 export default function QuestionsPage() {
-  const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const tenant = useActiveTenant();
   const timeZone = tenant?.officialTimeZone ?? 'UTC';
@@ -259,7 +257,7 @@ export default function QuestionsPage() {
           onRetry={questions.reload}
           sort={sort}
           onSortChange={(next) => setFilters({ sort: next.key, dir: next.dir, page: 1 })}
-          onRowClick={(row) => navigate(buyerPaths.question(row.id))}
+          rowHref={(row) => buyerPaths.question(row.id)}
           rowLabel={(row) => t('clarifications.questions.rowLabel', { id: row.id })}
           empty={
             <EmptyState
@@ -356,9 +354,9 @@ export default function QuestionsPage() {
                   EMPTY_VALUE
                 ) : (
                   <>
-                    {formatDateTime(row.responseDueAt, timeZone)}
+                    <OfficialDeadline deadline={row.responseDueAt} showLocal={false} />
                     {!isQuestionClosed(row.status) &&
-                      new Date(row.responseDueAt).getTime() < now && (
+                      new Date(row.responseDueAt.at).getTime() < now && (
                         <div>
                           <OverdueChip />
                         </div>

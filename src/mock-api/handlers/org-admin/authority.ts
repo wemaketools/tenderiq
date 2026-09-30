@@ -132,7 +132,7 @@ export function registerAuthority(app: MockApp): void {
     if (body.subjectType === 'user') {
       const member = memberOfTenant(tenant.id, body.subjectId);
       if (member === undefined || member.membershipStatus !== 'active') {
-        return fail(422, 'SUBJECT_NOT_FOUND', 'Choose an active member of this organization.');
+        return fail(404, 'SUBJECT_NOT_FOUND', 'Choose an active member of this organization.');
       }
       if (member.userId === caller.userId) {
         return fail(403, 'SELF_AUTHORITY_FORBIDDEN', 'Nobody can set their own approval authority.');
@@ -141,13 +141,13 @@ export function registerAuthority(app: MockApp): void {
     } else if (body.subjectType === 'role') {
       const role = findTenantRoleById(tenant.id, body.subjectId);
       if (role === undefined || !role.active) {
-        return fail(422, 'SUBJECT_NOT_FOUND', 'Choose an active role of this organization.');
+        return fail(404, 'SUBJECT_NOT_FOUND', 'Choose an active role of this organization.');
       }
       subject = { id: role.roleId, name: role.name };
     } else {
       const committee = COMMITTEES.find((candidate) => candidate.tenantId === tenant.id && candidate.committeeId === body.subjectId && candidate.active);
       if (committee === undefined) {
-        return fail(422, 'SUBJECT_NOT_FOUND', 'Choose an active committee of this organization.');
+        return fail(404, 'SUBJECT_NOT_FOUND', 'Choose an active committee of this organization.');
       }
       subject = { id: committee.committeeId, name: committee.name };
     }

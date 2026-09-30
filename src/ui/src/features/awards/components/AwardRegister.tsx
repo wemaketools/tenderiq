@@ -6,8 +6,12 @@
 import { useNavigate } from 'react-router';
 
 import { AWARD_NEXT_STEPS, AWARD_REGISTER_SORT_FIELDS, listAwards } from '@contracts/awards';
-import type { AwardNextStep, AwardRegisterRow } from '@contracts/awards';
-import { AWARD_RECOMMENDATIONS_STATUS, TENDERS_STATUS } from '@contracts/enums';
+import type { AwardRegisterRow } from '@contracts/awards';
+import {
+  AWARD_RECOMMENDATIONS_STATUS,
+  EVENT_CLOSEOUTS_STATUS,
+  TENDERS_STATUS,
+} from '@contracts/enums';
 
 import { useApiQuery } from '../../../api/hooks';
 import { useScreenFilters } from '../../../app/hooks';
@@ -41,12 +45,11 @@ import { NextStepChip } from './NextStepChip';
 
 export type AwardRegisterMode = 'award' | 'closeout';
 
-const CLOSEOUT_STEPS: readonly AwardNextStep[] = ['close_event', 'archive', 'none'];
-
 const DEFAULTS = {
   q: '',
   status: '',
   recommendationStatus: '',
+  closeoutStatus: '',
   nextStep: '',
   holds: false,
   updatedFrom: '',
@@ -69,7 +72,10 @@ export function AwardRegister({ mode }: { readonly mode: AwardRegisterMode }) {
       q: filters.q.trim(),
       status: oneOf(filters.status, TENDERS_STATUS),
       recommendationStatus: oneOf(filters.recommendationStatus, AWARD_RECOMMENDATIONS_STATUS),
-      nextStep: stepFilter ?? (mode === 'closeout' ? [...CLOSEOUT_STEPS] : undefined),
+      nextStep: stepFilter,
+      closeoutStatus:
+        mode === 'closeout' ? oneOf(filters.closeoutStatus, EVENT_CLOSEOUTS_STATUS) : undefined,
+      view: mode,
       hasActiveHold: filters.holds ? true : undefined,
       updatedFrom: dateOf(filters.updatedFrom),
       updatedTo: dateOf(filters.updatedTo),
@@ -79,7 +85,7 @@ export function AwardRegister({ mode }: { readonly mode: AwardRegisterMode }) {
       pageSize: filters.pageSize,
     }),
   });
-  const overview = useApiQuery(listAwards, { query: { pageSize: 100 } });
+  const overview = useApiQuery(listAwards, { query: { view: mode, pageSize: 100 } });
   const all = overview.data?.items ?? [];
   const loaded = overview.data !== undefined;
   const count = (rows: readonly AwardRegisterRow[]): string =>
@@ -89,6 +95,7 @@ export function AwardRegister({ mode }: { readonly mode: AwardRegisterMode }) {
     filters.q !== '' ||
     filters.status !== '' ||
     filters.recommendationStatus !== '' ||
+    filters.closeoutStatus !== '' ||
     filters.nextStep !== '' ||
     filters.holds ||
     filters.updatedFrom !== '' ||
@@ -116,9 +123,27 @@ export function AwardRegister({ mode }: { readonly mode: AwardRegisterMode }) {
     },
     {
       id: 'status',
-      header: t('awards.register.col.status'),
+      header: t('awards.register.col.statusCases'),
       sortable: true,
-      cell: (row) => <StatusChip enum="tenders.status" value={row.tender.status} />,
+      cell: (row) => (
+        <>
+          <StatusChip enum="tenders.status" value={row.tender.status} />
+          {(row.activeHoldCount > 0 || row.openComplaintCount > 0) && (
+            <span className="tiq-cell-sub tiq-inline">
+              {row.activeHoldCount > 0 && (
+                <Chip tone="danger" size="sm" icon="pause">
+                  {t('awards.register.holds', { count: row.activeHoldCount })}
+                </Chip>
+              )}
+              {row.openComplaintCount > 0 && (
+                <Chip tone="warning" size="sm" icon="scale">
+                  {t('awards.register.complaints', { count: row.openComplaintCount })}
+                </Chip>
+              )}
+            </span>
+          )}
+        </>
+      ),
     },
     {
       id: 'lots',
@@ -151,33 +176,30 @@ export function AwardRegister({ mode }: { readonly mode: AwardRegisterMode }) {
       {
         id: 'recommendation',
         header: t('awards.register.col.recommendation'),
-        cell: (row) =>
-          row.latestRecommendation === null ? (
-            <span className="tiq-text-muted">{t('awards.register.noRecommendation')}</span>
-          ) : (
-            <span className="tiq-inline">
-              <span>{t('awards.common.version', { no: row.latestRecommendation.version })}</span>
-              <StatusChip
-                enum="award_recommendations.status"
-                value={row.latestRecommendation.status}
-                size="sm"
-              />
-            </span>
-          ),
-      },
-      {
-        id: 'value',
-        header: t('awards.register.col.value'),
-        numeric: true,
-        cell: (row) =>
-          row.value === null ? (
-            <OrDash>{null}</OrDash>
-          ) : (
-            <>
-              <MoneyText value={row.value.total} />
-              <span className="tiq-cell-sub">{valueBasisLabel(row.value.basis)}</span>
-            </>
-          ),
+        cell: (row) => (
+          <>
+            {row.latestRecommendation === null ? (
+              <span className="tiq-text-muted">{t('awards.register.noRecommendation')}</span>
+            ) : (
+              <span className="tiq-inline">
+                <span>{t('awards.common.version', { no: row.latestRecommendation.version })}</span>
+                <StatusChip
+                  enum="award_recommendations.status"
+                  value={row.latestRecommendation.status}
+                  size="sm"
+                />
+              </span>
+            )}
+            {row.value !== null && (
+              <>
+                <span className="tiq-cell-sub">
+                  <MoneyText value={row.value.total} />
+                </span>
+                <span className="tiq-cell-sub">{valueBasisLabel(row.value.basis)}</span>
+              </>
+            )}
+          </>
+        ),
       },
       {
         id: 'standstillEndsAt',
@@ -212,49 +234,30 @@ export function AwardRegister({ mode }: { readonly mode: AwardRegisterMode }) {
   }
   columns.push(
     {
-      id: 'holds',
-      header: t('awards.register.col.cases'),
-      cell: (row) => (
-        <span className="tiq-inline">
-          {row.activeHoldCount > 0 && (
-            <Chip tone="danger" size="sm" icon="pause">
-              {t('awards.register.holds', { count: row.activeHoldCount })}
-            </Chip>
-          )}
-          {row.openComplaintCount > 0 && (
-            <Chip tone="warning" size="sm" icon="scale">
-              {t('awards.register.complaints', { count: row.openComplaintCount })}
-            </Chip>
-          )}
-          {row.activeHoldCount === 0 && row.openComplaintCount === 0 && <OrDash>{null}</OrDash>}
-        </span>
-      ),
-    },
-    {
-      id: 'owner',
-      header: t('awards.register.col.owner'),
-      cell: (row) => row.owner.fullName,
-    },
-    {
       id: 'nextStep',
       header: t('awards.register.col.nextStep'),
       cell: (row) => <NextStepChip step={row.nextStep} size="sm" />,
     },
     {
       id: 'updatedAt',
-      header: t('awards.register.col.updated'),
+      header: t('awards.register.col.ownerUpdated'),
       sortable: true,
-      cell: (row) => formatInstantDate(row.updatedAt, timeZone),
+      cell: (row) => (
+        <>
+          <span>{row.owner.fullName}</span>
+          <span className="tiq-cell-sub">{formatInstantDate(row.updatedAt, timeZone)}</span>
+        </>
+      ),
     },
   );
 
-  const stepOptions = (mode === 'award' ? AWARD_NEXT_STEPS : CLOSEOUT_STEPS).map((value) => ({
+  const stepOptions = AWARD_NEXT_STEPS.map((value) => ({
     value,
     label: nextStepLabel(value),
   }));
 
   return (
-    <>
+    <div className="tiq-page">
       <PageHeader
         title={mode === 'award' ? t('awards.register.title') : t('awards.closeoutRegister.title')}
         subtitle={
@@ -288,6 +291,18 @@ export function AwardRegister({ mode }: { readonly mode: AwardRegisterMode }) {
               label: tEnum('award_recommendations.status', value),
             }))}
             onChange={(recommendationStatus) => setFilters({ recommendationStatus, page: 1 })}
+          />
+        )}
+        {mode === 'closeout' && (
+          <Select
+            label={t('awards.register.filter.closeout')}
+            placeholder={t('awards.register.filter.allCloseout')}
+            value={filters.closeoutStatus}
+            options={EVENT_CLOSEOUTS_STATUS.map((value) => ({
+              value,
+              label: tEnum('event_closeouts.status', value),
+            }))}
+            onChange={(closeoutStatus) => setFilters({ closeoutStatus, page: 1 })}
           />
         )}
         <Select
@@ -414,6 +429,6 @@ export function AwardRegister({ mode }: { readonly mode: AwardRegisterMode }) {
           }
         />
       </Card>
-    </>
+    </div>
   );
 }

@@ -38,6 +38,7 @@ import { TeamCard } from '../components/TeamCard';
 import { TenderHeader, TenderWorkspace } from '../components/TenderWorkspace';
 import type { TenderWorkspaceContext } from '../components/TenderWorkspace';
 import { sectionLabel } from '../lib/labels';
+import { approvalCoverageText, isAuthoringStatus } from '../lib/lifecycle';
 import { tenderPaths } from '../lib/paths';
 import { TENDER_CREATE } from '../lib/permissions';
 
@@ -57,6 +58,7 @@ function Overview({ context }: { readonly context: TenderWorkspaceContext }) {
   const [templateOpen, setTemplateOpen] = useState(false);
   const [template, setTemplate] = useState<SavedTemplate | null>(null);
   const zone = tender.officialTimeZone;
+  const authoring = isAuthoringStatus(tender.status);
 
   const onLinked = (result: TenderLinkState): void => {
     context.setTender({
@@ -410,18 +412,24 @@ function Overview({ context }: { readonly context: TenderWorkspaceContext }) {
             <DetailList
               stacked
               items={[
-                {
-                  key: 'draft',
-                  label: t('tender-authoring.overview.draftRevision'),
-                  value: (
-                    <span className="tiq-inline">
-                      <span>{tender.draftRevision}</span>
-                      <Chip tone="neutral" size="sm">
-                        {t('tender-authoring.overview.saved')}
-                      </Chip>
-                    </span>
-                  ),
-                },
+                authoring
+                  ? {
+                      key: 'draft',
+                      label: t('tender-authoring.overview.draftRevision'),
+                      value: (
+                        <span className="tiq-inline">
+                          <span>{tender.draftRevision}</span>
+                          <Chip tone="neutral" size="sm">
+                            {t('tender-authoring.overview.saved')}
+                          </Chip>
+                        </span>
+                      ),
+                    }
+                  : {
+                      key: 'draft',
+                      label: t('tender-authoring.overview.packageRevision'),
+                      value: tender.draftRevision,
+                    },
                 {
                   key: 'issued',
                   label: t('tender-authoring.overview.issuedVersion'),
@@ -491,14 +499,7 @@ function Overview({ context }: { readonly context: TenderWorkspaceContext }) {
                   {
                     key: 'covers',
                     label: t('tender-authoring.release.approval.covers'),
-                    value: approval.coversCurrentRevision
-                      ? t('tender-authoring.release.approval.coversCurrent', {
-                          revision: approval.subjectVersion,
-                        })
-                      : t('tender-authoring.release.approval.coversOld', {
-                          revision: approval.subjectVersion,
-                          current: tender.draftRevision,
-                        }),
+                    value: approvalCoverageText(approval, tender),
                   },
                   {
                     key: 'decided',
@@ -572,7 +573,7 @@ function Overview({ context }: { readonly context: TenderWorkspaceContext }) {
               />
             )}
           </Card>
-          <ReadinessCard tenderId={tender.id} approval={tender.releaseApproval} />
+          <ReadinessCard tender={tender} approval={tender.releaseApproval} />
         </div>
       </div>
       {canEdit && (

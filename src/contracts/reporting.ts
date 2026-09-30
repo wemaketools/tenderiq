@@ -294,6 +294,12 @@ export const getBuyerDashboard = defineEndpoint({
 // SUP-01 — supplier dashboard
 // ---------------------------------------------------------------------------------------------------------
 
+/**
+ * SUP-01 "Expiring evidence" window: the card lists library items that have expired or expire within this many days
+ * of the data's "as of" date. The service applies it and the card states it, so both use this one value.
+ */
+export const SUPPLIER_EVIDENCE_WINDOW_DAYS = 60;
+
 export const SUPPLIER_DASHBOARD_KPIS = [
   'open_invitations',
   'active_pursuits',
@@ -670,6 +676,11 @@ export const ExportSummary = z.object({
   format: z.enum(EXPORTS_FORMAT),
   status: z.enum(EXPORTS_STATUS),
   fileName: z.string().nullable(),
+  /**
+   * The caller may open the export (its requester, or a holder of `report.manage` or `audit.view`). When `false`,
+   * the run history shows the file without a link: someone else's export is never opened from here.
+   */
+  accessible: z.boolean(),
 });
 export type ExportSummary = z.infer<typeof ExportSummary>;
 

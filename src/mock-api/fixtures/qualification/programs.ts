@@ -31,6 +31,8 @@ export interface FxProgram {
   readonly maxContractValue: NonNegativeMoney | null;
   readonly validityMonths: number;
   readonly renewalNoticeDays: number;
+  /** Days after a decision within which the supplier may request reconsideration (the stated appeal window, SUP-24). */
+  readonly reconsiderationWindowDays: number;
   readonly decisionRoleCode: string;
   readonly requiresIndependentApproval: boolean;
   readonly status: QualificationProgramsStatus;
@@ -325,6 +327,9 @@ const ALL_TRIGGERS: readonly ReassessmentTriggersTriggerType[] = [
   'manual',
 ];
 
+/** The reconsideration window every demo program states in its appeal route ("within 14 days"). */
+export const RECONSIDERATION_WINDOW_DAYS = 14;
+
 export const QUALIFICATION_PROGRAMS: readonly FxProgram[] = Object.freeze([
   {
     id: 11,
@@ -332,11 +337,12 @@ export const QUALIFICATION_PROGRAMS: readonly FxProgram[] = Object.freeze([
     name: 'Water Infrastructure Suppliers — Category A',
     description:
       'Suppliers and contractors of pumps, pipes, valves and mechanical equipment for water infrastructure up to BWP 10,000,000 per contract.',
-    categoryId: 201,
+    categoryId: 1,
     geography: 'Botswana',
     maxContractValue: BWP('10000000.00'),
     validityMonths: 24,
     renewalNoticeDays: 60,
+    reconsiderationWindowDays: RECONSIDERATION_WINDOW_DAYS,
     decisionRoleCode: 'procurement_manager',
     requiresIndependentApproval: true,
     status: 'active',
@@ -351,11 +357,12 @@ export const QUALIFICATION_PROGRAMS: readonly FxProgram[] = Object.freeze([
     tenantId: KWU,
     name: 'ICT and Telemetry Service Providers',
     description: 'SCADA, telemetry, network and operational technology service providers.',
-    categoryId: 204,
+    categoryId: 5,
     geography: 'Botswana',
     maxContractValue: BWP('5000000.00'),
     validityMonths: 36,
     renewalNoticeDays: 90,
+    reconsiderationWindowDays: RECONSIDERATION_WINDOW_DAYS,
     decisionRoleCode: 'procurement_manager',
     requiresIndependentApproval: true,
     status: 'active',
@@ -370,11 +377,12 @@ export const QUALIFICATION_PROGRAMS: readonly FxProgram[] = Object.freeze([
     tenantId: KWU,
     name: 'Metering Equipment Suppliers',
     description: 'Suppliers of mechanical and smart water meters, meter reading and installation services.',
-    categoryId: 205,
+    categoryId: 4,
     geography: 'Botswana',
     maxContractValue: BWP('3000000.00'),
     validityMonths: 24,
     renewalNoticeDays: 60,
+    reconsiderationWindowDays: RECONSIDERATION_WINDOW_DAYS,
     decisionRoleCode: 'procurement_manager',
     requiresIndependentApproval: false,
     status: 'active',
@@ -389,11 +397,12 @@ export const QUALIFICATION_PROGRAMS: readonly FxProgram[] = Object.freeze([
     tenantId: KWU,
     name: 'Environmental and Laboratory Services',
     description: 'Water quality laboratories, waste handling and environmental monitoring services.',
-    categoryId: 206,
+    categoryId: 11,
     geography: 'Botswana',
     maxContractValue: BWP('2000000.00'),
     validityMonths: 24,
     renewalNoticeDays: 60,
+    reconsiderationWindowDays: RECONSIDERATION_WINDOW_DAYS,
     decisionRoleCode: 'procurement_manager',
     requiresIndependentApproval: false,
     status: 'active',
@@ -408,11 +417,12 @@ export const QUALIFICATION_PROGRAMS: readonly FxProgram[] = Object.freeze([
     tenantId: KWU,
     name: 'Civil Works Contractors (2024 panel)',
     description: 'Retired panel for minor civil works; replaced by project-specific qualification.',
-    categoryId: 207,
+    categoryId: 8,
     geography: 'South-East District',
     maxContractValue: BWP('1500000.00'),
     validityMonths: 12,
     renewalNoticeDays: 30,
+    reconsiderationWindowDays: RECONSIDERATION_WINDOW_DAYS,
     decisionRoleCode: 'procurement_manager',
     requiresIndependentApproval: false,
     status: 'retired',
@@ -427,11 +437,12 @@ export const QUALIFICATION_PROGRAMS: readonly FxProgram[] = Object.freeze([
     tenantId: KWU,
     name: 'Water Treatment Chemicals and Dosing',
     description: 'Draft program for chlorine, coagulants and dosing equipment suppliers (framework T-2026-0005).',
-    categoryId: 208,
+    categoryId: 6,
     geography: 'Botswana',
     maxContractValue: BWP('4000000.00'),
     validityMonths: 24,
     renewalNoticeDays: 60,
+    reconsiderationWindowDays: RECONSIDERATION_WINDOW_DAYS,
     decisionRoleCode: 'procurement_manager',
     requiresIndependentApproval: true,
     status: 'draft',
@@ -446,11 +457,12 @@ export const QUALIFICATION_PROGRAMS: readonly FxProgram[] = Object.freeze([
     tenantId: ODC,
     name: 'Facilities and Cleaning Contractors',
     description: 'Cleaning, hygiene and facilities contractors for council offices and clinics.',
-    categoryId: 301,
+    categoryId: 20,
     geography: 'Okavango District',
     maxContractValue: BWP('1500000.00'),
     validityMonths: 24,
     renewalNoticeDays: 45,
+    reconsiderationWindowDays: RECONSIDERATION_WINDOW_DAYS,
     decisionRoleCode: 'procurement_manager',
     requiresIndependentApproval: false,
     status: 'active',
@@ -465,11 +477,12 @@ export const QUALIFICATION_PROGRAMS: readonly FxProgram[] = Object.freeze([
     tenantId: ODC,
     name: 'Roads and Civil Works Contractors',
     description: 'Road maintenance, drainage and minor civil works in the Okavango District.',
-    categoryId: 302,
+    categoryId: 21,
     geography: 'Okavango District',
     maxContractValue: BWP('6000000.00'),
     validityMonths: 24,
     renewalNoticeDays: 60,
+    reconsiderationWindowDays: RECONSIDERATION_WINDOW_DAYS,
     decisionRoleCode: 'procurement_manager',
     requiresIndependentApproval: true,
     status: 'active',

@@ -7,8 +7,9 @@ import type {
   AnswerPage,
   BidAnswerDetail,
   BidDeclarations,
-  BidDetail,
   BidRevision,
+  BidStartOption,
+  BidStartOptions,
   InternalReview,
   Receipt,
   ReceiptDownload,
@@ -32,12 +33,10 @@ import {
   BID_INTERNAL_APPROVALS,
   BID_REQUIREMENTS,
   BID_REVISIONS,
-  BID_TENDERS,
   BID_WITHDRAWALS,
-  RELEASED_TENDER_STATUSES,
   SUBMISSION_RECEIPTS,
   fixtureHash,
-  requirementsForLots,
+  roundDeadline,
 } from '../../fixtures/bids/index.js';
 import type { FixtureAnswer, FixtureBid, FixtureBidTender, FixtureInternalApproval, FixtureRevision } from '../../fixtures/bids/index.js';
 import type { TenantAccess } from '../../persona.js';
@@ -51,7 +50,6 @@ import {
   commentsOf,
   declarationsPackOf,
   lotRefs,
-  progressOf,
   sectionsOf,
   tenderRef,
   toAnswerDetail,
@@ -70,6 +68,7 @@ import {
   attemptsOf,
   currentRound,
   defaultRevision,
+  existingBidFor,
   effectiveReceipt,
   isEditable,
   isoOf,
@@ -77,8 +76,12 @@ import {
   receiptsOf,
   requireTender,
   revisionsOf,
+  startBlockOf,
+  startedBid,
   supplierBid,
   supplierTeam,
+  tenderById,
+  tenderVisibleTo,
   windowOpen,
   withdrawalsOf,
   workingRevision,
@@ -87,6 +90,7 @@ import { formatOfficialInstant } from './time.js';
 
 // Minimal context surface used by the helpers below.
 interface Ctx {
+  readonly now: Date;
   requireTenant(): TenantAccess;
   fail(status: number, code: string, detail?: string): never;
 }
@@ -113,7 +117,7 @@ function matches(q: string | undefined, ...values: Array<string | null | undefin
 
 function ownBid(ctx: Ctx, bidId: number): { bid: FixtureBid; tender: FixtureBidTender; access: TenantAccess } {
   const access = ctx.requireTenant();
-  const bid = supplierBid(access.tenant.id, bidId);
+  const bid = supplierBid(access.tenant.id, bidId, ctx.now);
   if (bid === undefined) {
     return ctx.fail(404, 'BID_NOT_FOUND', 'No response with this id exists in your organization.');
   }
@@ -122,7 +126,7 @@ function ownBid(ctx: Ctx, bidId: number): { bid: FixtureBid; tender: FixtureBidT
 
 function revisionOf(ctx: Ctx, bid: FixtureBid, revisionId: number | undefined): FixtureRevision {
   if (revisionId !== undefined) {
-    const revision = BID_REVISIONS.find((row) => row.id === revisionId && row.bidId === bid.id);
+    const revision = revisionsOf(bid).find((row) => row.id === revisionId);
     if (revision === undefined) {
       return ctx.fail(404, 'REVISION_NOT_FOUND', 'This revision does not belong to the response.');
     }
@@ -236,7 +240,7 @@ function declarationsResult(pack: BidDeclarations, revision: FixtureRevision, no
 }
 
 function revisionMap(bid: FixtureBid): Map<number, FixtureRevision> {
-  return new Map(revisionsOf(bid.id).map((row) => [row.id, row]));
+  return new Map(revisionsOf(bid).map((row) => [row.id, row]));
 }
 
 function reviewWith(
@@ -264,7 +268,7 @@ export function registerSupplierRoutes(app: MockApp): void {
       .filter((bid) => {
         const tender = requireTender(bid);
         const working = workingRevision(bid);
-        const latest = revisionsOf(bid.id).at(-1);
+        const latest = revisionsOf(bid).at(-1);
         const revisionStatus = working?.status ?? latest?.status;
         const deadline = tender.rounds.find((round) => round.roundType === bid.roundType)?.deadline ?? '';
         if (!matches(query.q, tender.reference, tender.title, legalNameOf(tender.buyerTenantId))) return false;
@@ -293,62 +297,55 @@ export function registerSupplierRoutes(app: MockApp): void {
     return fixtures.page(sortRows(rows, key, dir));
   });
 
-  mockRoute(app, bidEndpoints.startBid, ({ requireTenant, requirePersona, body, fail, now }) => {
+  mockRoute(app, bidEndpoints.getBidStartOptions, ({ requireTenant, params, fail, now }) => {
     const access = requireTenant();
-    const persona = requirePersona();
-    const tender = BID_TENDERS.find((row) => row.id === body.tenderId);
-    const visible =
-      tender !== undefined &&
-      RELEASED_TENDER_STATUSES.includes(tender.status) &&
-      (tender.invitedSupplierTenantIds === null || tender.invitedSupplierTenantIds.includes(access.tenant.id));
-    if (!visible) {
+    const tender = tenderById(params.tenderId);
+    if (tender === undefined || !tenderVisibleTo(tender, access.tenant.id)) {
       return fail(404, 'TENDER_NOT_FOUND', 'No tender with this id is available to your organization.');
     }
-    if (body.isAlternative && !tender.alternativesAllowed) {
-      return fail(422, 'ALTERNATIVES_NOT_ALLOWED', 'This tender does not accept alternative offers.');
-    }
-    if (tender.status !== 'open') {
-      return fail(409, 'TENDER_NOT_OPEN', `${tender.reference} is not open for responses.`);
-    }
-    if (currentRound(tender) !== body.roundType) {
-      return fail(409, 'ROUND_NOT_OPEN', `The ${body.roundType.replace('_', ' ')} round of ${tender.reference} is not open.`);
-    }
-    if (!windowOpen(tender, body.roundType, now)) {
-      return fail(409, 'TENDER_NOT_OPEN', `The submission deadline of ${tender.reference} has passed.`);
-    }
-    const existing = BIDS.find(
-      (row) =>
-        row.supplierTenantId === access.tenant.id &&
-        row.tenderId === tender.id &&
-        row.roundType === body.roundType &&
-        row.isAlternative === body.isAlternative,
-    );
-    if (existing !== undefined) {
-      return fail(409, 'BID_ALREADY_EXISTS', `Your organization already has a response workspace for ${tender.reference}.`);
-    }
-    const bid: FixtureBid = {
-      id: COMMAND_ID,
-      supplierTenantId: access.tenant.id,
-      buyerTenantId: tender.buyerTenantId,
-      tenderId: tender.id,
-      roundType: body.roundType,
-      lotIds: tender.lots.length === 1 ? tender.lots.map((lot) => lot.id) : [],
-      isAlternative: body.isAlternative,
-      isConsortium: false,
-      leadMemberName: null,
-      submissionState: 'not_submitted',
-      bidManagerUserId: persona.userId,
-      createdAt: isoOf(now),
+    const roundType = currentRound(tender);
+    const canEdit = access.permissions.includes('supplier.response.edit');
+    const optionOf = (isAlternative: boolean): BidStartOption => {
+      const existing = existingBidFor(access.tenant.id, tender, roundType, isAlternative);
+      const block = startBlockOf(access.tenant.id, tender, roundType, isAlternative, now) ?? (canEdit ? null : 'NOT_PERMITTED');
+      return { isAlternative, canStart: block === null, blockedBy: block, existingBidId: existing?.id ?? null };
     };
-    const detail: BidDetail = toBidDetail(bid, access.permissions, now);
-    const rows = requirementsForLots(tender.id, bid.lotIds).map((requirement) => toAnswerRow(tender, requirement, undefined, 0));
-    return {
-      ...detail,
-      workingRevision: { id: COMMAND_ID * 10 + 1, revisionNo: 1, status: 'draft' },
-      progress: progressOf(rows),
-      sections: sectionsOf(rows),
-      updatedAt: isoOf(now),
+    const result: BidStartOptions = {
+      tender: tenderRef(tender),
+      roundType,
+      deadline: { at: roundDeadline(tender, roundType), timeZone: tender.officialTimeZone },
+      alternativesAllowed: tender.alternativesAllowed,
+      lots: lotRefs(tender, tender.lots.map((lot) => lot.id)),
+      options: tender.alternativesAllowed ? [optionOf(false), optionOf(true)] : [optionOf(false)],
     };
+    return result;
+  });
+
+  mockRoute(app, bidEndpoints.startBid, ({ requireTenant, body, fail, now }) => {
+    const access = requireTenant();
+    const tender = tenderById(body.tenderId);
+    if (tender === undefined || !tenderVisibleTo(tender, access.tenant.id)) {
+      return fail(404, 'TENDER_NOT_FOUND', 'No tender with this id is available to your organization.');
+    }
+    const block = startBlockOf(access.tenant.id, tender, body.roundType, body.isAlternative, now);
+    switch (block) {
+      case 'ALTERNATIVES_NOT_ALLOWED':
+        return fail(422, 'ALTERNATIVES_NOT_ALLOWED', 'This tender does not accept alternative offers.');
+      case 'ROUND_NOT_OPEN':
+        return fail(409, 'ROUND_NOT_OPEN', `The ${body.roundType.replace('_', ' ')} round of ${tender.reference} is not open.`);
+      case 'TENDER_NOT_OPEN':
+        return fail(
+          409,
+          'TENDER_NOT_OPEN',
+          tender.status === 'open' ? `The submission deadline of ${tender.reference} has passed.` : `${tender.reference} is not open for responses.`,
+        );
+      case 'BID_ALREADY_EXISTS':
+        return fail(409, 'BID_ALREADY_EXISTS', `Your organization already has a response workspace for ${tender.reference}.`);
+      case null:
+        break;
+    }
+    // The same derived workspace every later read of its id resolves (nothing persists, architecture-plan §3.11).
+    return toBidDetail(startedBid(access.tenant.id, tender, body.isAlternative), access.permissions, now);
   });
 
   mockRoute(app, bidEndpoints.getBid, (ctx) => {
@@ -363,7 +360,7 @@ export function registerSupplierRoutes(app: MockApp): void {
     for (const lotId of lotIds) {
       const lot = tender.lots.find((row) => row.id === lotId);
       if (lot === undefined || lot.stage === 'cancelled' || lot.stage === 'no_award' || lot.stage === 'draft') {
-        return ctx.fail(422, 'LOT_NOT_ELIGIBLE', 'One of the selected lots is not part of the tender or cannot be offered.');
+        return ctx.fail(409, 'LOT_NOT_ELIGIBLE', 'One of the selected lots is not part of the tender or cannot be offered.');
       }
     }
     if (tender.maxLotsPerSupplier !== null && lotIds.length > tender.maxLotsPerSupplier) {
@@ -573,7 +570,7 @@ export function registerSupplierRoutes(app: MockApp): void {
     if (ctx.body.evidenceItemId !== undefined) {
       const item = BID_EVIDENCE_ITEMS.find((row) => row.id === ctx.body.evidenceItemId && row.supplierTenantId === access.tenant.id);
       if (item === undefined) {
-        return ctx.fail(404, 'EVIDENCE_NOT_FOUND', 'No evidence item with this id exists in your library.');
+        return ctx.fail(422, 'EVIDENCE_NOT_FOUND', 'No evidence item with this id exists in your library.');
       }
       if (item.status === 'expired' || (item.expiresAt !== null && Date.parse(item.expiresAt) <= ctx.now.getTime())) {
         return ctx.fail(409, 'EVIDENCE_EXPIRED', `${item.title} expired; renew it in the evidence library first.`);
@@ -780,7 +777,7 @@ export function registerSupplierRoutes(app: MockApp): void {
     const revision = editableRevision(ctx, bid, tender, ctx.body.revisionId, ctx.now);
     const item = BID_EVIDENCE_ITEMS.find((row) => row.id === ctx.body.evidenceItemId && row.supplierTenantId === access.tenant.id);
     if (item === undefined) {
-      return ctx.fail(404, 'EVIDENCE_NOT_FOUND', 'No evidence item with this id exists in your library.');
+      return ctx.fail(422, 'EVIDENCE_NOT_FOUND', 'No evidence item with this id exists in your library.');
     }
     if (item.status === 'expired' || (item.expiresAt !== null && Date.parse(item.expiresAt) <= ctx.now.getTime())) {
       return ctx.fail(409, 'EVIDENCE_EXPIRED', `${item.title} expired; renew it in the evidence library first.`);
@@ -845,7 +842,7 @@ export function registerSupplierRoutes(app: MockApp): void {
 
   mockRoute(app, bidEndpoints.listRevisions, (ctx) => {
     const { bid } = ownBid(ctx, ctx.params.bidId);
-    const rows = revisionsOf(bid.id)
+    const rows = revisionsOf(bid)
       .map((row) => toRevision(row, bid))
       .filter((row) => ctx.query.status === undefined || ctx.query.status.includes(row.status));
     const sort = ctx.query.sort ?? 'revisionNo';
@@ -868,7 +865,7 @@ export function registerSupplierRoutes(app: MockApp): void {
       return ctx.fail(409, 'WORKING_REVISION_EXISTS', `Revision ${working.revisionNo} is already being prepared.`);
     }
     const at = isoOf(ctx.now);
-    const revisionNo = (revisionsOf(bid.id).at(-1)?.revisionNo ?? 0) + 1;
+    const revisionNo = (revisionsOf(bid).at(-1)?.revisionNo ?? 0) + 1;
     const created: BidRevision = {
       id: COMMAND_ID,
       bidId: bid.id,

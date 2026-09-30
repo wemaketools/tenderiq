@@ -173,7 +173,7 @@ export const TENANTS: readonly FixtureTenant[] = Object.freeze([
     status: 'active',
     ...BOTSWANA,
     defaultCurrency: 'BWP',
-    createdAt: '2026-03-03T08:00:00Z',
+    createdAt: '2026-01-13T08:00:00Z',
   },
   {
     id: TENANT_IDS['serowe-ict'],

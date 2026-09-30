@@ -3,7 +3,6 @@
  * checklists and contract templates, each with its owner, intended procedure and category, audience, approval
  * status, effective date, review date and versions. Retired templates cannot be selected for new work (PRD §17.3).
  */
-import { useNavigate } from 'react-router';
 
 import {
   TEMPLATES_AUDIENCE,
@@ -72,7 +71,6 @@ function positiveId(value: string): number | undefined {
 }
 
 export default function TemplatesPage() {
-  const navigate = useNavigate();
   const timeZone = useOfficialTimeZone();
   const canManage = usePermission('org.templates.manage');
   const [filters, setFilters, clearFilters] = useScreenFilters('ADM-08', DEFAULTS);
@@ -362,7 +360,7 @@ export default function TemplatesPage() {
           rows={query.data?.items}
           rowKey={(row) => String(row.id)}
           rowLabel={(row) => row.name}
-          onRowClick={(row) => void navigate(policyPaths.template(row.id))}
+          rowHref={(row) => policyPaths.template(row.id)}
           loading={query.isFetching}
           error={query.error}
           onRetry={query.reload}

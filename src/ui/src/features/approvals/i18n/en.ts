@@ -73,6 +73,7 @@ export default {
     organization: 'Organization',
     subjectType: 'Decision type',
     record: 'Record',
+    openSubject: 'Open the record',
     exactVersion: 'Exact version',
     contentHash: 'Content fingerprint (SHA-256)',
     amount: 'Amount',
@@ -175,6 +176,7 @@ export default {
     conflictOk: 'No conflict blocks your decision',
     sodOk: 'No independence rule blocks you',
     sodNote: 'Permitted with documented alternative oversight',
+    gate: 'The record is not ready for a decision',
   },
   blocker: {
     approval_not_pending: 'This approval is no longer pending.',
@@ -191,6 +193,8 @@ export default {
     conflict_unresolved: 'Your declared conflict has not been cleared.',
     version_changed: 'The record changed after the approval was requested.',
     hold_active: 'A legal hold or complaint blocks this action.',
+    subject_gate_blocked:
+      'The record is not ready for a decision: a gate of the record is still open.',
   },
   routing: {
     authority_exceeded: 'Exceeds the authority of {skipped} — routed to {routedTo}',

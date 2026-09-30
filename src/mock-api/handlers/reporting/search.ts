@@ -1,7 +1,8 @@
 /**
  * COM-08 handlers: global search across the caller's active memberships and the caller's saved views (DD-21).
- * Each index entry is checked against the caller's permissions IN ITS OWN TENANT before it is matched or counted,
- * so results, counts and organization totals never reveal restricted records (BR-43).
+ * Each index entry is checked against the caller's access IN ITS OWN TENANT before it is matched or counted, so
+ * results, counts and organization totals never reveal restricted records (BR-43): its permissions, and the owning
+ * domain's own rule for the record it opens (tender team scope, document classification access; `./access.ts`).
  */
 import type { OrganizationLabel } from '../../../contracts/common.js';
 import type { PermissionCode } from '../../../contracts/permissions.js';
@@ -12,6 +13,7 @@ import type { MockApp } from '../../app.js';
 import { SAVED_VIEWS, SEARCH_INDEX } from '../../fixtures/reporting/index.js';
 import type { FixtureSavedView, FixtureSearchEntry } from '../../fixtures/reporting/index.js';
 import { membershipPermissions, organizationLabel } from '../../persona.js';
+import { linkAccessible } from './access.js';
 import { containsText, hasAny } from './engine.js';
 
 /** Most saved views one person may keep per organization. */
@@ -21,7 +23,8 @@ function visibleTo(entry: FixtureSearchEntry, userId: number, permissions: reado
   if (entry.ownerUserIds !== null) {
     return entry.ownerUserIds.includes(userId);
   }
-  return entry.alsoVisibleTo.includes(userId) || (entry.visibleWith.length > 0 && hasAny(permissions, entry.visibleWith));
+  const permitted = entry.alsoVisibleTo.includes(userId) || (entry.visibleWith.length > 0 && hasAny(permissions, entry.visibleWith));
+  return permitted && linkAccessible({ tenantId: entry.tenantId, userId, permissions }, entry.to);
 }
 
 function matchedOn(entry: FixtureSearchEntry, q: string): string {

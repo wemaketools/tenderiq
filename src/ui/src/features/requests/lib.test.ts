@@ -4,11 +4,12 @@ import type { StrategyDetail } from '@contracts/requests';
 
 import {
   currencyFallback,
+  decisionNextAction,
   requestNextAction,
   strategyBlocksTender,
   strategyNextAction,
 } from './lib';
-import { request, strategy } from './testing/data';
+import { decision, request, strategy } from './testing/data';
 
 const approvedRfi: StrategyDetail = {
   ...strategy,
@@ -59,6 +60,30 @@ describe('requests next-action helpers', () => {
       ],
     };
     expect(strategyNextAction(tenderStrategy)).toBe('Follow the linked event T-2026-0006');
+  });
+
+  it('names the other approver as the next action when the request was routed above the caller (AC-05)', () => {
+    expect(requestNextAction(request)).toBe(
+      "Awaiting Keabetswe Nkwe's decision (above your authority)",
+    );
+    expect(decisionNextAction(decision)).toBe(
+      "Awaiting Keabetswe Nkwe's decision (above your authority)",
+    );
+  });
+
+  it('asks the caller to decide when the pending decision is theirs', () => {
+    const own = { ...request, decision: { ...request.decision, awaitingDecisionFrom: null } };
+    expect(requestNextAction(own)).toBe('Decide within delegated authority');
+    expect(
+      decisionNextAction({
+        ...decision,
+        awaitingDecisionFrom: null,
+        callerAuthority:
+          decision.callerAuthority === null
+            ? null
+            : { ...decision.callerAuthority, sufficient: true },
+      }),
+    ).toBe('Decide within delegated authority');
   });
 
   it('holds an approved request until its strategy is approved (PRD §8.1)', () => {

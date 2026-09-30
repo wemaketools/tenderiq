@@ -326,7 +326,11 @@ export const InvitationDetail = InvitationRow.extend({
   accessDecisionReason: z.string().nullable(),
   sharedNoBidReason: z.string().nullable(),
   history: z.array(ParticipantEvent),
-  opportunityPath: LinkPath,
+  /**
+   * The opportunity workspace, or `null` while the event is not visible to the organization (an invitation-only or
+   * restricted event before an invitation or an access grant: forwarding an invitation does not authorize, PRD §7.5).
+   */
+  opportunityPath: LinkPath.nullable(),
   capabilities: z.object({
     canRespond: z.boolean(),
     canAcceptConfidentiality: z.boolean(),
@@ -406,7 +410,8 @@ export const WorkspaceSession = z.object({
   mandatory: z.boolean(),
   capacity: z.number().int().min(0).nullable(),
   placesLeft: z.number().int().min(0).nullable(),
-  registrationDeadline: Instant.nullable(),
+  /** The last moment to register, in the tender's official time zone (DD-33). */
+  registrationDeadline: OfficialDeadline.nullable(),
   status: SessionsStatus,
   registrationStatus: SessionRegistrationsStatus.nullable(),
 });
@@ -459,6 +464,11 @@ export const OpportunityWorkspace = z.object({
     canSelectLots: z.boolean(),
     canManagePursuit: z.boolean(),
     canStartResponse: z.boolean(),
+    /**
+     * The organization takes part in the event's clarification channel (SUP-10, SUP-11): its questions, the
+     * published answers and the briefing sessions. False for an organization that does not take part yet.
+     */
+    canViewClarifications: z.boolean(),
   }),
 });
 export type OpportunityWorkspace = z.infer<typeof OpportunityWorkspace>;

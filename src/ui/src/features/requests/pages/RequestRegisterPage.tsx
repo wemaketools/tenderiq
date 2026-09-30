@@ -4,7 +4,6 @@
  * ownership and history (FR-04, PRD §8.1).
  */
 import { useState } from 'react';
-import { useNavigate } from 'react-router';
 
 import { requestEndpoints } from '@contracts/requests';
 import type { RequestAction, RequestRow } from '@contracts/requests';
@@ -82,12 +81,18 @@ const ACTION_ICONS: Record<
 };
 
 /** One line of purpose in the register; the full text is on the request page. */
-function shorten(text: string): string {
-  return text.length <= 70 ? text : `${text.slice(0, 67).trimEnd()}…`;
-}
+/** The primary identifying column keeps a readable width whatever the chips in other columns need. */
+const REQUEST_COLUMN_WIDTH = '18rem';
+
+/** The purpose sub-line is clamped to one line; the full text stays available in its title. */
+const ONE_LINE = {
+  maxWidth: REQUEST_COLUMN_WIDTH,
+  whiteSpace: 'nowrap',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+} as const;
 
 export default function RequestRegisterPage() {
-  const navigate = useNavigate();
   const toast = useToast();
   const permissions: readonly string[] = usePermissions();
   const canCreate = usePermission('request.create');
@@ -289,7 +294,7 @@ export default function RequestRegisterPage() {
                 }
               >
                 <StatusChip enum="procurement_requests.status" value={entry.status} size="sm" />
-                <span className="tiq-count tiq-count--muted">{entry.count}</span>
+                <span className="tiq-tab-count">{formatCount(entry.count)}</span>
               </button>
             ))}
         </div>
@@ -305,7 +310,7 @@ export default function RequestRegisterPage() {
           onRetry={requests.reload}
           sort={sort}
           onSortChange={(next) => setFilters({ sort: next.key, dir: next.dir, page: 1 })}
-          onRowClick={(row) => navigate(requestPaths.request(row.id))}
+          rowHref={(row) => requestPaths.request(row.id)}
           rowLabel={(row) => `${row.reference} ${row.title}`}
           empty={
             <EmptyState
@@ -332,14 +337,19 @@ export default function RequestRegisterPage() {
               id: 'reference',
               header: t('requests.register.col.request'),
               sortable: true,
-              width: '30%',
+              width: REQUEST_COLUMN_WIDTH,
               cell: (row) => (
                 <>
                   <Reference value={row.reference} to={requestPaths.request(row.id)} />
                   <div>{row.title}</div>
                   {row.problemStatement !== null && (
-                    <div className="tiq-cell-sub" title={row.problemStatement}>
-                      {shorten(row.problemStatement)}
+                    <div
+                      className="tiq-cell-sub"
+                      title={row.problemStatement}
+                      data-testid="request-purpose"
+                      style={ONE_LINE}
+                    >
+                      {row.problemStatement}
                     </div>
                   )}
                 </>
@@ -437,7 +447,6 @@ export default function RequestRegisterPage() {
               id: 'ageDays',
               header: t('requests.register.col.age'),
               sortable: true,
-              numeric: true,
               cell: (row) => (
                 <>
                   {t('requests.common.days', { count: row.ageDays })}

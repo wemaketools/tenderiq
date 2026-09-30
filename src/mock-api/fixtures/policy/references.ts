@@ -5,6 +5,7 @@
  * `policy-cross-fixtures.test.ts` checks them against the tenders fixtures (reference, buyer, title, status, release).
  */
 import type { TendersStatus } from '../../../contracts/enums.js';
+import { BUYER_CATEGORIES } from '../categories.js';
 import { TENANT_IDS } from '../platform.js';
 
 export interface PolicyTenderRef {
@@ -29,7 +30,7 @@ export const POLICY_TENDER_REFS: readonly PolicyTenderRef[] = Object.freeze([
   { tenderId: 7, tenantId: kwu, reference: 'T-2026-0007', title: 'Reservoir rehabilitation works', status: 'award_pending', releasedAt: '2026-05-11T07:00:00Z' },
   { tenderId: 8, tenantId: kwu, reference: 'T-2026-0008', title: 'Pipeline valves bulk supply', status: 'closed', releasedAt: '2026-08-24T07:00:00Z' },
   { tenderId: 9, tenantId: kwu, reference: 'T-2026-0009', title: 'Acoustic leak detection services', status: 'under_assessment', releasedAt: '2026-07-06T07:00:00Z' },
-  { tenderId: 10, tenantId: kwu, reference: 'T-2026-0010', title: 'Fleet vehicle maintenance', status: 'awarded', releasedAt: '2026-03-02T07:00:00Z' },
+  { tenderId: 10, tenantId: kwu, reference: 'T-2026-0010', title: 'Fleet vehicle maintenance', status: 'awarded', releasedAt: '2026-01-12T07:00:00Z' },
   { tenderId: 11, tenantId: odc, reference: 'T-2026-0011', title: 'Office cleaning services', status: 'open', releasedAt: '2026-09-16T07:00:00Z' },
   { tenderId: 12, tenantId: kwu, reference: 'T-2026-0012', title: 'Treatment works electrical maintenance', status: 'draft', releasedAt: null },
   { tenderId: 13, tenantId: odc, reference: 'T-2026-0013', title: 'Community borehole drilling — Maun cluster', status: 'ready', releasedAt: null },
@@ -58,17 +59,9 @@ export interface PolicyCategoryRef {
 }
 
 /** Buyer categories (`categories`), named by their catalog codes. */
-export const POLICY_CATEGORY_REFS: readonly PolicyCategoryRef[] = Object.freeze([
-  { categoryId: 1, tenantId: kwu, code: 'WTR-INFRA', name: 'Water infrastructure' },
-  { categoryId: 2, tenantId: kwu, code: 'WTR-PUMP', name: 'Pumps and mechanical equipment' },
-  { categoryId: 3, tenantId: kwu, code: 'WTR-PIPE', name: 'Pipes, valves and fittings' },
-  { categoryId: 4, tenantId: kwu, code: 'WTR-METER', name: 'Water meters and metering' },
-  { categoryId: 5, tenantId: kwu, code: 'ICT-SCADA', name: 'SCADA and telemetry' },
-  { categoryId: 6, tenantId: kwu, code: 'WTR-CHEM', name: 'Water treatment chemicals' },
-  { categoryId: 7, tenantId: kwu, code: 'SVC-FLEET', name: 'Fleet services' },
-  { categoryId: 8, tenantId: kwu, code: 'CIV-WORKS', name: 'Civil works' },
-  { categoryId: 20, tenantId: odc, code: 'FAC-CLEAN', name: 'Facilities cleaning' },
-]);
+export const POLICY_CATEGORY_REFS: readonly PolicyCategoryRef[] = Object.freeze(
+  BUYER_CATEGORIES.filter((row) => row.active).map(({ id, tenantId, code, name }) => ({ categoryId: id, tenantId, code, name })),
+);
 
 export function tenderRef(tenderId: number): PolicyTenderRef {
   const found = POLICY_TENDER_REFS.find((row) => row.tenderId === tenderId);

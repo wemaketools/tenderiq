@@ -130,7 +130,7 @@ const KEFILWE = 23;
 export const RELATIONSHIPS: readonly FixtureRelationship[] = Object.freeze([
   { id: 1, tenantId: KWU, supplierTenantId: TSODILO, status: 'active', riskRating: 'low', ownerUserId: TEBOGO, restrictionNote: null, internalNotes: 'Delivered Lot 1 of the borehole pump programme on schedule; keep on the watch list for the SCADA upgrade.', firstEngagedAt: '2025-09-15T08:00:00Z', updatedAt: '2026-08-28T10:00:00Z' },
   { id: 2, tenantId: KWU, supplierTenantId: CHOBE, status: 'active', riskRating: 'medium', ownerUserId: TEBOGO, restrictionNote: null, internalNotes: 'Qualified with conditions: public liability renewal due 8 Oct 2026. Chase the renewal before evaluating T-2026-0002.', firstEngagedAt: '2026-02-18T09:00:00Z', updatedAt: '2026-09-29T07:30:00Z' },
-  { id: 3, tenantId: KWU, supplierTenantId: MAKGADIKGADI, status: 'prospective', riskRating: 'not_assessed', ownerUserId: NEO, restrictionNote: null, internalNotes: 'Registered on the platform; qualification application QA-2026-0006 awaits clarified financial evidence.', firstEngagedAt: '2026-04-03T08:00:00Z', updatedAt: '2026-09-02T11:00:00Z' },
+  { id: 3, tenantId: KWU, supplierTenantId: MAKGADIKGADI, status: 'prospective', riskRating: 'not_assessed', ownerUserId: NEO, restrictionNote: null, internalNotes: 'Registered on the platform; qualification application QA-2026-0006 awaits clarified financial evidence.', firstEngagedAt: '2026-02-03T07:00:00Z', updatedAt: '2026-09-02T11:00:00Z' },
   { id: 4, tenantId: KWU, supplierTenantId: SEROWE, status: 'active', riskRating: 'low', ownerUserId: MPHO, restrictionNote: null, internalNotes: 'Strong SCADA references. Representation transfer under platform review.', firstEngagedAt: '2025-12-15T08:00:00Z', updatedAt: '2026-09-12T09:00:00Z' },
   { id: 5, tenantId: KWU, supplierTenantId: LIMPOPO, status: 'active', riskRating: 'medium', ownerUserId: TEBOGO, restrictionNote: null, internalNotes: 'Qualification suspended after the waste management licence lapsed. The complaint on T-2026-0007 is handled by the complaint case owner.', firstEngagedAt: '2025-11-20T08:00:00Z', updatedAt: '2026-09-18T14:00:00Z' },
   { id: 6, tenantId: KWU, supplierTenantId: GABORONE_METER, status: 'restricted', riskRating: 'high', ownerUserId: MPHO, restrictionNote: 'Metering qualification expired on 31 Aug 2026. No new invitations above BWP 500,000 until requalified (renewal application QA-2026-0008 is with the assessor).', internalNotes: 'Legacy meter reading contract C-2025-0007 expired; warranty obligation still open.', firstEngagedAt: '2024-07-01T08:00:00Z', updatedAt: '2026-09-22T12:00:00Z' },
@@ -185,7 +185,7 @@ export const RELATIONSHIP_EVENTS: readonly FixtureRelationshipEvent[] = Object.f
     ['2026-09-29T07:30:00Z', 'risk_changed', 'Risk raised to medium: public liability insurance expires on 8 Oct 2026.', TEBOGO],
   ]),
   ...events(KWU, MAKGADIKGADI, [
-    ['2026-04-03T08:00:00Z', 'relationship_created', 'Relationship opened as prospective with the first tender response.', TEBOGO],
+    ['2026-02-03T07:00:00Z', 'relationship_created', 'Relationship opened as prospective with the first tender response.', TEBOGO],
     ['2026-09-02T11:00:00Z', 'owner_changed', 'Owner set to Neo Mothibi (qualification assessor).', MPHO],
   ]),
   ...events(KWU, SEROWE, [

@@ -23,10 +23,13 @@ export const MANAGER: readonly PermissionCode[] = [
 ];
 export const AUDITOR: readonly PermissionCode[] = ['audit.view'];
 export const EVALUATOR: readonly PermissionCode[] = ['evaluation.score'];
+/** Limpopo's administrator, who is also its authorized signatory (supplier_admin + authorized_signatory). */
 export const SUPPLIER_ADMIN: readonly PermissionCode[] = [
   'supplier.outcomes.view',
   'supplier.notices.acknowledge',
   'supplier.opportunities.view',
+  'supplier.response.approve',
+  'supplier.response.submit',
 ];
 
 export interface SelectionRenderOptions {

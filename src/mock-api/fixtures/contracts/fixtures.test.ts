@@ -40,6 +40,7 @@ import {
 } from '../../handlers/contracts/build.js';
 import { APPROVALS } from '../approvals.js';
 import { AWARD_TENDERS } from '../awards/base.js';
+import { LEGAL_ENTITIES } from '../org-admin/structure.js';
 import { PERSONAS, TENANTS, TENANT_IDS } from '../platform.js';
 import {
   CONTRACTS,
@@ -50,6 +51,7 @@ import {
   CONTRACT_DISPUTES,
   CONTRACT_EVIDENCE,
   CONTRACT_HANDOVERS,
+  CONTRACT_LEGAL_ENTITIES,
   CONTRACT_INVOICES,
   CONTRACT_LOT_OUTCOMES,
   CONTRACT_OBLIGATIONS,
@@ -191,7 +193,7 @@ describe('contracts fixtures are internally consistent', () => {
     expect(decision?.remediationOwnerUserId).not.toBeNull();
     expect(CONTRACT_INVOICES.find((invoice) => invoice.obligationId === q3?.id)).toMatchObject({ acceptanceStatus: 'not_accepted', paymentStatus: 'invoiced' });
     const renewal = CONTRACT_RENEWAL_OPTIONS.find((option) => option.contractId === contract.id && option.optionType === 'renewal');
-    expect(renewal).toMatchObject({ noticeWindowStart: '2026-10-05', status: 'available', decision: null });
+    expect(renewal).toMatchObject({ noticeWindowStart: '2026-10-11', status: 'available', decision: null });
   });
 
   it('models AC-31: three changes whose cumulative value exceeds the BWP 2,000,000.00 authority', () => {
@@ -283,5 +285,25 @@ describe('contracts fixtures agree with the other domains (single demo world)', 
     const allocation = CONTRACT_ALLOCATIONS.find((candidate) => candidate.contractId === supply.id);
     const delta = supply.differences.find((difference) => difference.field === 'value')?.amountDelta?.amount ?? '0';
     expect(add(allocation?.allocatedValue.amount ?? '0', delta)).toBe(supply.value.amount);
+  });
+});
+
+describe('contract parties and closeout text (CON-02, CON-05, CON-11)', () => {
+  it('carries the ADM-01 name and registration number of the KWU contracting legal entity', () => {
+    const contracting = CONTRACT_LEGAL_ENTITIES.find((entity) => entity.legalEntityId === 1);
+    const organization = LEGAL_ENTITIES.find((entity) => entity.id === 1);
+    expect(contracting?.name).toBe(organization?.name);
+    expect(contracting?.registrationNumber).toBe('BW-PE-2004-0117');
+    expect(contracting?.registrationNumber).toBe(organization?.registrationNumber);
+  });
+
+  it('describes the final acceptance check in words with the official zone, never as a raw ISO instant', () => {
+    const closeout = contractCloseout(byReference('C-2025-0007'), NOW);
+    const check = closeout.checks.find((candidate) => candidate.id === 'final_acceptance');
+    expect(check?.state).toBe('passed');
+    expect(check?.detail).toBe('Final acceptance recorded on 6 Jul 2026, 11:00 (UTC+02:00) Africa/Gaborone.');
+    for (const item of closeout.checks) {
+      expect(item.detail ?? '').not.toMatch(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/);
+    }
   });
 });

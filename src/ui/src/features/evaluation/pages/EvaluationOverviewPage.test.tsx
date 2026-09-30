@@ -38,6 +38,45 @@ describe('EvaluationOverviewPage (evaluation workspace)', () => {
     expect(screen.getByRole('link', { name: 'Ranking and report' })).toBeInTheDocument();
   });
 
+  it('explains withheld committee details to an evaluator whose own assessment is not submitted', async () => {
+    routeCalls({
+      'buyer.evaluation.get': () => ({ ...overview(), detailLevel: 'own_assessment_pending' }),
+    });
+    renderPage(<EvaluationOverviewPage />, { ...PATH, persona: EVALUATOR });
+
+    expect(
+      await screen.findByText('Committee details are hidden until you submit'),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('table', { name: 'Bids in evaluation' })).toBeInTheDocument();
+  });
+
+  it('says the bids are withheld while the caller’s conflict declaration is reviewed', async () => {
+    routeCalls({
+      'buyer.evaluation.get': () => ({
+        ...overview(),
+        bids: [],
+        detailLevel: 'conflict_pending_review',
+      }),
+    });
+    renderPage(<EvaluationOverviewPage />, { ...PATH, persona: EVALUATOR });
+
+    expect(
+      await screen.findByText('Access suspended while your conflict declaration is reviewed'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Bids are hidden while your conflict declaration is reviewed.'),
+    ).toBeInTheDocument();
+  });
+
+  it('shows no restriction notice to the chair', async () => {
+    routeCalls({ 'buyer.evaluation.get': () => overview() });
+    renderPage(<EvaluationOverviewPage />, { ...PATH, persona: CHAIR });
+    await screen.findByRole('table', { name: 'Committee' });
+    expect(
+      screen.queryByText('Committee details are hidden until you submit'),
+    ).not.toBeInTheDocument();
+  });
+
   it('opens a committee member’s assignment for the chair', async () => {
     routeCalls({ 'buyer.evaluation.get': () => overview() });
     const { router } = renderPage(<EvaluationOverviewPage />, { ...PATH, persona: CHAIR });

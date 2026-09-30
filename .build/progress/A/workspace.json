@@ -11,5 +11,18 @@
     "mock-platform: the mock chain can only answer JSON, so prototype downloads are served as an honestly labelled '<file>.prototype-copy.json' under /api/v1/public/prototype-storage/documents/:token. Serving raw files (for example text/plain or a PDF stub) needs a non-JSON response hook",
     "all fixture domains: agree on one demo 'as of' instant. Workspace uses 2026-10-06T08:00Z and stamps actions with max(now, as-of); org-admin uses 2026-09-30 and reporting uses 2026-10-07",
     "operations: operations.test.ts 'OPS-01 customer register' currently fails on a new 'withheld' key (their in-progress change, unrelated to workspace)"
+  ],
+  "qaFixes": [
+    {
+      "round": "prototype-qa",
+      "fixed": [
+        "approvals inbox: subjectReference is a short record code or null (strategies use their request reference, exclusions and late-submission exceptions the tender reference); SubjectReference renders non-codes as wrapping text",
+        "approvals: subject links are withheld per caller when the linked screen guard is not held (handlers/approvals/links.ts)",
+        "approval 39 (award T-2026-0009): subjectGates for the open diligence finding and active negotiation; blocker subject_gate_blocked, decide answers 409 SUBJECT_NOT_READY_FOR_APPROVAL",
+        "AC-18 tasks and notifications aligned with the evaluation fixture (Amantle Segwai, C3 Relevant experience, Supplier A); mpho escalation 120 and notification 507 link to /buyer/tenders/3",
+        "notification 506 cites T-2026-0008 and the 38-second late replacement",
+        "T-2026-0009 recusal: task 128 and notification 525 record the recusal; new notification 538 assigns Kabo Ntsima"
+      ]
+    }
   ]
 }

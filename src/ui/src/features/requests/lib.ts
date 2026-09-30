@@ -116,10 +116,16 @@ export function isOpenRequest(status: ProcurementRequestsStatus): boolean {
 export function requestNextAction(
   request: Pick<RequestDetail, 'status' | 'owner' | 'reapprovalRequired' | 'fundingStatus'> & {
     readonly strategy?: RequestDetail['strategy'];
+    readonly decision?: Pick<RequestDetail['decision'], 'awaitingDecisionFrom'>;
   },
 ): string {
   if (request.reapprovalRequired) {
     return t('requests.next.reapproval');
+  }
+  // AC-05: once routed or escalated above the caller's authority, the next action is the other approver's decision.
+  const awaiting = request.decision?.awaitingDecisionFrom ?? null;
+  if (awaiting !== null && isOpenRequest(request.status)) {
+    return t('requests.next.awaiting', { name: awaiting.fullName });
   }
   switch (request.status) {
     case 'draft':
@@ -165,6 +171,9 @@ export function strategyBlocksTender(
 export function decisionNextAction(view: RequestDecisionView): string {
   if (view.segregation.blocked) {
     return t('requests.next.selfApproval');
+  }
+  if (view.awaitingDecisionFrom !== null && isOpenRequest(view.request.status)) {
+    return t('requests.next.awaiting', { name: view.awaitingDecisionFrom.fullName });
   }
   if (
     view.callerAuthority !== null &&

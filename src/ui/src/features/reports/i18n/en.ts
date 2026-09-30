@@ -377,6 +377,8 @@ export default {
       empty: 'This definition has not been run yet',
       schedule: 'Scheduled run',
       noExport: 'No export',
+      exportNotYours:
+        'Requested by another user; only its requester and report managers can open it',
       noRecipients: 'No recipients',
       excluded: 'Excluded: {name} ({reason})',
       col: { when: 'Run', rows: 'Rows', export: 'Export', recipients: 'Delivered to' },

@@ -854,6 +854,7 @@ export function supplierDecision(overrides: Partial<SupplierDecision> = {}): Sup
     supplierExplanation: 'No award after 8 Oct 2026 until renewed insurance is received.',
     appealRoute: 'Request reconsideration within 14 days.',
     decidedAt: '2026-05-04T08:30:00Z',
+    reconsiderationDeadline: { at: '2026-05-18T08:30:00Z', timeZone: 'Africa/Gaborone' },
     supersededById: null,
     current: true,
     ...overrides,

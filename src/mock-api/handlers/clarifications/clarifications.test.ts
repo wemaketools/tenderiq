@@ -19,6 +19,9 @@ import {
 } from '../../../contracts/clarifications.js';
 import { Problem } from '../../../contracts/common.js';
 import type { AnyEndpoint } from '../../../contracts/endpoint.js';
+import { PublicNotice } from '../../../contracts/publication.js';
+import { TENDERS } from '../../fixtures/publication.js';
+import { buyerLabel, isPubliclyVisible } from '../publication/projections.js';
 import { createTestMockApp } from '../../testing/index.js';
 import type { TestMockApp, TestResponse } from '../../testing/index.js';
 
@@ -339,10 +342,11 @@ describe('buyer sessions (BUY-18)', () => {
     expect(BuyerSessionDetail.parse(created.body)).toMatchObject({ id: 900, status: 'scheduled', placesAvailable: 10 });
   });
 
-  it('records attendance at a held site visit, then publishes its minutes with shared answers (BUY-18)', async () => {
+  it('corrects the attendance of a held site visit, then publishes its minutes with shared answers (BUY-18)', async () => {
+    // The 28 Sep site visit took place before the storyline "now": attendance is recorded, the minutes are not.
     const held = BuyerSessionDetail.parse((await call(TEBOGO, api.sessionsGet, 'kwu', { params: { sessionId: 49 } })).body);
-    expect(held).toMatchObject({ status: 'scheduled', minutesPublishedAt: null, minutesDocument: null, minutesDocumentOptions: [] });
-    expect(held.registrations.map((row) => row.status)).toEqual(['registered', 'registered', 'registered']);
+    expect(held).toMatchObject({ status: 'completed', minutesPublishedAt: null, minutesDocument: null, minutesDocumentOptions: [] });
+    expect(held.registrations.map((row) => row.status)).toEqual(['attended', 'attended', 'absent']);
 
     const recorded = await call(TEBOGO, api.sessionsRecordAttendance, 'kwu', {
       params: { sessionId: 49 },
@@ -423,7 +427,7 @@ describe('supplier questions (SUP-10)', () => {
 
   it('limits tenders to those the supplier participates in', async () => {
     const tenders = page<{ reference: string }>(await call(MAKGADIKGADI, api.supplierTenders, 'makgadikgadi'));
-    expect(tenders.items.map((row) => row.reference).sort()).toEqual(['T-2026-0001', 'T-2026-0003', 'T-2026-0007', 'T-2026-0008', 'T-2026-0011']);
+    expect(tenders.items.map((row) => row.reference).sort()).toEqual(['T-2026-0001', 'T-2026-0003', 'T-2026-0007', 'T-2026-0008', 'T-2026-0010', 'T-2026-0011']);
     expect((await call(MAKGADIKGADI, api.supplierTenderContext, 'makgadikgadi', { params: { tenderId: 6 } })).status).toBe(404);
   });
 
@@ -598,5 +602,21 @@ describe('public edition (PUB-04)', () => {
     expect((await app.request('GET', '/api/v1/public/clarifications/kwu/T-2026-0006')).status).toBe(404);
     expect((await app.request('GET', '/api/v1/public/clarifications/odc/T-2026-0002')).status).toBe(404);
     expect((await app.request('GET', '/api/v1/public/clarifications/odc/T-2026-0011')).status).toBe(200);
+  });
+
+  it('resolves the clarifications link of every public notice (PUB-03 to PUB-04), with an empty edition when nothing was released', async () => {
+    const visible = TENDERS.filter(isPubliclyVisible);
+    expect(visible.map((row) => row.reference)).toEqual(expect.arrayContaining(['T-2026-0004', 'T-2026-0010']));
+    for (const row of visible) {
+      const notice = await app.request('GET', `/api/v1/public/opportunities/${buyerLabel(row.tenantId).slug}/${row.reference}`);
+      expect(notice.status, row.reference).toBe(200);
+      const link = PublicNotice.parse(notice.body).clarificationsLinkPath;
+      const edition = await app.request('GET', `/api/v1/public${link}`);
+      expect(edition.status, `${row.reference} -> ${link}`).toBe(200);
+      PublicClarifications.parse(edition.body);
+    }
+    const empty = PublicClarifications.parse((await app.request('GET', '/api/v1/public/clarifications/kwu/T-2026-0004')).body);
+    expect(empty.questions).toEqual([]);
+    expect(empty.addenda).toEqual([]);
   });
 });

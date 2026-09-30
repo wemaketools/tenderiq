@@ -123,6 +123,18 @@ export const AWARD_NEXT_STEPS = [
 export const AwardNextStep = z.enum(AWARD_NEXT_STEPS);
 export type AwardNextStep = z.infer<typeof AwardNextStep>;
 
+/** Next steps that place a tender in the closeout register (BUY-30) even before a closeout record exists. */
+export const AWARD_CLOSEOUT_NEXT_STEPS = ['close_event', 'archive', 'none'] as const satisfies readonly AwardNextStep[];
+
+/**
+ * Register views: `award` lists every award file (BUY-26); `closeout` lists the files at the closeout stage (BUY-30),
+ * i.e. every file whose closure is blocked, closed or archived, or whose next step is closing or archiving, so each
+ * file the closeout KPIs count is listed whatever its next step (AC-29: a blocked handover stays visible).
+ */
+export const AWARD_REGISTER_VIEWS = ['award', 'closeout'] as const;
+export const AwardRegisterView = z.enum(AWARD_REGISTER_VIEWS);
+export type AwardRegisterView = z.infer<typeof AwardRegisterView>;
+
 /** A gate check status, rendered by the ReadinessChecklist (warnings do not block; blocking items do). */
 export const GATE_CHECK_STATUSES = ['passed', 'warning', 'blocking'] as const;
 export const GateCheckStatus = z.enum(GATE_CHECK_STATUSES);
@@ -528,6 +540,8 @@ export const AwardRegisterQuery = listQueryWithSort(AWARD_REGISTER_SORT_FIELDS).
   status: queryList(TendersStatus).optional(),
   recommendationStatus: queryList(AwardRecommendationsStatus).optional(),
   nextStep: queryList(AwardNextStep).optional(),
+  closeoutStatus: queryList(EventCloseoutsStatus).optional(),
+  view: AwardRegisterView.optional(),
   ownerUserId: IdParam.optional(),
   hasActiveHold: QueryBoolean.optional(),
   updatedFrom: CalendarDate.optional(),

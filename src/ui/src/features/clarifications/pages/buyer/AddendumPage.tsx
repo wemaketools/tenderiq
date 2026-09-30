@@ -406,7 +406,11 @@ function AddendumWorkspace({
               items={[
                 {
                   key: 'current',
-                  label: t('clarifications.addendumPage.currentDeadline'),
+                  // Once issued, the addendum's new deadline is in force and the old one is history.
+                  label:
+                    addendum.status === 'issued'
+                      ? t('clarifications.addendumPage.previousDeadline')
+                      : t('clarifications.addendumPage.currentDeadline'),
                   value:
                     addendum.currentSubmissionDeadline === null ? null : (
                       <OfficialDeadline deadline={addendum.currentSubmissionDeadline} />

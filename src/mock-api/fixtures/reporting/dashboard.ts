@@ -30,10 +30,13 @@ import type { PermissionCode } from '../../../contracts/permissions.js';
 import type { AttentionKey, BuyerDashboardKpiKey, SupplierDashboardKpiKey } from '../../../contracts/reporting.js';
 import { APPROVALS } from '../approvals.js';
 import { BIDS, BID_REVISIONS, SUBMISSION_RECEIPTS } from '../bids/responses.js';
-import { TENANT_IDS } from '../platform.js';
+import { TENANTS, TENANT_IDS } from '../platform.js';
 import { PARTICIPANTS } from '../publication/participants.js';
 import { PURSUITS } from '../publication/pursuits.js';
-import { KWU, LINKS, ODC, USERS, lotLabel, tenderFact } from './storyline.js';
+import { EVIDENCE_ITEMS, EVIDENCE_SHARES } from '../suppliers/evidence.js';
+import { LOTS as TENDER_LOTS } from '../tenders/structure.js';
+import { MILESTONES as TENDER_MILESTONES } from '../tenders/timetable.js';
+import { KWU, LINKS, ODC, TENDER_FACTS, USERS, lotLabel, tenderFact } from './storyline.js';
 
 const S = TENANT_IDS;
 
@@ -49,22 +52,46 @@ export interface FixtureDeadline {
   readonly at: string;
 }
 
-/** Upcoming milestones from the tender timetables (tenders domain). */
-export const DASHBOARD_DEADLINES: readonly FixtureDeadline[] = [
-  { tenantId: KWU, tenderId: 2, milestone: 'questions_deadline', lotLabel: null, at: '2026-10-07T13:00:00Z' },
-  { tenantId: KWU, tenderId: 7, milestone: 'standstill_end', lotLabel: null, at: '2026-10-08T15:00:00Z' },
-  { tenantId: KWU, tenderId: 6, milestone: 'submission_deadline', lotLabel: null, at: '2026-10-14T10:00:00Z' },
-  { tenantId: KWU, tenderId: 6, milestone: 'opening', lotLabel: null, at: '2026-10-14T12:00:00Z' },
-  { tenantId: KWU, tenderId: 2, milestone: 'submission_deadline', lotLabel: null, at: '2026-10-16T10:00:00Z' },
-  { tenantId: KWU, tenderId: 2, milestone: 'opening', lotLabel: null, at: '2026-10-16T12:00:00Z' },
-  { tenantId: KWU, tenderId: 3, milestone: 'expected_award', lotLabel: null, at: '2026-10-30T08:00:00Z' },
-  { tenantId: KWU, tenderId: 5, milestone: 'questions_deadline', lotLabel: null, at: '2026-11-04T13:00:00Z' },
-  { tenantId: KWU, tenderId: 5, milestone: 'submission_deadline', lotLabel: null, at: '2026-11-18T10:00:00Z' },
-  { tenantId: KWU, tenderId: 8, milestone: 'expected_award', lotLabel: null, at: '2026-11-20T08:00:00Z' },
-  { tenantId: KWU, tenderId: 9, milestone: 'expected_award', lotLabel: null, at: '2026-11-27T08:00:00Z' },
-  { tenantId: ODC, tenderId: 11, milestone: 'questions_deadline', lotLabel: null, at: '2026-10-09T13:00:00Z' },
-  { tenantId: ODC, tenderId: 11, milestone: 'submission_deadline', lotLabel: null, at: '2026-10-21T10:00:00Z' },
+/** Milestones BUY-01 lists (site visits, briefings and internal contract starts are not deadlines). */
+const DASHBOARD_MILESTONES: readonly TenderMilestonesMilestone[] = [
+  'questions_deadline',
+  'submission_deadline',
+  'opening',
+  'standstill_end',
+  'expected_award',
 ];
+
+/** The label of a lot-specific milestone, from the tenders-domain lot (`Lot 3: Pump controls …`). */
+function milestoneLotLabel(lotId: number | null): string | null {
+  if (lotId === null) {
+    return null;
+  }
+  const lot = TENDER_LOTS.find((row) => row.id === lotId);
+  if (lot === undefined) {
+    throw new Error(`No tenders-domain lot ${lotId}.`);
+  }
+  return `Lot ${lot.lotNo}: ${lot.title}`;
+}
+
+/**
+ * The milestones of the tender timetables (tenders domain, `../tenders/timetable.ts`), so every date on the
+ * dashboards is the official timetable date, including the deadlines moved by addenda (T-2026-0002 to 21 Oct 2026,
+ * T-2026-0011 to 23 Oct 2026). The handler keeps the ones still ahead at `REPORTING_AS_OF`.
+ */
+export const DASHBOARD_DEADLINES: readonly FixtureDeadline[] = TENDER_MILESTONES.filter(
+  (row) =>
+    DASHBOARD_MILESTONES.includes(row.milestone) &&
+    TENDER_FACTS.some((tender) => tender.id === row.tenderId && tender.tenantId === row.tenantId && tender.status !== 'archived'),
+).map((row) => ({ tenantId: row.tenantId, tenderId: row.tenderId, milestone: row.milestone, lotLabel: milestoneLotLabel(row.lotId), at: row.at }));
+
+/** The official whole-event instant of a timetable milestone (tenders domain). */
+export function timetableAt(tenderId: number, milestone: TenderMilestonesMilestone): string {
+  const row = TENDER_MILESTONES.find((candidate) => candidate.tenderId === tenderId && candidate.milestone === milestone && candidate.lotId === null);
+  if (row === undefined) {
+    throw new Error(`No ${milestone} milestone on tender ${tenderId}.`);
+  }
+  return row.at;
+}
 
 export interface FixtureDashboardApproval {
   readonly tenantId: number;
@@ -77,27 +104,21 @@ export interface FixtureDashboardApproval {
   readonly dueAt: string | null;
   /** The tender the approval belongs to (for dimension filters), if any. */
   readonly tenderId: number | null;
-  readonly visibleWith: readonly PermissionCode[];
 }
 
-/** Who may see a pending approval on the dashboard, by subject type (the read permission of the subject). */
-const APPROVAL_VISIBILITY: Readonly<Partial<Record<ApprovalRequestsSubjectType, readonly PermissionCode[]>>> = {
-  procurement_request: ['request.view_all', 'approval.decide'],
-  funding: ['request.view_all', 'request.funding_confirm', 'approval.decide'],
-  strategy: ['strategy.manage', 'strategy.approve', 'approval.decide'],
-  contract_change: ['contract.view', 'contract.change.approve'],
-  contract_difference: ['contract.view', 'contract.approve'],
-  exclusion: ['tender.view', 'exclusion.approve'],
-};
-const DEFAULT_APPROVAL_VISIBILITY: readonly PermissionCode[] = ['tender.view', 'approval.decide'];
-
 /** The tender an approval belongs to, read from its subject reference (`T-2026-0003 / …`). */
-function approvalTenderId(subjectReference: string): number | null {
+function approvalTenderId(subjectReference: string | null): number | null {
+  if (subjectReference === null) {
+    return null;
+  }
   const match = /T-2026-(\d{4})/.exec(subjectReference);
   return match === null ? null : Number(match[1]);
 }
 
-/** Pending approvals of the workspace approval fixtures (the owner of approval_requests), as the dashboard lists them. */
+/**
+ * Pending approvals of the workspace approval fixtures (the owner of approval_requests). The handler lists only the
+ * caller's own (requester, step approver or delegate), the rule `/me/approvals/{id}` applies.
+ */
 export const DASHBOARD_APPROVALS: readonly FixtureDashboardApproval[] = APPROVALS.filter((approval) => approval.status === 'pending').map(
   (approval) => ({
     tenantId: approval.tenantId,
@@ -109,7 +130,6 @@ export const DASHBOARD_APPROVALS: readonly FixtureDashboardApproval[] = APPROVAL
     requestedAt: approval.requestedAt,
     dueAt: approval.dueAt,
     tenderId: approvalTenderId(approval.subjectReference),
-    visibleWith: APPROVAL_VISIBILITY[approval.subjectType] ?? DEFAULT_APPROVAL_VISIBILITY,
   }),
 );
 
@@ -158,7 +178,7 @@ export interface FixtureRenewalFact {
 /** Undecided renewal and extension options of the contract fixtures. */
 export const DASHBOARD_RENEWALS: readonly FixtureRenewalFact[] = [
   { tenantId: KWU, contractId: 6, tenderId: null, optionType: 'renewal', noticeWindowOpensOn: '2026-09-01', decisionDueOn: '2026-10-31', decided: false },
-  { tenantId: KWU, contractId: 1, tenderId: 10, optionType: 'renewal', noticeWindowOpensOn: '2026-10-05', decisionDueOn: '2026-12-31', decided: false },
+  { tenantId: KWU, contractId: 1, tenderId: 10, optionType: 'renewal', noticeWindowOpensOn: '2026-10-11', decisionDueOn: '2026-12-31', decided: false },
   { tenantId: KWU, contractId: 1, tenderId: 10, optionType: 'extension', noticeWindowOpensOn: '2027-01-04', decisionDueOn: '2027-02-26', decided: false },
   { tenantId: ODC, contractId: 7, tenderId: null, optionType: 'renewal', noticeWindowOpensOn: '2026-10-01', decisionDueOn: '2026-11-13', decided: false },
 ];
@@ -191,22 +211,42 @@ export interface FixtureAttentionItem {
   readonly to: string;
   /** The tender the item concerns (dimension filters), or `null` for organization-wide items. */
   readonly tenderId: number | null;
+  /**
+   * The item is about the tender itself (its approvals, complaints, evaluation, opening or publication), so only
+   * people who may open that tender see it; contract items keyed to a tender follow contract access instead.
+   */
+  readonly tenderScoped: boolean;
   readonly visibleWith: readonly PermissionCode[];
 }
 
-export const DASHBOARD_ATTENTION: readonly FixtureAttentionItem[] = [
+/** Attention keys that concern a tender event rather than a contract or a supplier. */
+const TENDER_ATTENTION_KEYS: readonly AttentionKey[] = [
+  'approval_invalidated',
+  'blocking_complaint',
+  'failed_due_diligence',
+  'evaluation_incomplete',
+  'sealed_awaiting_opening',
+  'integration_exception',
+];
+
+const ATTENTION_ROWS: readonly Omit<FixtureAttentionItem, 'tenderScoped'>[] = [
   { tenantId: KWU, key: 'approval_invalidated', label: 'Release approval invalidated', detail: 'T-2026-0005: a scope and value edit invalidated the release approval; request it again.', count: 1, tone: 'danger', to: LINKS.buyerTender(5), tenderId: 5, visibleWith: ['tender.view'] },
   { tenantId: KWU, key: 'blocking_complaint', label: 'Complaint holds the award', detail: 'T-2026-0007: Limpopo Environmental Services’ complaint blocks the final award during the investigation.', count: 1, tone: 'danger', to: LINKS.buyerComplaint(92), tenderId: 7, visibleWith: ['complaint.manage', 'tender.view'] },
   { tenantId: KWU, key: 'failed_due_diligence', label: 'Preferred bidder failed due diligence', detail: 'T-2026-0009: fallback decision recorded; the next-ranked bidder is under review.', count: 1, tone: 'warning', to: LINKS.buyerTender(9), tenderId: 9, visibleWith: ['tender.view'] },
   { tenantId: KWU, key: 'evaluation_incomplete', label: 'Evaluation incomplete', detail: 'T-2026-0003: one evaluator has a criterion not scored; the assessment cannot be finalized.', count: 1, tone: 'warning', to: LINKS.buyerTender(3), tenderId: 3, visibleWith: ['evaluation.chair', 'tender.view'] },
   { tenantId: KWU, key: 'sealed_awaiting_opening', label: 'Sealed submissions awaiting opening', detail: 'T-2026-0008: submissions stay sealed until the deferred opening session.', count: 1, tone: 'info', to: LINKS.buyerTender(8), tenderId: 8, visibleWith: ['bid.monitor', 'tender.view'] },
-  { tenantId: KWU, key: 'integration_exception', label: 'External publication not confirmed', detail: 'The external notice channel reported a failure; the exception is assigned for reconciliation.', count: 1, tone: 'danger', to: LINKS.buyerIntegrations(), tenderId: null, visibleWith: ['tender.publish', 'org.integrations.manage'] },
+  { tenantId: KWU, key: 'integration_exception', label: 'External publication not confirmed', detail: 'T-2026-0002: the Government Gazette gateway rejected the Addendum 1 notice; the exception is assigned for republication and reconciliation.', count: 1, tone: 'danger', to: LINKS.buyerTenderPublication(2), tenderId: 2, visibleWith: ['tender.publish', 'tender.view'] },
   { tenantId: KWU, key: 'evidence_expiring', label: 'Supplier evidence expiring', detail: 'Chobe Pipe & Valve Supplies: public liability insurance expires on 8 Oct 2026 (qualified with conditions).', count: 1, tone: 'warning', to: LINKS.buyerSupplier(S['chobe-pipe']), tenderId: null, visibleWith: ['supplier.directory.view'] },
   { tenantId: KWU, key: 'obligation_rejected', label: 'Milestone evidence rejected', detail: 'C-2026-0001: the Q3 service report was rejected; remediation is required.', count: 1, tone: 'danger', to: LINKS.buyerContract(1), tenderId: 10, visibleWith: ['contract.view'] },
   { tenantId: KWU, key: 'change_authority_exceeded', label: 'Change requests above authority', detail: 'C-2026-0001: three change requests together exceed the officer’s authority and need approval.', count: 3, tone: 'warning', to: LINKS.buyerContract(1), tenderId: 10, visibleWith: ['contract.view'] },
-  { tenantId: KWU, key: 'renewal_window', label: 'Renewal notice window open', detail: 'C-2026-0001: the renewal notice window opened on 5 Oct 2026 and no decision is recorded.', count: 1, tone: 'info', to: LINKS.buyerContract(1), tenderId: 10, visibleWith: ['contract.view'] },
+  { tenantId: KWU, key: 'renewal_window', label: 'Renewal notice window open', detail: 'C-2025-0005: the renewal notice window opened on 1 Sep 2026; the decision is due by 31 Oct 2026 and none is recorded.', count: 1, tone: 'info', to: LINKS.buyerContract(6), tenderId: null, visibleWith: ['contract.view'] },
   { tenantId: ODC, key: 'renewal_window', label: 'Renewal notice window open', detail: 'C-2025-0004: the cleaning contract renewal window opened on 1 Oct 2026 with no decision yet.', count: 1, tone: 'info', to: LINKS.buyerContract(7), tenderId: null, visibleWith: ['contract.view'] },
 ];
+
+export const DASHBOARD_ATTENTION: readonly FixtureAttentionItem[] = ATTENTION_ROWS.map((row) => ({
+  ...row,
+  tenderScoped: TENDER_ATTENTION_KEYS.includes(row.key),
+}));
 
 export interface FixtureKpiDelta {
   readonly tenantId: number;
@@ -236,9 +276,9 @@ export interface FixtureSupplierInvitation {
   readonly closingAt: string | null;
 }
 
-const T2_CLOSE = '2026-10-16T10:00:00Z';
-const T6_CLOSE = '2026-10-14T10:00:00Z';
-const T11_CLOSE = '2026-10-21T10:00:00Z';
+const T2_CLOSE = timetableAt(2, 'submission_deadline');
+const T6_CLOSE = timetableAt(6, 'submission_deadline');
+const T11_CLOSE = timetableAt(11, 'submission_deadline');
 
 /** Submission deadlines still ahead at `REPORTING_AS_OF` (tenders domain timetables). */
 const OPEN_CLOSING_AT: Readonly<Record<number, string>> = { 2: T2_CLOSE, 6: T6_CLOSE, 11: T11_CLOSE };
@@ -324,13 +364,13 @@ export const SUPPLIER_DEADLINES: readonly FixtureSupplierDeadline[] = [
   { supplierTenantId: S.tsodilo, tenderId: 2, milestone: 'submission_deadline', at: T2_CLOSE },
   { supplierTenantId: S['chobe-pipe'], tenderId: 6, milestone: 'submission_deadline', at: T6_CLOSE },
   { supplierTenantId: S['chobe-pipe'], tenderId: 2, milestone: 'submission_deadline', at: T2_CLOSE },
-  { supplierTenantId: S['serowe-ict'], tenderId: 2, milestone: 'questions_deadline', at: '2026-10-07T13:00:00Z' },
+  { supplierTenantId: S['serowe-ict'], tenderId: 2, milestone: 'questions_deadline', at: timetableAt(2, 'questions_deadline') },
   { supplierTenantId: S['serowe-ict'], tenderId: 2, milestone: 'submission_deadline', at: T2_CLOSE },
   { supplierTenantId: S['gaborone-meter'], tenderId: 2, milestone: 'submission_deadline', at: T2_CLOSE },
-  { supplierTenantId: S.makgadikgadi, tenderId: 11, milestone: 'questions_deadline', at: '2026-10-09T13:00:00Z' },
+  { supplierTenantId: S.makgadikgadi, tenderId: 11, milestone: 'questions_deadline', at: timetableAt(11, 'questions_deadline') },
   { supplierTenantId: S.makgadikgadi, tenderId: 11, milestone: 'submission_deadline', at: T11_CLOSE },
-  { supplierTenantId: S.makgadikgadi, tenderId: 7, milestone: 'standstill_end', at: '2026-10-08T15:00:00Z' },
-  { supplierTenantId: S['limpopo-env'], tenderId: 7, milestone: 'standstill_end', at: '2026-10-08T15:00:00Z' },
+  { supplierTenantId: S.makgadikgadi, tenderId: 7, milestone: 'standstill_end', at: timetableAt(7, 'standstill_end') },
+  { supplierTenantId: S['limpopo-env'], tenderId: 7, milestone: 'standstill_end', at: timetableAt(7, 'standstill_end') },
 ];
 
 export interface FixtureSupplierQualification {
@@ -388,20 +428,31 @@ export interface FixtureSupplierEvidence {
   readonly sharedWith: readonly string[];
 }
 
-const KWU_NAME = 'Kalahari Water Utilities (Pilot)';
+/** Evidence statuses that still stand in a supplier's library (replaced and withdrawn editions do not). */
+const STANDING_EVIDENCE: readonly string[] = ['current', 'expired'];
 
-/** Current evidence items of the suppliers domain with their expiry dates. */
-export const SUPPLIER_EVIDENCE: readonly FixtureSupplierEvidence[] = [
-  { supplierTenantId: S.tsodilo, evidenceId: 105, title: 'Public liability insurance 2025/26 (cover increased)', evidenceType: 'insurance', expiresAt: '2026-10-31', sharedWith: [KWU_NAME] },
-  { supplierTenantId: S.tsodilo, evidenceId: 108, title: 'Tax clearance certificate', evidenceType: 'certificate', expiresAt: '2026-12-31', sharedWith: [KWU_NAME] },
-  { supplierTenantId: S.tsodilo, evidenceId: 111, title: 'Integrity and conflict-of-interest declaration 2026', evidenceType: 'declaration', expiresAt: '2026-12-31', sharedWith: [KWU_NAME] },
-  { supplierTenantId: S['chobe-pipe'], evidenceId: 202, title: 'Public liability insurance 2025/26', evidenceType: 'insurance', expiresAt: '2026-10-08', sharedWith: [KWU_NAME] },
-  { supplierTenantId: S.makgadikgadi, evidenceId: 305, title: 'Contractor all-risks insurance 2026', evidenceType: 'insurance', expiresAt: '2026-12-31', sharedWith: [KWU_NAME] },
-  { supplierTenantId: S['limpopo-env'], evidenceId: 505, title: 'Waste management licence', evidenceType: 'license', expiresAt: '2026-09-05', sharedWith: [KWU_NAME] },
-  { supplierTenantId: S['limpopo-env'], evidenceId: 504, title: 'Professional indemnity insurance 2025/26', evidenceType: 'insurance', expiresAt: '2026-11-14', sharedWith: [KWU_NAME, 'Okavango District Council'] },
-  { supplierTenantId: S['gaborone-meter'], evidenceId: 602, title: 'ISO 9001:2015 certificate', evidenceType: 'certificate', expiresAt: '2026-11-30', sharedWith: [KWU_NAME] },
-  { supplierTenantId: S['gaborone-meter'], evidenceId: 603, title: 'Product liability insurance 2025/26', evidenceType: 'insurance', expiresAt: '2026-08-31', sharedWith: [KWU_NAME] },
-];
+/**
+ * The dated evidence of the supplier libraries (suppliers domain, `../suppliers/evidence-items.ts`, the single source
+ * of evidence items): ids, titles, types and expiry dates are the library's own, so every SUP-01 row opens the same
+ * item on SUP-05. `sharedWith` names the buyers the edition is currently shared with (active `evidence_shares`).
+ * The handler keeps the items expired or expiring within `SUPPLIER_EVIDENCE_WINDOW_DAYS`.
+ */
+export const SUPPLIER_EVIDENCE: readonly FixtureSupplierEvidence[] = EVIDENCE_ITEMS.flatMap((item) =>
+  item.expiresAt === null || !STANDING_EVIDENCE.includes(item.status)
+    ? []
+    : [
+        {
+          supplierTenantId: item.tenantId,
+          evidenceId: item.id,
+          title: item.title,
+          evidenceType: item.evidenceType,
+          expiresAt: item.expiresAt,
+          sharedWith: EVIDENCE_SHARES.filter((share) => share.evidenceItemId === item.id && share.withdrawnAt === null)
+            .map((share) => TENANTS.find((tenant) => tenant.id === share.buyerTenantId)?.name ?? '')
+            .filter((name) => name !== ''),
+        },
+      ],
+);
 
 export interface FixtureSupplierOutcome {
   readonly supplierTenantId: number;

@@ -18,6 +18,7 @@ import {
   SavedView,
   SearchResponse,
   ReportDefinitionRow,
+  SUPPLIER_EVIDENCE_WINDOW_DAYS,
   SupplierDashboard,
   reportingEndpoints as R,
 } from '../../../contracts/reporting.js';
@@ -72,6 +73,77 @@ function definitionBody(overrides: Record<string, unknown> = {}) {
   };
 }
 
+/** The API read behind an SPA link of a dashboard or search row (the page's own data request). */
+function apiPathOf(to: string): string | null {
+  const rules: ReadonlyArray<readonly [RegExp, (match: RegExpExecArray) => string]> = [
+    [/^\/buyer\/tenders\/(\d+)\/publication$/, (m) => `/api/v1/buyer/tenders/${m[1]}/publication`],
+    [/^\/buyer\/tenders\/(\d+)$/, (m) => `/api/v1/buyer/tenders/${m[1]}`],
+    [/^\/buyer\/tenders(\?.*)?$/, () => '/api/v1/buyer/tenders'],
+    [/^\/buyer\/contracts\/(\d+)$/, (m) => `/api/v1/buyer/contracts/${m[1]}`],
+    [/^\/buyer\/contracts$/, () => '/api/v1/buyer/contracts'],
+    [/^\/buyer\/award-cases\/complaints\/(\d+)$/, (m) => `/api/v1/buyer/complaints/${m[1]}`],
+    [/^\/buyer\/award-cases\/complaints$/, () => '/api/v1/buyer/complaints'],
+    [/^\/buyer\/suppliers\/(\d+)$/, (m) => `/api/v1/buyer/suppliers/${m[1]}`],
+    [/^\/me\/approvals\/(\d+)$/, (m) => `/api/v1/me/approvals/${m[1]}`],
+    [/^\/me\/documents\/(\d+)$/, (m) => `/api/v1/me/documents/${m[1]}`],
+    [/^\/supplier\/evidence\/(\d+)$/, (m) => `/api/v1/supplier/evidence/${m[1]}`],
+  ];
+  for (const [pattern, build] of rules) {
+    const match = pattern.exec(to);
+    if (match !== null) {
+      return build(match);
+    }
+  }
+  return null;
+}
+
+/** Every link of a buyer dashboard. */
+function buyerDashboardLinks(dashboard: BuyerDashboard): string[] {
+  return [
+    ...dashboard.kpis.flatMap((kpi) => (kpi.to === null ? [] : [kpi.to])),
+    ...dashboard.pipelineByStage.items.map((item) => item.to),
+    ...dashboard.deadlines.items.map((item) => item.to),
+    ...dashboard.workload.items.map((item) => item.to),
+    ...dashboard.approvals.items.map((item) => item.to),
+    ...dashboard.renewals.items.map((item) => item.to),
+    ...dashboard.attention.map((item) => item.to),
+  ];
+}
+
+/** The links whose page data answers anything but 200 for this persona in this tenant. */
+async function deadLinks(email: string, tenant: number | string, links: readonly string[]): Promise<string[]> {
+  const dead: string[] = [];
+  for (const to of new Set(links)) {
+    const path = apiPathOf(to);
+    if (path === null) {
+      continue;
+    }
+    const response = await api.requestAs(email, 'GET', path, { tenant });
+    if (response.status !== 200) {
+      dead.push(`${to} -> ${response.status}`);
+    }
+  }
+  return dead;
+}
+
+const KWU_BUYER_PERSONAS = [
+  TEBOGO,
+  MPHO,
+  'thato.eval@tenderiq.local',
+  'kabo.eval@tenderiq.local',
+  'amantle.eval@tenderiq.local',
+  'boitumelo.chair@tenderiq.local',
+  'refilwe.commercial@tenderiq.local',
+  'oratile.opener@tenderiq.local',
+  'keabetswe.approver@tenderiq.local',
+  'masego.contracts@tenderiq.local',
+  'pule.auditor@tenderiq.local',
+  'neo.assessor@tenderiq.local',
+  'lesego.finance@tenderiq.local',
+  'dineo.legal@tenderiq.local',
+  'sam.dual@tenderiq.local',
+] as const;
+
 describe('module registration', () => {
   it('loads the reporting and records modules without failures', () => {
     expect(api.loaded).toEqual(expect.arrayContaining(['reporting/index', 'records/index']));
@@ -87,17 +159,78 @@ describe('buyer.dashboard.get (BUY-01)', () => {
     // Assert
     expect(dashboard.deadlines.items.length).toBeGreaterThan(0);
     expect(dashboard.deadlines.items.every((item) => item.reference !== 'T-2026-0011')).toBe(true);
-    expect(dashboard.kpis.find((kpi) => kpi.key === 'active_events')?.value).toBe(7);
-    expect(dashboard.kpis.find((kpi) => kpi.key === 'closing_within_7_days')?.value).toBe(1);
+    expect(dashboard.kpis.find((kpi) => kpi.key === 'active_events')?.value).toBe(8);
+    expect(dashboard.kpis.find((kpi) => kpi.key === 'closing_within_7_days')?.value).toBe(0);
     expect(dashboard.pipelineByStage.items.some((item) => item.stage === 'draft')).toBe(true);
     expect(dashboard.filterOptions.departments.map((item) => item.label)).toContain('Network Operations');
     expect(dashboard.completeness.complete).toBe(false);
   });
 
+  it.each(KWU_BUYER_PERSONAS)('links %s only to records the persona may open (no 403/404 from the dashboard)', async (email) => {
+    // Act
+    const dashboard = ok(await api.callAs(email, R.getBuyerDashboard, { tenant: 'kwu' }), BuyerDashboard);
+
+    // Assert
+    expect(await deadLinks(email, 'kwu', buyerDashboardLinks(dashboard))).toEqual([]);
+  });
+
+  it('counts only the evaluator’s assigned events: sam.dual sees T-2026-0003 and no other event’s values, approvals or exceptions', async () => {
+    // Act
+    const dashboard = ok(await api.callAs('sam.dual@tenderiq.local', R.getBuyerDashboard, { tenant: 'kwu' }), BuyerDashboard);
+
+    // Assert
+    expect(dashboard.kpis.find((kpi) => kpi.key === 'active_events')?.value).toBe(1);
+    expect(dashboard.pipelineByStage.items.map((item) => [item.stage, item.count])).toEqual([['under_assessment', 1]]);
+    expect(dashboard.pipelineValue).toEqual({ amount: '125000.00', currency: 'BWP' });
+    expect(new Set(dashboard.deadlines.items.map((item) => item.reference))).toEqual(new Set(['T-2026-0003']));
+    expect(dashboard.approvals.items.some((item) => item.title.includes('T-2026-0009'))).toBe(false);
+    expect(dashboard.attention.map((item) => item.detail).filter((detail) => !detail.startsWith('T-2026-0003'))).toEqual([]);
+    expect(dashboard.workload).toEqual({ restricted: true, items: [] });
+    expect(dashboard.filterOptions.owners.map((owner) => owner.userId)).toEqual([5]);
+  });
+
+  it('lists only approvals the caller requested or decides, as /me/approvals does', async () => {
+    // Arrange
+    const dashboard = ok(await api.callAs(TEBOGO, R.getBuyerDashboard, { tenant: 'kwu' }), BuyerDashboard);
+
+    // Act
+    const statuses = await Promise.all(
+      dashboard.approvals.items.map(
+        async (item) => (await api.requestAs(TEBOGO, 'GET', `/api/v1/me/approvals/${item.approvalId}`, { tenant: 'kwu' })).status,
+      ),
+    );
+
+    // Assert
+    expect(statuses.every((status) => status === 200)).toBe(true);
+    expect(dashboard.kpis.find((kpi) => kpi.key === 'pending_approvals')?.value).toBe(dashboard.approvals.items.length);
+  });
+
+  it('shows the timetable deadlines, including T-2026-0002’s deadline moved to 21 Oct 2026 by Addendum 1', async () => {
+    // Act
+    const dashboard = ok(await api.callAs(TEBOGO, R.getBuyerDashboard, { tenant: 'kwu' }), BuyerDashboard);
+
+    // Assert
+    const t2 = dashboard.deadlines.items.filter((item) => item.reference === 'T-2026-0002');
+    expect(t2.find((item) => item.milestone === 'submission_deadline')?.deadline).toEqual({ at: '2026-10-21T10:00:00Z', timeZone: 'Africa/Gaborone' });
+    expect(t2.find((item) => item.milestone === 'opening')?.deadline.at).toBe('2026-10-21T12:00:00Z');
+    expect(dashboard.deadlines.items.every((item) => item.deadline.at >= dashboard.asOf)).toBe(true);
+  });
+
+  it('counts every event of the tender register in the pipeline, T-2026-0014 included', async () => {
+    // Act
+    const dashboard = ok(await api.callAs(TEBOGO, R.getBuyerDashboard, { tenant: 'kwu' }), BuyerDashboard);
+    const register = await api.requestAs(TEBOGO, 'GET', '/api/v1/buyer/tenders', { tenant: 'kwu', query: { pageSize: 100 } });
+
+    // Assert
+    const inPipeline = dashboard.pipelineByStage.items.reduce((total, item) => total + item.count, 0);
+    expect(inPipeline).toBe((register.body as { total: number }).total);
+    expect(dashboard.pipelineByStage.items.find((item) => item.stage === 'under_assessment')?.count).toBe(3);
+  });
+
   it('shows Okavango District Council only its own event', async () => {
     const dashboard = ok(await api.callAs('officer.odc@tenderiq.local', R.getBuyerDashboard, { tenant: 'odc' }), BuyerDashboard);
-    expect(dashboard.deadlines.items.map((item) => item.reference)).toEqual(['T-2026-0011', 'T-2026-0011']);
-    expect(dashboard.kpis.find((kpi) => kpi.key === 'active_events')?.value).toBe(1);
+    expect(dashboard.deadlines.items.map((item) => item.reference)).toEqual(['T-2026-0011', 'T-2026-0011', 'T-2026-0011', 'T-2026-0013', 'T-2026-0013']);
+    expect(dashboard.kpis.find((kpi) => kpi.key === 'active_events')?.value).toBe(2);
   });
 
   it('restricts every tender panel for a requester without leaking counts (BR-43)', async () => {
@@ -193,8 +326,32 @@ describe('supplier.dashboard.get (SUP-01)', () => {
     expect(tsodilo.pursuits.items.find((item) => item.reference === 'T-2026-0008')).toMatchObject({ bidId: 20, submissionState: 'withdrawn', effectiveReceiptNo: null });
     expect(tsodilo.pursuits.items.some((item) => item.latestRevisionStatus === 'late_rejected')).toBe(false);
     const chobe = ok(await api.callAs('chobe-pipe.admin@tenderiq.local', R.getSupplierDashboard, { tenant: 'chobe-pipe' }), SupplierDashboard);
-    expect(chobe.expiringEvidence.items.map((item) => item.evidenceId)).toEqual([202]);
+    expect(chobe.expiringEvidence.items.map((item) => item.evidenceId)).toEqual([504, 503]);
     expect(chobe.kpis.find((kpi) => kpi.key === 'expiring_evidence')?.value).toBe(1);
+  });
+
+  it.each(['tsodilo', 'chobe-pipe', 'makgadikgadi', 'serowe-ict', 'limpopo-env', 'gaborone-meter'])(
+    'opens every expiring-evidence item of %s on its own SUP-05 record, within the stated window',
+    async (slug) => {
+      // Act
+      const email = `${slug}.admin@tenderiq.local`;
+      const dashboard = ok(await api.callAs(email, R.getSupplierDashboard, { tenant: slug }), SupplierDashboard);
+
+      // Assert
+      expect(await deadLinks(email, slug, dashboard.expiringEvidence.items.map((item) => item.to))).toEqual([]);
+      expect(dashboard.expiringEvidence.items.every((item) => item.daysRemaining <= SUPPLIER_EVIDENCE_WINDOW_DAYS)).toBe(true);
+    },
+  );
+
+  it('lists Chobe’s public liability insurance (504, expires 8 Oct 2026) as expiring (AC-09)', async () => {
+    const chobe = ok(await api.callAs('chobe-pipe.admin@tenderiq.local', R.getSupplierDashboard, { tenant: 'chobe-pipe' }), SupplierDashboard);
+    expect(chobe.expiringEvidence.items.find((item) => item.evidenceId === 504)).toMatchObject({ expiresAt: '2026-10-08', evidenceType: 'insurance' });
+  });
+
+  it('shows Tsodilo’s T-2026-0002 submission deadline as 21 Oct 2026 (Addendum 1)', async () => {
+    const tsodilo = ok(await api.callAs('tsodilo.admin@tenderiq.local', R.getSupplierDashboard, { tenant: 'tsodilo' }), SupplierDashboard);
+    const t2 = tsodilo.deadlines.items.find((item) => item.reference === 'T-2026-0002' && item.milestone === 'submission_deadline');
+    expect(t2?.deadline.at).toBe('2026-10-21T10:00:00Z');
   });
 
   it('restricts panels a contributor may not read', async () => {
@@ -305,7 +462,7 @@ describe('management reports (REP-01)', () => {
 
   it('keeps each buyer’s report rows apart', async () => {
     const report = ok(await api.callAs('officer.odc@tenderiq.local', R.runReport, { tenant: 'odc', params: { family: 'pipeline' } }), ReportResult);
-    expect(report.rows.map((row) => row.id)).toEqual(['pl-11']);
+    expect(report.rows.map((row) => row.id)).toEqual(['pl-11', 'pl-13']);
   });
 });
 
@@ -321,6 +478,22 @@ describe('report definitions (REP-02, ADM-13)', () => {
     const definition = ok(await api.callAs(MPHO, R.getReportDefinition, { tenant: 'kwu', params: { definitionId: 1 } }), ReportDefinition);
     expect(definition.runs.some((run) => run.excludedRecipients.length > 0)).toBe(true);
     expect(definition.schedule?.timeZone).toBe('Africa/Gaborone');
+  });
+
+  it('links a run’s export only for a caller who may open it; another user’s export is named without a link', async () => {
+    // Act
+    const definition = ok(await api.callAs('masego.contracts@tenderiq.local', R.getReportDefinition, { tenant: 'kwu', params: { definitionId: 2 } }), ReportDefinition);
+    const managed = ok(await api.callAs(MPHO, R.getReportDefinition, { tenant: 'kwu', params: { definitionId: 2 } }), ReportDefinition);
+
+    // Assert
+    const exports = definition.runs.flatMap((run) => (run.export === null ? [] : [run.export]));
+    expect(exports.length).toBeGreaterThan(0);
+    for (const item of exports) {
+      const response = await api.requestAs('masego.contracts@tenderiq.local', 'GET', `/api/v1/buyer/exports/${item.id}`, { tenant: 'kwu' });
+      expect(response.status).toBe(item.accessible ? 200 : 404);
+    }
+    expect(exports.some((item) => !item.accessible)).toBe(true);
+    expect(managed.runs.every((run) => run.export === null || run.export.accessible)).toBe(true);
   });
 
   it('hides another buyer’s definition as not found', async () => {
@@ -453,6 +626,52 @@ describe('me.search.query (COM-08)', () => {
     const result = ok(await api.callAs('chobe-pipe.bidmanager@tenderiq.local', R.search, { query: { q: 'water', pageSize: 100 } }), SearchResponse);
     expect(result.items.every((item) => item.organization.tenantId === TENANT_IDS['chobe-pipe'])).toBe(true);
     expect(result.items.some((item) => item.reference === 'T-2026-0003')).toBe(false);
+  });
+
+  it('returns an evaluator only the tenders of the teams he is on: sam.dual finds T-2026-0003 and no other KWU tender', async () => {
+    // Act
+    const result = ok(
+      await api.callAs('sam.dual@tenderiq.local', R.search, { query: { q: 'T-2026', tenantId: TENANT_IDS.kwu, type: ['tender'], pageSize: 100 } }),
+      SearchResponse,
+    );
+
+    // Assert
+    expect(result.items.map((item) => item.reference)).toEqual(['T-2026-0003']);
+    expect(result.organizations.find((row) => row.organization.tenantId === TENANT_IDS.kwu)?.count).toBe(1);
+  });
+
+  it('does not reveal an invitation-only tender or a restricted document to an evaluator outside its team', async () => {
+    // Act
+    const chlorine = ok(await api.callAs('thato.eval@tenderiq.local', R.search, { query: { q: 'Chlorine' } }), SearchResponse);
+    const report = ok(await api.callAs('sam.dual@tenderiq.local', R.search, { query: { q: 'Evaluation report' } }), SearchResponse);
+
+    // Assert
+    expect(chlorine.total).toBe(0);
+    expect(report.items.some((item) => item.type === 'document' && item.recordId === 207)).toBe(false);
+  });
+
+  it.each([TEBOGO, 'sam.dual@tenderiq.local', 'thato.eval@tenderiq.local', 'tsodilo.admin@tenderiq.local', 'chobe-pipe.admin@tenderiq.local'])(
+    'links every result of %s to a record the persona may open',
+    async (email) => {
+      // Act
+      const results = await Promise.all(
+        ['T-2026', 'water', 'insurance', 'evidence', 'contract'].map(
+          async (q) => ok(await api.callAs(email, R.search, { query: { q, pageSize: 100 } }), SearchResponse).items,
+        ),
+      );
+
+      // Assert
+      const dead: string[] = [];
+      for (const item of results.flat()) {
+        dead.push(...(await deadLinks(email, item.organization.tenantId, [item.to])));
+      }
+      expect(dead).toEqual([]);
+    },
+  );
+
+  it('indexes task hits with the task inbox’s own due date and status', async () => {
+    const result = ok(await api.callAs(TEBOGO, R.search, { query: { q: 'Q-206' } }), SearchResponse);
+    expect(result.items.find((item) => item.type === 'task' && item.recordId === 115)).toMatchObject({ subtitle: 'Overdue since 5 Oct 2026', to: '/me/tasks?task=115' });
   });
 
   it('refuses a tenant filter outside the caller’s memberships', async () => {

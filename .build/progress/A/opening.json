@@ -46,5 +46,23 @@
       "description": "EVA-03 answer distribution has no storage in schema-blueprint Migration 10.",
       "detail": "Add bid_clarification_recipients(clarification_id, user_id, distributed_at) [T] (or record a design decision to derive ClarificationDetail.distributedTo from notifications with related_type bid_clarification). Documented in the JSDoc of ClarificationDetail.distributedTo and RecordEffectBody.distributeToUserIds."
     }
+  ],
+  "qaFixes": [
+    {
+      "title": "SUP-18 Reference column shows the request reference",
+      "fix": "AssessmentRequestRow.reference (CL-<id>) added to the contract and mock view (search and reference sort use it); the list renders it in Reference and moves tender reference and buyer to Tender; the detail title and respond confirmation name the request.",
+      "tests": [
+        "src/mock-api/handlers/opening/opening.test.ts",
+        "src/ui/src/features/opening/pages/AssessmentRequestsPage.test.tsx",
+        "src/ui/src/features/opening/pages/AssessmentRequestPage.test.tsx"
+      ]
+    },
+    {
+      "title": "T-2026-0002 opening session scheduled before the submission deadline",
+      "fix": "Session 120 scheduledAt 2026-10-21T12:00:00Z (timetable opening milestone after Addendum 1).",
+      "tests": [
+        "src/mock-api/fixtures/opening/opening.test.ts"
+      ]
+    }
   ]
 }

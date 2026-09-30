@@ -4,7 +4,6 @@
  * notices are flagged: a tender is advertised only when every external channel is confirmed and reconciled
  * (FR-08, AC-33).
  */
-import { useNavigate } from 'react-router';
 
 import { PUBLICATIONS_CHANNEL, PUBLICATIONS_STATUS } from '@contracts/enums';
 import { PUBLICATION_SORT_FIELDS, publicationEndpoints } from '@contracts/publication';
@@ -77,7 +76,6 @@ function needsAttention(row: PublicationRow): boolean {
 }
 
 export default function PublicationRegisterPage() {
-  const navigate = useNavigate();
   const timeZone = useOfficialTimeZone();
   const [filters, setFilters, clearFilters] = useScreenFilters('BUY-14', DEFAULTS);
 
@@ -420,7 +418,7 @@ export default function PublicationRegisterPage() {
           rowLabel={(row) =>
             `${row.tender.reference} ${tEnum('publications.channel', row.channel)} ${t('publication.common.versionNo', { no: row.versionNo })}`
           }
-          onRowClick={(row) => void navigate(publicationPaths.tender(row.tender.tenderId))}
+          rowHref={(row) => publicationPaths.tender(row.tender.tenderId)}
           loading={query.isFetching}
           error={query.error}
           onRetry={query.reload}

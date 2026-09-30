@@ -31,8 +31,28 @@ describe('ModerationPage (EVA-05)', () => {
     expect(within(row).queryByText('Not scored')).not.toBeInTheDocument();
     expect(within(row).getByText('Divergent')).toBeInTheDocument();
     expect(within(row).getByText('Incomplete: 1 score missing')).toBeInTheDocument();
-    expect(within(row).getByText('4 (28.00 points)')).toBeInTheDocument();
+    expect(within(row).getByText('4.0 (28.00 points)')).toBeInTheDocument();
     expect(within(row).getByText(/1 superseded/)).toBeInTheDocument();
+  });
+
+  it('shows every rating and spread at one decimal place whatever scale the API strings carry', async () => {
+    const base = moderation();
+    const [first] = base.cells;
+    if (first === undefined) throw new Error('builder has no cell');
+    const cells = [first, { ...first, bidId: 3002, spread: '0.0', current: null, history: [] }];
+    routeCalls({
+      'buyer.evaluation.moderation.get': () => ({ ...base, cells }),
+      'buyer.evaluation.get': () => overview(),
+    });
+    renderPage(<ModerationPage />, { ...PATH, persona: CHAIR });
+
+    const grid = await screen.findByRole('table', { name: 'Assessments side by side' });
+    const [rowA, rowB] = within(grid).getAllByRole('row', { name: /C1 Solution quality/ });
+    expect(within(rowA as HTMLElement).getByText('1.0')).toBeInTheDocument();
+    expect(within(rowA as HTMLElement).getByText('3.0')).toBeInTheDocument();
+    expect(within(rowA as HTMLElement).getAllByText('4.0').length).toBeGreaterThan(0);
+    expect(within(rowB as HTMLElement).getByText('0.0')).toBeInTheDocument();
+    expect(within(grid).queryByText('1')).not.toBeInTheDocument();
   });
 
   it('keeps the original assessments and the superseded agreed score on record (AC-20)', async () => {
@@ -79,7 +99,7 @@ describe('ModerationPage (EVA-05)', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Record agreed score' }));
     const dialog = await screen.findByRole('dialog');
     expect(
-      within(dialog).getByText(/The current agreed score 4 is superseded/),
+      within(dialog).getByText(/The current agreed score 4\.0 is superseded/),
     ).toBeInTheDocument();
     fireEvent.change(within(dialog).getByLabelText(/Agreed rating/), { target: { value: '5' } });
     fireEvent.change(within(dialog).getByLabelText(/^Reasons/), {

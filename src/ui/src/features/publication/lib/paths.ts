@@ -11,7 +11,8 @@ export const publicationPaths = {
     `/buyer/tenders/${tenderId}/participants/${participantId}`,
   tenderOverview: (tenderId: number): string => `/buyer/tenders/${tenderId}`,
   approval: (approvalId: number): string => `/me/approvals/${approvalId}`,
-  task: (taskId: number): string => `/me/tasks/${taskId}`,
+  /** The personal task inbox (COM-04): the exception task is listed there (the inbox has no per-task route). */
+  taskInbox: '/me/tasks',
 } as const;
 
 export const portalPaths = {

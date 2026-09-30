@@ -212,7 +212,7 @@ export const EVALUATION_PLANS: readonly FxEvaluationPlan[] = Object.freeze([
     ]),
     priceWeight: '50',
     thresholdScope: 'none',
-    approvedAt: '2026-02-25T10:00:00Z',
+    approvedAt: '2025-12-17T10:00:00Z',
     approvedBy: USERS.mpho,
   }),
   {

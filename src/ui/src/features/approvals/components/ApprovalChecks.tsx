@@ -161,6 +161,7 @@ const EXPLAINED: readonly ApprovalBlocker[] = [
   'conflict_declaration_required',
   'conflict_unresolved',
   'sod_blocked',
+  'subject_gate_blocked',
 ];
 
 export function DecisionReadiness({ approval }: { readonly approval: ApprovalDetail }) {
@@ -238,6 +239,23 @@ export function DecisionReadiness({ approval }: { readonly approval: ApprovalDet
     });
   } else {
     items.push({ id: 'sod', status: 'passed', label: t('approvals.readiness.sodOk') });
+  }
+  const gates = approval.subjectGates ?? [];
+  if (gates.length > 0) {
+    for (const gate of gates) {
+      items.push({
+        id: `gate-${gate.code}`,
+        status: 'blocking',
+        label: t('approvals.readiness.gate'),
+        detail: gate.detail,
+      });
+    }
+  } else if (blockers.includes('subject_gate_blocked')) {
+    items.push({
+      id: 'subject_gate_blocked',
+      status: 'blocking',
+      label: t('approvals.blocker.subject_gate_blocked'),
+    });
   }
   for (const code of blockers) {
     if (EXPLAINED.includes(code)) continue;

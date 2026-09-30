@@ -15,7 +15,7 @@ import type {
   ServiceIncidentSeverity,
 } from '../../../contracts/operations.js';
 import { TENANT_IDS } from '../platform.js';
-import { OPS_USERS } from './customers.js';
+import { OPS_USERS } from './users.js';
 
 export interface FixtureServiceIncident {
   readonly id: number;
@@ -31,19 +31,29 @@ export interface FixtureServiceIncident {
   readonly publicNotice: boolean;
 }
 
+/**
+ * The window of INC-2026-007 (slow document uploads, 24 Sep 2026, 15:20 to 16:05 Africa/Gaborone). Gaborone
+ * Metering's replacement upload on T-2026-0002 failed inside it (13:38 to 13:42 UTC), and the buyer's view of the
+ * same incident on BUY-19 (bids fixtures) uses these instants.
+ */
+export const INCIDENT_SLOW_UPLOADS_WINDOW = Object.freeze({
+  startedAt: '2026-09-24T13:20:00Z',
+  resolvedAt: '2026-09-24T14:05:00Z',
+});
+
 export const SERVICE_INCIDENTS: readonly FixtureServiceIncident[] = Object.freeze([
   {
     id: 1,
     reference: 'INC-2026-007',
     title: 'Slow document uploads',
     description:
-      'Uploads above 10 MB took more than 60 seconds between 09:40 and 10:25 (UTC+02:00) because a storage node was degraded. Submissions already received were not affected; two upload attempts timed out and were retried successfully.',
+      'Uploads to submission storage were delayed for 45 minutes between 15:20 and 16:05 (UTC+02:00) because a storage node was degraded. Submissions already received were not affected; one replacement upload did not complete and the earlier receipt stayed effective.',
     severity: 'high',
-    startedAt: '2026-09-24T07:40:00Z',
-    resolvedAt: '2026-09-24T08:25:00Z',
+    startedAt: INCIDENT_SLOW_UPLOADS_WINDOW.startedAt,
+    resolvedAt: INCIDENT_SLOW_UPLOADS_WINDOW.resolvedAt,
     status: 'resolved',
     customerNotice:
-      'Between 09:40 and 10:25 (UTC+02:00) on 24 Sep 2026 large document uploads were slow. No submission was lost. Buyers with events open during this window have the timing evidence to decide whether any deadline change is needed.',
+      'Between 15:20 and 16:05 (UTC+02:00) on 24 Sep 2026 document uploads were slow. No submission was lost. Buyers with events open during this window have the timing evidence to decide whether any deadline change is needed.',
     publicNotice: true,
   },
   {
@@ -92,9 +102,9 @@ export const SERVICE_INCIDENT_IMPACTS: readonly FixtureIncidentImpact[] = Object
     tenderId: 2,
     tenderReference: 'T-2026-0002',
     impactNote:
-      'T-2026-0002 was open (deadline 16 Oct 2026). Two supplier upload attempts timed out at 09:52 and 10:07 and were retried successfully the same morning. No receipt was affected.',
+      'T-2026-0002 was open (deadline 21 Oct 2026). One supplier replacement upload started at 15:38 did not complete; the earlier receipt stayed effective and no receipt was lost.',
     buyerDecisionNote:
-      'KWU decision (25 Sep 2026, Mpho Dikgang): the official deadline stays 16 Oct 2026, 12:00 (UTC+02:00) Africa/Gaborone. The incident was 22 days before closing and no participant lost the ability to submit.',
+      'KWU decision (25 Sep 2026, Mpho Dikgang): the official deadline stays 21 Oct 2026, 12:00 (UTC+02:00) Africa/Gaborone. The incident was four weeks before closing and every affected supplier could resubmit.',
   },
   {
     id: 12,
@@ -135,10 +145,10 @@ export interface FixtureIncidentUpdate {
 }
 
 export const SERVICE_INCIDENT_UPDATES: readonly FixtureIncidentUpdate[] = Object.freeze([
-  { id: 6001, incidentId: 1, at: '2026-09-24T07:48:00Z', authorUserId: OPS_USERS.supportAgent, action: 'status.investigating', description: 'Upload latency alerts; investigating the storage tier.' },
-  { id: 6002, incidentId: 1, at: '2026-09-24T08:02:00Z', authorUserId: OPS_USERS.opsAdmin, action: 'status.identified', description: 'Degraded storage node identified and removed from rotation.' },
-  { id: 6003, incidentId: 1, at: '2026-09-24T08:05:00Z', authorUserId: OPS_USERS.opsAdmin, action: 'notice.published', description: 'Customer notice published to affected buyers.' },
-  { id: 6004, incidentId: 1, at: '2026-09-24T08:25:00Z', authorUserId: OPS_USERS.opsAdmin, action: 'status.resolved', description: 'Upload times back to normal; timing evidence exported for affected buyers.' },
+  { id: 6001, incidentId: 1, at: '2026-09-24T13:28:00Z', authorUserId: OPS_USERS.supportAgent, action: 'status.investigating', description: 'Upload latency alerts; investigating the storage tier.' },
+  { id: 6002, incidentId: 1, at: '2026-09-24T13:45:00Z', authorUserId: OPS_USERS.opsAdmin, action: 'status.identified', description: 'Degraded storage node identified and removed from rotation.' },
+  { id: 6003, incidentId: 1, at: '2026-09-24T13:50:00Z', authorUserId: OPS_USERS.opsAdmin, action: 'notice.published', description: 'Customer notice published to affected buyers.' },
+  { id: 6004, incidentId: 1, at: INCIDENT_SLOW_UPLOADS_WINDOW.resolvedAt, authorUserId: OPS_USERS.opsAdmin, action: 'status.resolved', description: 'Upload times back to normal; timing evidence exported for affected buyers.' },
   { id: 6005, incidentId: 1, at: '2026-09-25T09:30:00Z', authorUserId: OPS_USERS.opsAdmin, action: 'buyer.decision_recorded', description: 'KWU and ODC recorded their deadline decisions.' },
   { id: 6011, incidentId: 2, at: '2026-09-29T12:25:00Z', authorUserId: OPS_USERS.supportAgent, action: 'status.investigating', description: 'Queue of outgoing e-mail growing.' },
   { id: 6012, incidentId: 2, at: '2026-09-29T13:00:00Z', authorUserId: OPS_USERS.opsAdmin, action: 'status.identified', description: 'The SMTP relay throttles the sending account; limit increase requested.' },

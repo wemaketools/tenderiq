@@ -114,29 +114,29 @@ export function ContractWorkspace({
 
   if (contractId === null) {
     return (
-      <>
+      <div className="tiq-page">
         <PageHeader title={title} back={back} />
         <Banner tone="error" title={t('contracts.workspace.invalidId')} />
-      </>
+      </div>
     );
   }
 
   const contract = query.data;
   if (contract === undefined) {
     return (
-      <>
+      <div className="tiq-page">
         <PageHeader title={title} back={back} />
         {query.error !== null ? (
           <ErrorState error={query.error} onRetry={query.reload} />
         ) : (
           <SkeletonBlock lines={6} />
         )}
-      </>
+      </div>
     );
   }
 
   return (
-    <>
+    <div className="tiq-page">
       <PageHeader
         title={title}
         subtitle={contract.title}
@@ -174,6 +174,6 @@ export function ContractWorkspace({
         </Banner>
       )}
       {children(contract)}
-    </>
+    </div>
   );
 }

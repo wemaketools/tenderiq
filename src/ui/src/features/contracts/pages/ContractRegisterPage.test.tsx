@@ -32,14 +32,37 @@ describe('ContractRegisterPage (CON-01)', () => {
     expect(row).not.toBeNull();
     const cells = within(row as HTMLElement);
     expect(cells.getByText('Tsodilo Engineering')).toBeInTheDocument();
-    expect(cells.getByText('Tebogo Molefe')).toBeInTheDocument();
+    expect(cells.getByText('Owner: Tebogo Molefe')).toBeInTheDocument();
     expect(cells.getByText('BWP 1,995,000')).toBeInTheDocument();
-    expect(cells.getByText('Remaining ceiling BWP 255,000')).toBeInTheDocument();
+    expect(cells.getByText('Remaining BWP 255,000')).toBeInTheDocument();
     expect(cells.getByText('Renewal decision')).toBeInTheDocument();
     expect(cells.getByText('Active')).toBeInTheDocument();
     expect(screen.getByText('Upcoming decisions')).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /New contract/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Assign owners of/ })).not.toBeInTheDocument();
+  });
+
+  it('lays the page out as one spaced page with owner and parties in one column, an actions column and a two-line term', async () => {
+    routeCalls({
+      'buyer.contracts.list': listResponse(),
+      'buyer.contracts.assignees': assignees(),
+    });
+    const { container } = renderPage(<ContractRegisterPage />, {
+      ...OPTIONS,
+      permissions: ['contract.view', 'contract.manage'],
+    });
+    const row = (await screen.findByText('C-2026-0001')).closest('tr') as HTMLElement;
+
+    const page = container.querySelector('.tiq-page');
+    expect(page).not.toBeNull();
+    expect(page?.querySelector('.tiq-kpi-grid')).not.toBeNull();
+    expect(page?.querySelector('table')).not.toBeNull();
+    const headers = screen.getAllByRole('columnheader').map((cell) => cell.textContent ?? '');
+    expect(headers).not.toContain('Owner');
+    expect(headers.some((header) => header.includes('Actions'))).toBe(true);
+    expect(headers.some((header) => header.includes('Parties / owner'))).toBe(true);
+    expect(within(row).getByText('From 1 Apr 2026')).toBeInTheDocument();
+    expect(within(row).getByText('To 31 Mar 2027')).toBeInTheDocument();
   });
 
   it('sends the status and decision filters to the register query', async () => {

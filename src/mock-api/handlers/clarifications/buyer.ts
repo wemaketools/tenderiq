@@ -387,7 +387,7 @@ export function registerBuyer(app: MockApp): void {
       );
     const sorted =
       query.sort === 'responseDueAt'
-        ? sortBy(rows, (row) => row.responseDueAt, query.dir)
+        ? sortBy(rows, (row) => row.responseDueAt?.at ?? null, query.dir)
         : query.sort === 'status'
           ? sortBy(rows, (row) => row.status, query.dir)
           : query.sort === 'tenderReference'
@@ -438,7 +438,7 @@ export function registerBuyer(app: MockApp): void {
         lateDisposition: body.lateDisposition,
         lateDispositionReason: body.lateDispositionReason,
         status: body.lateDisposition === 'declined' ? 'declined' : question.status,
-        responseDueAt: body.lateDisposition === 'declined' ? null : question.responseDueAt,
+        ...(body.lateDisposition === 'declined' ? { responseDueAt: null } : {}),
       },
       historyEntry(now, body.lateDisposition === 'declined' ? 'late_declined' : 'late_accepted', requirePersona().userId, body.lateDispositionReason),
     );
@@ -680,7 +680,7 @@ export function registerBuyer(app: MockApp): void {
       return fail(409, 'TENDER_NOT_AMENDABLE', `${tender.reference} can no longer be amended.`);
     }
     if (addendum.newSubmissionDeadline !== null && Date.parse(addendum.newSubmissionDeadline) <= now.getTime()) {
-      return fail(409, 'NEW_DEADLINE_IN_PAST', 'The new deadline has passed; revise the addendum.');
+      return fail(422, 'NEW_DEADLINE_IN_PAST', 'The new deadline has passed; revise the addendum.');
     }
     const issuedAt = iso(now);
     const issued: AddendumFixture = {

@@ -8,9 +8,21 @@ import { describe, expect, it } from 'vitest';
 import { COMPLAINTS, STANDSTILL_PERIODS } from '../awards/index.js';
 import { BIDS, SUBMISSION_RECEIPTS } from '../bids/responses.js';
 import { PARTICIPANTS } from '../publication/participants.js';
+import { CONTRACTS } from '../contracts/core.js';
+import { DEMO_AS_OF } from '../demo-clock.js';
+import { EVIDENCE_ITEMS } from '../suppliers/evidence-items.js';
 import { LOTS } from '../tenders/structure.js';
+import { TENDERS } from '../tenders/tenders.js';
+import { MILESTONES as TENDER_MILESTONES } from '../tenders/timetable.js';
 import { AUDIT_EVENTS, HOLDS, RECORD_SUBJECTS } from '../records/index.js';
 import {
+  CONTRACT_FACTS,
+  EXPORTS,
+  REPORT_DEFINITIONS,
+  REPORT_RUNS,
+  REPORTING_AS_OF,
+  SUPPLIER_DEADLINES,
+  SUPPLIER_EVIDENCE,
   DASHBOARD_ATTENTION,
   DASHBOARD_COMPLAINTS,
   DASHBOARD_DEADLINES,
@@ -211,5 +223,72 @@ describe('storyline alignment with the tenders and awards domains', () => {
     for (const to of legacyLinks) {
       expect(to).toBe(LINKS.auditTrail('tender', LEGACY_TENDER_ID));
     }
+  });
+});
+
+describe('dashboard and search facts vs the owning domains (one demo world)', () => {
+  it('mirrors every register tender of the tenders domain, with its status, dimensions and estimate', () => {
+    for (const tender of TENDERS.filter((row) => !row.isTemplate)) {
+      const fact = TENDER_FACTS.find((row) => row.id === tender.id);
+      expect(fact, tender.reference).toBeDefined();
+      expect(fact, tender.reference).toMatchObject({
+        tenantId: tender.tenantId,
+        reference: tender.reference,
+        title: tender.title,
+        status: tender.status,
+        categoryId: tender.categoryId,
+        departmentId: tender.departmentId,
+        ownerUserId: tender.ownerUserId,
+      });
+      expect(fact?.estimatedValue?.amount ?? null, tender.reference).toBe(tender.estimatedValue);
+    }
+  });
+
+  it('takes every dashboard deadline from the tender timetables, so addenda-moved deadlines agree (T-2026-0002, T-2026-0011)', () => {
+    for (const row of DASHBOARD_DEADLINES) {
+      expect(
+        TENDER_MILESTONES.some((milestone) => milestone.tenderId === row.tenderId && milestone.milestone === row.milestone && milestone.at === row.at),
+        `${row.tenderId} ${row.milestone} ${row.at}`,
+      ).toBe(true);
+    }
+    for (const row of SUPPLIER_DEADLINES) {
+      expect(TENDER_MILESTONES.some((milestone) => milestone.tenderId === row.tenderId && milestone.milestone === row.milestone && milestone.at === row.at)).toBe(true);
+    }
+    expect(DASHBOARD_DEADLINES.find((row) => row.tenderId === 2 && row.milestone === 'submission_deadline')?.at).toBe('2026-10-21T10:00:00Z');
+    expect(DASHBOARD_DEADLINES.find((row) => row.tenderId === 11 && row.milestone === 'submission_deadline')?.at).toBe('2026-10-23T10:00:00Z');
+    expect(TENDER_FACTS.find((row) => row.id === 2)?.nextMilestoneLabel).toContain('21 Oct 2026');
+  });
+
+  it('links every supplier evidence row and search hit to an item of that supplier’s own library', () => {
+    const evidenceLinks = [
+      ...SUPPLIER_EVIDENCE.map((row) => ({ tenantId: row.supplierTenantId, id: row.evidenceId })),
+      ...SEARCH_INDEX.filter((row) => row.to.startsWith('/supplier/evidence/')).map((row) => ({ tenantId: row.tenantId, id: Number(row.to.split('/').pop()) })),
+    ];
+    expect(evidenceLinks.length).toBeGreaterThan(0);
+    for (const link of evidenceLinks) {
+      const item = EVIDENCE_ITEMS.find((candidate) => candidate.id === link.id);
+      expect(item?.tenantId, `evidence ${link.id}`).toBe(link.tenantId);
+    }
+    expect(SUPPLIER_EVIDENCE.find((row) => row.evidenceId === 504)).toMatchObject({ expiresAt: '2026-10-08' });
+  });
+
+  it('values the contracts as the contracts domain does', () => {
+    for (const fact of CONTRACT_FACTS) {
+      const contract = CONTRACTS.find((row) => row.id === fact.id);
+      expect(contract, fact.reference).toMatchObject({ reference: fact.reference, title: fact.title, status: fact.status, value: fact.value });
+    }
+    expect(CONTRACT_FACTS.find((row) => row.reference === 'C-2026-0002')?.value).toEqual({ amount: '4668000.00', currency: 'BWP' });
+  });
+
+  it('computes every "as of" value at the single demo clock, with no activity after it', () => {
+    expect(REPORTING_AS_OF).toBe(DEMO_AS_OF);
+    const activity = [
+      ...SEARCH_INDEX.map((row) => row.updatedAt),
+      ...REPORT_DEFINITIONS.map((row) => row.updatedAt),
+      ...REPORT_RUNS.map((row) => row.runAt),
+      ...EXPORTS.map((row) => row.requestedAt),
+      ...AUDIT_EVENTS.map((row) => row.occurredAt),
+    ];
+    expect(activity.filter((at) => at > DEMO_AS_OF)).toEqual([]);
   });
 });

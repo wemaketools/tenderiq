@@ -206,7 +206,7 @@ export const CALENDAR_DEADLINES: readonly FixtureCalendarDeadline[] = Object.fre
   deadline('t6', 'open', 'questions_deadline', '2026-10-05T13:00:00Z', '2026-09-21'),
   deadline('t6', 'open', 'submission_deadline', '2026-10-14T10:00:00Z', '2026-09-21'),
   deadline('t7', 'award_pending', 'standstill_end', '2026-10-08T15:00:00Z', '2026-09-22'),
-  deadline('t8', 'closed', 'opening', '2026-10-02T08:00:00Z', '2026-09-25'),
+  deadline('t8', 'closed', 'opening', '2026-10-07T10:00:00Z', '2026-09-25'),
   deadline('t9', 'under_assessment', 'expected_award', '2026-11-27T08:00:00Z', '2026-10-01'),
   deadline('t1', 'partially_awarded', 'expected_award', '2026-10-30T08:00:00Z', '2026-09-15', 1, 103),
   deadline('t11', 'open', 'site_visit', '2026-10-15T07:00:00Z', '2026-09-21', 5, 1101),

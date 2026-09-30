@@ -4,7 +4,6 @@
  * missing material or specialist (financial) assessment.
  */
 import { useState } from 'react';
-import { useNavigate } from 'react-router';
 
 import {
   BUYER_APPLICATION_SORT_FIELDS,
@@ -100,7 +99,6 @@ type Dialog =
   | { readonly kind: 'info'; readonly row: BuyerApplicationRow };
 
 export default function QueuePage() {
-  const navigate = useNavigate();
   const toast = useToast();
   const timeZone = useOfficialTimeZone();
   const canAssign = usePermission('qualification.review');
@@ -514,7 +512,7 @@ export default function QueuePage() {
           rows={rows}
           rowKey={(row) => String(row.id)}
           rowLabel={(row) => `${row.reference} ${row.supplier.name}`}
-          onRowClick={(row) => void navigate(buyerQualificationPaths.application(row.id))}
+          rowHref={(row) => buyerQualificationPaths.application(row.id)}
           loading={query.isFetching}
           error={query.error}
           onRetry={query.reload}

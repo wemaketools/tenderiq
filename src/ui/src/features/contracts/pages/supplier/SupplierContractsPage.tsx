@@ -2,7 +2,6 @@
  * SUP-23 — Supplier contracts and performance (list): the supplier's OWN contracts only, with signature status,
  * open and overdue obligations, pending change requests and the next official due date.
  */
-import { useNavigate } from 'react-router';
 
 import { SUPPLIER_CONTRACT_SORT_FIELDS, contractsEndpoints } from '@contracts/contracts';
 import type { SupplierContractRow } from '@contracts/contracts';
@@ -49,7 +48,6 @@ const DEFAULTS = {
 };
 
 export default function SupplierContractsPage() {
-  const navigate = useNavigate();
   const [filters, setFilters, clearFilters] = useScreenFilters('SUP-23', DEFAULTS);
   const query = useApiQuery(contractsEndpoints.supplierList, {
     query: compact({
@@ -158,7 +156,7 @@ export default function SupplierContractsPage() {
   ];
 
   return (
-    <>
+    <div className="tiq-page">
       <PageHeader title={t('contracts.supplier.title')} subtitle={t('contracts.supplier.intro')} />
       <FilterBar label={t('contracts.supplier.filters')} onClear={clearFilters} canClear={filtered}>
         <SearchField
@@ -231,7 +229,7 @@ export default function SupplierContractsPage() {
           rows={query.data?.items}
           rowKey={(row) => String(row.id)}
           rowLabel={(row) => `${row.reference} ${row.title}`}
-          onRowClick={(row) => void navigate(contractPaths.supplierContract(row.id))}
+          rowHref={(row) => contractPaths.supplierContract(row.id)}
           loading={query.isFetching}
           error={query.error}
           onRetry={query.reload}
@@ -259,6 +257,6 @@ export default function SupplierContractsPage() {
           }
         />
       </Card>
-    </>
+    </div>
   );
 }

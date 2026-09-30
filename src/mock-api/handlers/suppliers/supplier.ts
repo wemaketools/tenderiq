@@ -140,7 +140,7 @@ export function registerSupplier(app: MockApp): void {
     }
     const items = body.evidenceItemIds.map((id) => findEvidence(tenant.id, id));
     if (items.some((item) => item === undefined || item.status !== 'current')) {
-      return fail(422, 'EVIDENCE_NOT_CURRENT', 'Choose current evidence from your library.');
+      return fail(409, 'EVIDENCE_NOT_CURRENT', 'Choose current evidence from your library.');
     }
     const chosen = items.filter((item): item is FixtureEvidenceItem => item !== undefined);
     const missing = request.evidenceTypes.filter((type) => !chosen.some((item) => item.evidenceType === type));

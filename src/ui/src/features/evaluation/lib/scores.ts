@@ -47,6 +47,13 @@ export function orderedCriteria(
     .sort((a, b) => a.sortOrder - b.sortOrder);
 }
 
+/**
+ * Decimal places for individual ratings, agreed ratings, their spread and the divergence threshold. The scale allows
+ * half points (for example 4.5), so every rating in a grid shows one decimal place and reads consistently side by side
+ * ("1.0", "0.0", "4.5"), whatever scale the stored decimal strings carry (DD-32).
+ */
+export const RATING_PLACES = 1;
+
 /** Rating options from the scale anchors; a saved rating between anchors (for example 3.5) is kept as an option. */
 export function ratingOptions(
   anchors: readonly ScaleAnchor[],

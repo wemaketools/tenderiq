@@ -373,6 +373,18 @@ describe('funding and decision (BUY-04, AC-05)', () => {
     expect(request.decision).toMatchObject({ decidedAt: null, latest: { decision: 'escalate', decidedBy: { userId: 4 } } });
   });
 
+  it('names the approver PR-2026-0003 awaits for the manager but not for that approver herself (AC-05)', async () => {
+    const managerView = RequestDecisionView.parse((await call(MPHO, e.getRequestDecision, { params: { requestId: 3 } })).body);
+    const managerDetail = RequestDetail.parse((await call(MPHO, e.getRequest, { params: { requestId: 3 } })).body);
+    expect(managerView.awaitingDecisionFrom).toEqual({ userId: 18, fullName: 'Keabetswe Nkwe' });
+    expect(managerDetail.decision.awaitingDecisionFrom?.userId).toBe(18);
+
+    const approverView = RequestDecisionView.parse((await call(KEABETSWE, e.getRequestDecision, { params: { requestId: 3 } })).body);
+    const approverDetail = RequestDetail.parse((await call(KEABETSWE, e.getRequest, { params: { requestId: 3 } })).body);
+    expect(approverView.awaitingDecisionFrom).toBeNull();
+    expect(approverDetail.decision.awaitingDecisionFrom).toBeNull();
+  });
+
   it('checks authority against the total contemplated commitment, not the initial estimate', async () => {
     const view3 = RequestDecisionView.parse((await call(MPHO, e.getRequestDecision, { params: { requestId: 3 } })).body);
     expect(view3.requestedAuthority).toMatchObject({ amount: { amount: '5120000.00', currency: 'BWP' }, basis: 'total_commitment' });

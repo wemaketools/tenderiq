@@ -24,6 +24,17 @@ describe('ComplaintsPage (BUY-29)', () => {
     expect(screen.getByText('Hold active')).toBeInTheDocument();
     expect(screen.getAllByText('Unassigned').length).toBeGreaterThan(0);
   });
+
+  it('lays the filters, KPIs and table out in a spaced page', async () => {
+    installFetch({ 'GET /api/v1/buyer/complaints': () => ({ body: complaintPage() }) });
+    renderBuyer(<ComplaintsPage />, {
+      route: '/buyer/award-cases/complaints',
+      path: '/buyer/award-cases/complaints',
+    });
+
+    const heading = await screen.findByRole('heading', { level: 1 });
+    expect(heading.closest('.tiq-page')).not.toBeNull();
+  });
 });
 
 describe('ComplaintPage (BUY-29)', () => {

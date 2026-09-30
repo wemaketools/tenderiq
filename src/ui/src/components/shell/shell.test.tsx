@@ -1,6 +1,6 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import type { FeatureModule } from '../../app/featureRegistry';
 import { notificationCountsLoaded, navBadgeSet, taskCountsLoaded } from '../../app/slices/badges';
@@ -192,6 +192,60 @@ describe('AppShell and user card', () => {
     await waitFor(() =>
       expect(requests.some((request) => request.path === '/api/v1/me/theme')).toBe(true),
     );
+  });
+});
+
+describe('AppShell navigation drawer (below 768px)', () => {
+  function phoneWidth(): void {
+    const original = window.matchMedia;
+    vi.spyOn(window, 'matchMedia').mockImplementation((query: string) => ({
+      ...original(query),
+      matches: query === '(max-width: 767px)' || query === '(max-width: 1279px)',
+    }));
+  }
+
+  it('moves focus into the opened drawer, closes it on Escape and returns focus to the menu button', async () => {
+    phoneWidth();
+    renderWithProviders(<AppShell modules={modules} />, {
+      state: { session: signedInSession() },
+      route: '/buyer/overview',
+    });
+    const menuButton = screen.getByRole('button', { name: 'Open navigation' });
+    expect(menuButton).toHaveAttribute('aria-expanded', 'false');
+    expect(document.querySelector('.tiq-app')).not.toHaveClass('tiq-app--drawer-open');
+    await userEvent.click(menuButton);
+    expect(menuButton).toHaveAttribute('aria-expanded', 'true');
+    const nav = screen.getByRole('navigation', { name: 'Main navigation' });
+    expect(within(nav).getAllByRole('link')[0]).toHaveFocus();
+    await userEvent.keyboard('{Escape}');
+    expect(menuButton).toHaveAttribute('aria-expanded', 'false');
+    expect(menuButton).toHaveFocus();
+  });
+
+  it('sends focus to the main region after a nav link is followed', async () => {
+    phoneWidth();
+    renderWithProviders(<AppShell modules={modules} />, {
+      state: { session: signedInSession() },
+      route: '/buyer/overview',
+    });
+    await userEvent.click(screen.getByRole('button', { name: 'Open navigation' }));
+    const nav = screen.getByRole('navigation', { name: 'Main navigation' });
+    await userEvent.click(within(nav).getByRole('link', { name: 'Help and support' }));
+    expect(screen.getByRole('button', { name: 'Open navigation' })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    );
+    expect(screen.getByRole('main')).toHaveFocus();
+  });
+
+  it('renders no primary action slot in the top bar at phone width', () => {
+    phoneWidth();
+    renderWithProviders(<AppShell modules={modules} />, {
+      state: { session: signedInSession() },
+      route: '/buyer/overview',
+    });
+    const actions = document.querySelector('.tiq-topbar > .tiq-topbar-actions');
+    expect(actions?.querySelector('.tiq-topbar-actions')).toBeNull();
   });
 });
 

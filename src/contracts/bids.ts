@@ -76,6 +76,7 @@ import {
   SavePricingBody,
   SavePricingResult,
   SaveSubcontractorsBody,
+  BidStartOptions,
   StartBidBody,
   SubmissionPreview,
   SubmissionResult,
@@ -153,6 +154,22 @@ export const startBid = defineEndpoint({
   response: BidDetail,
   idempotent: true,
   errors: ['TENDER_NOT_FOUND', 'TENDER_NOT_OPEN', 'BID_ALREADY_EXISTS', 'ALTERNATIVES_NOT_ALLOWED', 'ROUND_NOT_OPEN'],
+  screens: ['SUP-12'],
+});
+
+/**
+ * GET /api/v1/supplier/bid-starts/:tenderId: whether the supplier can open a response workspace (main offer and,
+ * when accepted, an alternative offer) for the tender's current round, and which existing response to open instead.
+ */
+export const getBidStartOptions = defineEndpoint({
+  id: 'supplier.bids.startOptions',
+  method: 'GET',
+  path: '/api/v1/supplier/bid-starts/:tenderId',
+  audience: 'supplier',
+  permission: RESPONSE_TEAM_PERMISSIONS,
+  params: TenderParams,
+  response: BidStartOptions,
+  errors: ['TENDER_NOT_FOUND'],
   screens: ['SUP-12'],
 });
 
@@ -795,6 +812,7 @@ export const closeTender = defineEndpoint({
 
 export const bidEndpoints = {
   listBids,
+  getBidStartOptions,
   startBid,
   getBid,
   updateBidLots,

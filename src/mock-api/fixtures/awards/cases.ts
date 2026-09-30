@@ -3,8 +3,8 @@
  *
  * Debriefs: Chobe on T-2026-0001 (provided), Limpopo on T-2026-0007 (provided, AC-27), Tsodilo on T-2026-0007
  * (scheduled) and Makgadikgadi on T-2026-0010 (declined as late). The T-2026-0007 debrief window closed on
- * 29 Sep 2026, 17:00 (5 working days after the 22 Sep outcome notices), so a request from Chobe on the demo date is
- * refused with DEBRIEF_WINDOW_CLOSED. Each debrief carries ONLY the requesting supplier's own result; the
+ * 29 Sep 2026, 17:00 (5 working days after the 22 Sep outcome notices), so a new request on the demo date is
+ * refused with DEBRIEF_WINDOW_CLOSED (Limpopo, whose debrief was already provided, gets that refusal). Each debrief carries ONLY the requesting supplier's own result; the
  * per-criterion weights add up to 100.00 and the own scores add up to the total score.
  *
  * Complaint evidence is held by the documents domain (`related_type = 'complaint'`, related id = complaint id), so

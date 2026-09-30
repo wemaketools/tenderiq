@@ -104,7 +104,8 @@ export const CalendarDetail = CalendarSummary.extend({
 export type CalendarDetail = z.infer<typeof CalendarDetail>;
 
 /** Anyone who maintains calendars or picks one for an event may read them. */
-const CALENDAR_READ: EndpointPermission = ['org.calendars.manage', 'tender.edit', 'tender.view'];
+/** Calendar reads; `support.view` lets an operator under a support grant read this configuration (surface `metadata`). */
+const CALENDAR_READ: EndpointPermission = ['org.calendars.manage', 'tender.edit', 'tender.view', 'support.view'];
 
 export const CALENDAR_SORT_FIELDS = ['name', 'status', 'updatedAt'] as const;
 
@@ -127,6 +128,7 @@ export const listCalendars = defineEndpoint({
   path: '/api/v1/buyer/calendars',
   audience: 'buyer',
   permission: CALENDAR_READ,
+  support: 'metadata',
   query: CalendarListQuery,
   response: CalendarPage,
   errors: [],
@@ -140,6 +142,7 @@ export const getCalendar = defineEndpoint({
   path: '/api/v1/buyer/calendars/:calendarId',
   audience: 'buyer',
   permission: CALENDAR_READ,
+  support: 'metadata',
   params: CalendarParams,
   response: CalendarDetail,
   errors: ['CALENDAR_NOT_FOUND'],
@@ -358,6 +361,7 @@ export const getDeadlinePolicy = defineEndpoint({
   path: '/api/v1/buyer/deadline-policy',
   audience: 'buyer',
   permission: CALENDAR_READ,
+  support: 'metadata',
   response: DeadlinePolicy,
   errors: [],
   screens: ['ADM-10'],

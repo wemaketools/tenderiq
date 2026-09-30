@@ -3,7 +3,6 @@
  * or requested, in every active organization (DD-21), with the record, amount, due date, current step, status and
  * whether the caller can decide now or what blocks them.
  */
-import { useNavigate } from 'react-router';
 
 import { APPROVAL_INVOLVEMENTS, APPROVAL_SORT_FIELDS, listMyApprovals } from '@contracts/approvals';
 import type { ApprovalInvolvement, MyApprovalItem } from '@contracts/approvals';
@@ -26,7 +25,6 @@ import {
   MoneyText,
   OverdueChip,
   PageHeader,
-  Reference,
   SearchField,
   Select,
   StatusChip,
@@ -44,6 +42,7 @@ import {
   useDisplayTimeZone,
   useOrganizationOptions,
 } from '../../tasks/lib/shared';
+import { SubjectReference } from '../components/SubjectReference';
 import { isBlockedForMe } from '../lib/status';
 
 type SortField = (typeof APPROVAL_SORT_FIELDS)[number];
@@ -98,7 +97,6 @@ function MyPart({ row }: { readonly row: MyApprovalItem }) {
 }
 
 export default function ApprovalInboxPage() {
-  const navigate = useNavigate();
   const timeZone = useDisplayTimeZone();
   const organizations = useOrganizationOptions();
   const [filters, setFilters, clearFilters] = useScreenFilters('COM-04-approvals', DEFAULTS);
@@ -161,11 +159,7 @@ export default function ApprovalInboxPage() {
       header: t('approvals.list.col.reference'),
       cell: (row) => (
         <>
-          {row.subjectReference === null ? (
-            '—'
-          ) : (
-            <Reference value={row.subjectReference} to={row.subjectLinkPath ?? null} />
-          )}
+          <SubjectReference value={row.subjectReference} to={row.subjectLinkPath} />
           <span className="tiq-cell-sub">
             {t('approvals.detail.version', { version: row.subjectVersion })}
           </span>
@@ -357,7 +351,7 @@ export default function ApprovalInboxPage() {
           rows={query.data?.items}
           rowKey={(row) => String(row.id)}
           rowLabel={(row) => row.title}
-          onRowClick={(row) => void navigate(INBOX_PATHS.approval(row.id))}
+          rowHref={(row) => INBOX_PATHS.approval(row.id)}
           loading={query.isFetching}
           error={query.error}
           onRetry={query.reload}

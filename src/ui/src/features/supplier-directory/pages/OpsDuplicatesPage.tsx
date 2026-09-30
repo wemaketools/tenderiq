@@ -3,7 +3,6 @@
  * decision. A similar name or e-mail domain is never enough to merge; the review page compares the records side by
  * side and a merge never re-points historical records.
  */
-import { useNavigate } from 'react-router';
 
 import {
   DUPLICATE_CANDIDATES_DETECTED_REASON,
@@ -57,7 +56,6 @@ const DEFAULTS = {
 };
 
 export default function OpsDuplicatesPage() {
-  const navigate = useNavigate();
   const zone = useOfficialTimeZone();
   const [filters, setFilters, clearFilters] = useScreenFilters('OPS-01-duplicates', DEFAULTS);
   const query = useApiQuery(suppliersEndpoints.listDuplicates, {
@@ -223,7 +221,7 @@ export default function OpsDuplicatesPage() {
           rows={query.data?.items}
           rowKey={(row) => String(row.id)}
           rowLabel={(row) => `${row.tenantA.legalName} / ${row.tenantB.legalName}`}
-          onRowClick={(row) => void navigate(directoryPaths.duplicate(row.id))}
+          rowHref={(row) => directoryPaths.duplicate(row.id)}
           loading={query.isFetching}
           error={query.error}
           onRetry={query.reload}

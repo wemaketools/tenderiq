@@ -25,6 +25,7 @@ import type {
   ModeratedScore,
   ModerationCell,
   ModerationView,
+  OverviewDetailLevel,
   PriceGate,
   RankingView,
   ReadinessItem,
@@ -42,6 +43,7 @@ import type {
   FixtureModerationSession,
   FixtureReport,
   FixtureScore,
+  FixtureTimelineEvent,
 } from '../../fixtures/evaluation.js';
 import { findPersonaById, personRef } from '../../persona.js';
 import type { Caller } from './access.js';
@@ -759,7 +761,8 @@ export function moderationCells(evaluation: FixtureEvaluation): ModerationCell[]
       let spread: string | null = null;
       if (submittedScores.length >= 2) {
         const sorted = [...submittedScores].sort(compare);
-        spread = sub(sorted[sorted.length - 1] as string, sorted[0] as string);
+        // One decimal place whatever scale the ratings were entered with, so spreads read consistently ("1.0", "0.0").
+        spread = round(sub(sorted[sorted.length - 1] as string, sorted[0] as string), 1);
       }
       const cellModerated = moderated.filter((row) => row.bidId === bid.bidId && row.criterionId === criterionId);
       const current = cellModerated.find((row) => row.supersededById === null);
@@ -1212,7 +1215,9 @@ function chairNextAction(evaluation: FixtureEvaluation, caller: Caller): Evaluat
     return signoffPending(evaluation, caller) ? 'sign_report' : 'collect_signoffs';
   }
   if (evaluation.results.status !== 'not_computed') {
-    return 'validate_ranking';
+    // A computed ranking is validated only once nothing blocks the report (missing scores, conflict reviews…).
+    const blocking = rankingReadiness(evaluation, resultRows(evaluation)).some((item) => item.status === 'blocking');
+    return blocking ? 'resolve_blockers' : 'validate_ranking';
   }
   if (evaluation.moderation?.status !== 'finalized') {
     const technical = assignmentsOf(evaluation).filter((row) => !row.isCommercial && isActiveAssignment(row));
@@ -1254,7 +1259,34 @@ export function myNextAction(evaluation: FixtureEvaluation, caller: Caller, now:
   return signoffPending(evaluation, caller) ? 'sign_report' : 'none';
 }
 
+/**
+ * How much committee detail the caller may see on the overview and the list (PRD §4.3): the same rule as
+ * `OWN_ASSESSMENT_NOT_SUBMITTED` on the results, plus the suspended access of a conflict pending review (DD-25).
+ */
+export function detailLevelFor(evaluation: FixtureEvaluation, caller: Caller): OverviewDetailLevel {
+  if (roleIn(caller, evaluation) !== 'evaluator') {
+    return 'full';
+  }
+  const own = ownAssignments(caller, evaluation).filter((row) => !row.isCommercial);
+  if (own.some((row) => contentBlock(row) === 'conflict_pending_review')) {
+    return 'conflict_pending_review';
+  }
+  return own.some((row) => !isSubmitted(row)) ? 'own_assessment_pending' : 'full';
+}
+
+function timelineDetail(event: FixtureTimelineEvent, caller: Caller, level: OverviewDetailLevel): string | null {
+  if (event.sensitivity === 'committee_results' && level !== 'full') {
+    return null;
+  }
+  if (event.sensitivity === 'conflict_detail' && !isChair(caller) && event.subjectUserId !== caller.userId) {
+    return null;
+  }
+  return event.detail;
+}
+
 export function summaryRow(evaluation: FixtureEvaluation, caller: Caller, now: Date): EvaluationSummaryRow {
+  const level = detailLevelFor(evaluation, caller);
+  const gate = priceGateView(evaluation);
   const assignments = assignmentsOf(evaluation).filter(isActiveAssignment);
   const open = assignments.filter((row) => !isSubmitted(row));
   const nextDue = open.map((row) => row.dueAt).sort()[0];
@@ -1275,7 +1307,8 @@ export function summaryRow(evaluation: FixtureEvaluation, caller: Caller, now: D
       conflictsPendingReview: assignments.filter((row) => contentBlock(row) === 'conflict_pending_review').length,
     },
     nextDueAt: nextDue === undefined ? null : { at: nextDue, timeZone: evaluation.tender.officialTimeZone },
-    priceGate: priceGateView(evaluation),
+    // The gate note narrates moderation outcomes and outstanding scores: committee detail (PRD §4.3).
+    priceGate: level === 'full' ? gate : { ...gate, note: null },
     moderationStatus: evaluation.moderation?.status ?? null,
     commercialStatus: evaluation.commercial.status === 'not_started' ? null : evaluation.commercial.status,
     reportStatus: evaluation.reports[0]?.status ?? null,
@@ -1283,10 +1316,12 @@ export function summaryRow(evaluation: FixtureEvaluation, caller: Caller, now: D
 }
 
 export function overviewView(evaluation: FixtureEvaluation, caller: Caller, now: Date): EvaluationOverview {
+  const level = detailLevelFor(evaluation, caller);
   return {
     ...summaryRow(evaluation, caller, now),
     plan: evaluation.plan,
-    bids: evaluation.bids.map(bidRef),
+    // Content access is suspended while a conflict awaits review: no supplier identities or compliance (DD-25).
+    bids: level === 'conflict_pending_review' ? [] : evaluation.bids.map(bidRef),
     committee: assignmentsOf(evaluation)
       .filter((row) => isChair(caller) || row.evaluatorUserId === caller.userId || isActiveAssignment(row))
       .map((row) => {
@@ -1306,7 +1341,8 @@ export function overviewView(evaluation: FixtureEvaluation, caller: Caller, now:
       at: event.at,
       title: event.title,
       actor: event.actorUserId === null ? null : person(event.actorUserId),
-      detail: event.detail,
+      detail: timelineDetail(event, caller, level),
     })),
+    detailLevel: level,
   };
 }

@@ -302,7 +302,7 @@ function PublicationView({
               <span className="tiq-cell-sub">{row.exception.resolution}</span>
             )}
             {row.exception.taskId !== null && (
-              <ButtonLink size="sm" variant="link" to={publicationPaths.task(row.exception.taskId)}>
+              <ButtonLink size="sm" variant="link" to={publicationPaths.taskInbox}>
                 {t('publication.actions.openTask')}
               </ButtonLink>
             )}

@@ -116,11 +116,7 @@ export function DefinitionPreviewPanel({
         <div className="tiq-grid tiq-grid--2">
           <div className="tiq-stack">
             <h3 className="tiq-form-section-title">{t('reports.preview.fields')}</h3>
-            <ul
-              className="tiq-stack"
-              style={{ listStyle: 'none', margin: 0, padding: 0 }}
-              aria-label={t('reports.preview.fields')}
-            >
+            <ul className="tiq-stack" aria-label={t('reports.preview.fields')}>
               {preview.fields.map((field) => (
                 <li key={field.key} className="tiq-inline">
                   <Chip
@@ -145,11 +141,7 @@ export function DefinitionPreviewPanel({
             {preview.recipients.length === 0 ? (
               <p className="tiq-text-muted">{t('reports.preview.noRecipients')}</p>
             ) : (
-              <ul
-                className="tiq-stack"
-                style={{ listStyle: 'none', margin: 0, padding: 0 }}
-                aria-label={t('reports.preview.recipients')}
-              >
+              <ul className="tiq-stack" aria-label={t('reports.preview.recipients')}>
                 {preview.recipients.map((recipient) => (
                   <li key={recipient.user.userId} className="tiq-inline">
                     <Chip tone={recipient.authorized ? 'success' : 'danger'} size="sm">

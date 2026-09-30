@@ -88,7 +88,7 @@ describe('clarifications client', () => {
     });
 
     const edition = await publicEdition({
-      params: { buyerSlug: 'kwu', ref: 'T-2026-0002' },
+      params: { buyerSlug: 'kwu', reference: 'T-2026-0002' },
       query: {},
     });
 

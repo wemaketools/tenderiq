@@ -351,7 +351,13 @@ function PursuitViewPage({
       <div className="tiq-grid tiq-grid--3">
         <Card
           title={t('opportunities.pursuit.stateSaved')}
-          subtitle={t('opportunities.pursuit.stateSavedHint')}
+          subtitle={
+            pursuit === null
+              ? t('opportunities.pursuit.stateNotStartedHint')
+              : pursuit.decision === 'undecided'
+                ? t('opportunities.pursuit.stateSavedHint')
+                : t('opportunities.pursuit.stateDecidedSavedHint')
+          }
         >
           {pursuit === null ? (
             <Chip tone="neutral">{t('opportunities.pursuit.notStarted')}</Chip>

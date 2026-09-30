@@ -111,6 +111,7 @@ function supplierRow(clarification: FixtureBidClarification, buyerName: string):
   const tender = tenderOfBid(bid);
   return {
     id: clarification.id,
+    reference: `CL-${String(clarification.id)}`,
     buyer: { tenantId: clarification.tenantId, name: buyerName },
     tenderId: tender.tenderId,
     tenderReference: tender.reference,
@@ -753,12 +754,12 @@ export function register(app: MockApp): void {
       .filter((row) => query.source === undefined || query.source.includes(row.source))
       .filter((row) => query.tenderId === undefined || row.tenderId === query.tenderId)
       .filter((row) => withinDates(row.dueAt?.at ?? null, query.dueFrom, query.dueTo))
-      .filter((row) => matchesSearch(query.q, [row.tenderReference, row.tenderTitle, row.question, row.buyer.name]));
+      .filter((row) => matchesSearch(query.q, [row.reference, row.tenderReference, row.tenderTitle, row.question, row.buyer.name]));
     const sort = query.sort ?? 'dueAt';
     return fixtures.page(
       sortRows(
         rows,
-        (row) => (sort === 'dueAt' ? (row.dueAt?.at ?? null) : sort === 'reference' ? row.tenderReference : row.status),
+        (row) => (sort === 'dueAt' ? (row.dueAt?.at ?? null) : sort === 'reference' ? row.reference : row.status),
         query.sort === undefined ? 'desc' : query.dir,
       ),
     );

@@ -48,7 +48,7 @@ describe('AddendumPage (BUY-17, AC-10)', () => {
     render();
 
     expect(await screen.findByText('Provide a class B accuracy certificate.')).toBeInTheDocument();
-    expect(screen.getByText('Current submission deadline')).toBeInTheDocument();
+    expect(screen.getByText('Previous submission deadline')).toBeInTheDocument();
     expect(screen.getAllByText('RCPT-2026-0002-001').length).toBeGreaterThan(0);
     expect(screen.getByText('Receipt unchanged')).toBeInTheDocument();
     expect(screen.getByText('Required action outstanding')).toBeInTheDocument();
@@ -150,6 +150,18 @@ describe('AddendumPage (BUY-17, AC-10)', () => {
     expect(
       within(checklist[0] as HTMLElement).getByText('Approved before issue.'),
     ).toBeInTheDocument();
+  });
+
+  it('labels the replaced deadline as previous once the addendum is issued', async () => {
+    render();
+    expect(await screen.findByText('Previous submission deadline')).toBeInTheDocument();
+    expect(screen.queryByText('Current submission deadline')).not.toBeInTheDocument();
+  });
+
+  it('labels the deadline in force as current while the addendum is not yet issued', async () => {
+    render(approved());
+    expect(await screen.findByText('Current submission deadline')).toBeInTheDocument();
+    expect(screen.queryByText('Previous submission deadline')).not.toBeInTheDocument();
   });
 
   it('explains a declared error code when reminding recipients', async () => {

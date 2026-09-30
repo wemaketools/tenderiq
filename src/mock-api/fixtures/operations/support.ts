@@ -13,7 +13,7 @@
 import type { SupportAccessGrantsScope, SupportAccessGrantsStatus, SupportCasesCategory, SupportCasesStatus } from '../../../contracts/enums.js';
 import { MAX_SUPPORT_GRANT_DAYS } from '../../../contracts/operations/support.js';
 import { SUPPORT_GRANTS, TENANT_IDS } from '../platform.js';
-import { OPS_USERS } from './customers.js';
+import { OPS_USERS } from './users.js';
 
 export interface FixtureSupportCase {
   readonly id: number;

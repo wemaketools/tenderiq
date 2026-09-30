@@ -3,7 +3,6 @@
  * mandatory status, accommodations and minutes. Scheduling, attendance, shared answers and attendance exceptions
  * run on the session page.
  */
-import { useNavigate } from 'react-router';
 
 import { clarificationsEndpoints } from '@contracts/clarifications';
 import type { BuyerSessionRow } from '@contracts/clarifications';
@@ -52,7 +51,6 @@ const DEFAULT_FILTERS = {
 type SortField = 'startsAt' | 'title' | 'tenderReference' | 'status';
 
 export default function SessionsPage() {
-  const navigate = useNavigate();
   const [filters, setFilters, clearFilters] = useScreenFilters('BUY-18', DEFAULT_FILTERS);
   const tenders = useBuyerTenders();
   const tenderId = filters.tender === '' ? undefined : Number(filters.tender);
@@ -194,7 +192,7 @@ export default function SessionsPage() {
           onRetry={sessions.reload}
           sort={sort}
           onSortChange={(next) => setFilters({ sort: next.key, dir: next.dir, page: 1 })}
-          onRowClick={(row) => navigate(buyerPaths.session(row.id))}
+          rowHref={(row) => buyerPaths.session(row.id)}
           rowLabel={(row) => row.title}
           empty={
             <EmptyState

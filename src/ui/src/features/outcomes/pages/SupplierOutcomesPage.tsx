@@ -3,7 +3,6 @@
  * final award, unsuccessful and cancelled lots, waiting periods, notices awaiting acknowledgment, debrief and
  * complaint status. Other suppliers' results never appear (PRD §4.3).
  */
-import { useNavigate } from 'react-router';
 
 import {
   SUPPLIER_OUTCOME_RESULTS,
@@ -53,7 +52,6 @@ const DEFAULTS = {
 };
 
 export default function SupplierOutcomesPage() {
-  const navigate = useNavigate();
   const timeZone = useOfficialTimeZone();
   const [filters, setFilters, clearFilters] = useScreenFilters('SUP-21', DEFAULTS);
 
@@ -94,31 +92,27 @@ export default function SupplierOutcomesPage() {
         <>
           <Reference value={row.reference} />
           <span className="tiq-cell-sub">{row.title}</span>
+          <span className="tiq-cell-sub">{row.buyer.name}</span>
         </>
       ),
     },
-    { id: 'buyer', header: t('outcomes.list.col.buyer'), cell: (row) => row.buyer.name },
     {
       id: 'result',
       header: t('outcomes.list.col.result'),
       cell: (row) => (
-        <Chip tone={OUTCOME_RESULT_TONE[row.result]}>{t(`outcomes.result.${row.result}`)}</Chip>
-      ),
-    },
-    {
-      id: 'lots',
-      header: t('outcomes.list.col.lots'),
-      cell: (row) => (
-        <span className="tiq-inline">
-          {row.lots.map((lot) => (
-            <Chip key={lot.lot.lotId} tone={LOT_RESULT_TONE[lot.result]} size="sm">
-              {t('outcomes.lotResult', {
-                no: lot.lot.lotNo,
-                result: t(`outcomes.lotResultValue.${lot.result}`),
-              })}
-            </Chip>
-          ))}
-        </span>
+        <>
+          <Chip tone={OUTCOME_RESULT_TONE[row.result]}>{t(`outcomes.result.${row.result}`)}</Chip>
+          <span className="tiq-cell-sub tiq-inline">
+            {row.lots.map((lot) => (
+              <Chip key={lot.lot.lotId} tone={LOT_RESULT_TONE[lot.result]} size="sm">
+                {t('outcomes.lotResult', {
+                  no: lot.lot.lotNo,
+                  result: t(`outcomes.lotResultValue.${lot.result}`),
+                })}
+              </Chip>
+            ))}
+          </span>
+        </>
       ),
     },
     {
@@ -165,7 +159,7 @@ export default function SupplierOutcomesPage() {
   ];
 
   return (
-    <>
+    <div className="tiq-page">
       <PageHeader title={t('outcomes.list.title')} subtitle={t('outcomes.list.intro')} />
       <FilterBar label={t('outcomes.list.filters')} onClear={clearFilters} canClear={filtered}>
         <SearchField
@@ -237,7 +231,7 @@ export default function SupplierOutcomesPage() {
           rows={query.data?.items}
           rowKey={(row) => `${row.buyer.tenantId}-${row.tenderId}`}
           rowLabel={(row) => `${row.reference} ${row.title}`}
-          onRowClick={(row) => void navigate(outcomePaths.outcome(row.tenderId))}
+          rowHref={(row) => outcomePaths.outcome(row.tenderId)}
           loading={query.isFetching}
           error={query.error}
           onRetry={query.reload}
@@ -264,6 +258,6 @@ export default function SupplierOutcomesPage() {
           }
         />
       </Card>
-    </>
+    </div>
   );
 }

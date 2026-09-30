@@ -20,7 +20,7 @@ import type { Context, MiddlewareHandler } from 'hono';
 
 import { AUDIENCE_TENANT_KIND, DEFAULT_PAGE_SIZE, paginate } from '../../contracts/common.js';
 import type { AnyEndpoint } from '../../contracts/endpoint.js';
-import { API_BASE, HEALTH_PATH, isPermitted, tenantHeaderMode } from '../../contracts/endpoint.js';
+import { API_BASE, HEALTH_PATH, declaredErrorStatus, isPermitted, supportGrantAllows, tenantHeaderMode } from '../../contracts/endpoint.js';
 import { extractBearerToken } from '../../server/lib/auth/verify.js';
 import type { VerifyResult } from '../../server/lib/auth/verify.js';
 import type { AppEnvValue } from '../../server/lib/config/index.js';
@@ -110,6 +110,9 @@ export function requestContext(options: {
     c.set('tenant', null);
     await next();
     c.res.headers.set('x-correlation-id', correlationId);
+    // The API clock (the storyline clock in prototype mode): the SPA runs its countdowns from it, so public pages
+    // that never load /me/context agree with the fixtures too.
+    c.res.headers.set('x-server-time', c.get('requestTime').toISOString().replace(/\.\d{3}Z$/, 'Z'));
   };
 }
 
@@ -257,7 +260,12 @@ export function requirePermission(): MiddlewareHandler<MockEnv> {
       await next();
       return;
     }
-    if (tenant === null || !isPermitted(route.endpoint, tenant.permissions)) {
+    // Under a support grant the endpoint must also open its support surface to the grant scope (DD-11, ADR 0013).
+    const grantDenied =
+      tenant !== null &&
+      tenant.access === 'support_grant' &&
+      (tenant.supportGrant === null || !supportGrantAllows(route.endpoint, tenant.supportGrant.scope));
+    if (tenant === null || grantDenied || !isPermitted(route.endpoint, tenant.permissions)) {
       c.get('logger').info('permission denied', {
         userId: c.get('persona')?.userId ?? null,
         tenantId: tenant?.tenant.id ?? null,
@@ -412,6 +420,16 @@ export function dispatch(appEnv: AppEnvValue): (c: Context<MockEnv>) => Promise<
       if (error instanceof MockHttpError && !PLATFORM_CODES.has(error.code) && !endpoint.errors.includes(error.code)) {
         logger.error('handler used an undeclared error code', { endpointId: endpoint.id, code: error.code });
         throw new Error(`Undeclared error code ${error.code} for ${endpoint.id}.`, { cause: error });
+      }
+      if (error instanceof MockHttpError && declaredErrorStatus(endpoint, error.code) !== error.status) {
+        // One code, one status (DOMAIN_ERROR_STATUS): a second status for the same code is a handler defect.
+        logger.error('handler sent an error code with the wrong status', {
+          endpointId: endpoint.id,
+          code: error.code,
+          status: error.status,
+          expected: declaredErrorStatus(endpoint, error.code),
+        });
+        throw new Error(`Error code ${error.code} of ${endpoint.id} must travel with status ${String(declaredErrorStatus(endpoint, error.code))}, not ${error.status}.`, { cause: error });
       }
       throw error;
     }

@@ -110,6 +110,12 @@
       "status": "done",
       "gapsFixed": 4,
       "checks": "typecheck + typecheck:ui clean on qualification paths; eslint (root + SPA --max-warnings 0) and prettier clean; root unit qualification 99/99; SPA qualification 16 files / 86 tests; re-screenshotted on 4104/5204 as mpho.manager (decision 706, supersede dialog, monitoring decisions tab, decide 509) and makgadikgadi.admin (respond on 503 -> Under review)"
+    },
+    "qa-fix-reconsideration-window": {
+      "status": "done",
+      "finding": "prd-b: reconsideration possible after the stated 14-day appeal window (decision 702)",
+      "fix": "FxProgram.reconsiderationWindowDays (14); SupplierDecision.reconsiderationDeadline (OfficialDeadline, decidedAt + window, buyer zone); canRequestReconsideration false after it; POST reconsideration returns 409 RECONSIDERATION_WINDOW_CLOSED; SUP-24 terms show the deadline",
+      "checks": "typecheck + typecheck:ui clean on qualification paths; eslint (root + SPA --max-warnings 0) and prettier clean; root unit mock-api+contracts 92 files / 2666 tests; SPA qualification 16 files / 88 tests"
     }
   },
   "status": "done",
@@ -120,6 +126,8 @@
     "tasks fixtures: add a buyer task for reassessment trigger 901 (Chobe insurance, assignee mpho.manager, link /buyer/qualification/triggers/901) and one for trigger 905 (Gaborone Metering expired decision, link /buyer/qualification/triggers/905); qualification will then set REASSESSMENT_TRIGGERS taskId to those ids (currently null).",
     "notifications fixtures (src/mock-api/fixtures/notifications.ts): ids 520, 521, 641 must reference QA-2026-0006 / applicationId 503; id 613 must say 8 Oct 2026 with evidence 504; add a buyer notification for trigger 901 to the decider (mpho.manager) linking /buyer/qualification/triggers/901.",
     "schema blueprint (Migration 05): add qualification_reconsiderations (decision_id, grounds, requested_by, requested_at, evidence_item_ids, resolved_by_decision_id) and qualification_evidence_updates (decision_id, evidence_item_id, note, submitted_by, submitted_at); each insert raises a manual reassessment_triggers row with source_type reconsideration_request / evidence_submission.",
-    "approvals fixtures: src/mock-api/fixtures/tasks.ts cannot be imported standalone (RECORDS from approvals/world.js is undefined through an import cycle)."
+    "approvals fixtures: src/mock-api/fixtures/tasks.ts cannot be imported standalone (RECORDS from approvals/world.js is undefined through an import cycle).",
+    "docs/technical/api/openapi.json: regenerate with npm run docs:api (requestReconsideration now declares RECONSIDERATION_WINDOW_CLOSED; SupplierDecision gains reconsiderationDeadline). scripts/docs/generate-openapi.test.ts already fails on unrelated drift (public clarifications path param).",
+    "schema blueprint: qualification_programs gains reconsideration_window_days (int, default 14); the supplier decision view derives reconsideration_deadline = decided_at + window."
   ]
 }

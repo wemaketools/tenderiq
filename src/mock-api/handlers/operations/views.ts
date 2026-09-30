@@ -54,6 +54,8 @@ import {
   SUPPORT_CASES,
   SUPPORT_CASE_MESSAGES,
   SUPPORT_GRANT_LIMITS,
+  activeContractCount,
+  activeMemberCount,
   customerProfileOf,
 } from '../../fixtures/operations/index.js';
 import type {
@@ -235,12 +237,14 @@ function obligationsFor(tenantId: number, viewer: ObligationViewer): { events: L
 }
 
 /** Active members of a tenant (active person, active membership). */
+/** Active users of a customer as the customer's own member register counts them (ADM-03). */
 export function activeUserCount(tenantId: number): number {
-  return PERSONAS.filter(
-    (persona) =>
-      persona.status === 'active' &&
-      persona.memberships.some((membership) => membership.tenantId === tenantId && membership.status === 'active'),
-  ).length;
+  return activeMemberCount(tenantId);
+}
+
+/** Contracts in the `active` status (CON-01); suppliers hold no contracts of their own on the platform. */
+export function activeContractUsage(tenant: FixtureTenant): number {
+  return tenant.kind === 'buyer' ? activeContractCount(tenant.id) : 0;
 }
 
 export const OPEN_CASE_STATUSES = ['open', 'in_progress', 'awaiting_customer'] as const;
@@ -330,7 +334,7 @@ export function customerDetail(tenant: FixtureTenant, now: Date): CustomerDetail
       activeUsers: activeUserCount(tenant.id),
       publishedEventsYtd: profile.publishedEventsYtd,
       liveEvents: events.length,
-      activeContracts: contracts.length,
+      activeContracts: activeContractUsage(tenant),
       storageUsedGb: profile.storageUsedGb,
       lastActivityAt: profile.lastActivityAt,
     },

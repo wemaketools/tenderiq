@@ -146,7 +146,7 @@ export const PUBLICATIONS: readonly FixturePublication[] = Object.freeze([
   confirmedExternal(KWU, 8, 1, 'BGG-2026-08-0671', '2026-08-24T16:05:00Z'),
   portal(KWU, 9, 1),
   portal(KWU, 10, 1),
-  confirmedExternal(KWU, 10, 1, 'BGG-2026-03-0197', '2026-03-02T12:30:00Z'),
+  confirmedExternal(KWU, 10, 1, 'BGG-2026-01-0197', '2026-01-12T12:30:00Z'),
   portal(ODC, 11, 1),
   confirmedExternal(ODC, 11, 1, 'BGG-2026-09-0415', '2026-09-16T14:20:00Z'),
   portal(ODC, 11, 2),
@@ -212,7 +212,8 @@ export const INTEGRATION_EXCEPTIONS: readonly FixtureIntegrationException[] = Ob
     openedAt: '2026-09-24T08:04:00Z',
     resolvedAt: null,
     resolution: null,
-    taskId: 7101,
+    // The reconciliation task of tebogo.officer (fixtures/tasks.ts; linked only once the tasks fixtures hold it).
+    taskId: 190,
   },
   {
     id: 902,
@@ -224,6 +225,6 @@ export const INTEGRATION_EXCEPTIONS: readonly FixtureIntegrationException[] = Ob
     openedAt: '2026-06-15T19:00:00Z',
     resolvedAt: '2026-06-16T07:30:00Z',
     resolution: 'Confirmation BGG-2026-06-0021 checked against published version 1 and reconciled by the tender owner.',
-    taskId: 7011,
+    taskId: null,
   },
 ] satisfies FixtureIntegrationException[]);

@@ -74,4 +74,26 @@ describe('SupplierNegotiationPage', () => {
     ).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Respond to round' })).not.toBeInTheDocument();
   });
+
+  it('withholds the round response from a bid manager who may acknowledge notices but lacks submission authority', async () => {
+    installFetch({
+      'GET /api/v1/supplier/selection/negotiations/2': () => ({
+        body: supplierNegotiationDetail(),
+      }),
+    });
+    renderSelection(<SupplierNegotiationPage />, {
+      path: PATH,
+      route: ROUTE,
+      supplier: true,
+      permissions: [
+        'supplier.outcomes.view',
+        'supplier.notices.acknowledge',
+        'supplier.pricing.edit',
+      ],
+    });
+    expect(
+      await screen.findByText('An authorized approver of your organization sends the response.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Respond to round' })).not.toBeInTheDocument();
+  });
 });

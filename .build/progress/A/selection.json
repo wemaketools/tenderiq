@@ -158,6 +158,16 @@
       "status": "done",
       "gapsFixed": 10,
       "checks": "typecheck (tsconfig.server.json) and typecheck:ui clean on selection paths; eslint root + SPA (--max-warnings 0) and prettier clean on selection paths; root unit selection + catalog 90/90; SPA selection 72/72; re-screenshots on 4112/5212 (tebogo.officer: tender 9, shortlist 9, preferred bidder 1, due diligence 1, negotiation 2, new negotiation, session 1; limpopo-env.admin: assessment invites, negotiation 2)"
+    },
+    "qaFix": {
+      "status": "done",
+      "findingsFixed": 3,
+      "fixes": [
+        "TenderSelect gates on SELECTION_READ before requesting the selection register (no 403 for boitumelo.chair on /buyer/selection/assessments)",
+        "Issued final-offer round 2 on T-2026-0001 Lot 3 (Tsodilo, Chobe) under approved reopen_round process decision 4 (approval 1209); responseWorkspaceLink now points at the invitee response (bids domain id) instead of the tender id",
+        "supplier.selection.negotiations.respond requires supplier.response.submit (was supplier.response.approve | supplier.notices.acknowledge)"
+      ],
+      "checks": "root unit selection 90/90 (contracts, fixtures, handlers) + approvals cross-domain; SPA selection 73/73; typecheck, eslint, prettier clean on selection paths"
     }
   }
 }

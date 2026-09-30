@@ -3,7 +3,6 @@
  * watchlist, saved searches and notice subscriptions.
  */
 import { useState } from 'react';
-import { useNavigate } from 'react-router';
 
 import { TENDERS_EVENT_TYPE, TENDERS_PROCEDURE, TENDERS_STATUS } from '@contracts/enums';
 import { OPPORTUNITY_SORT_FIELDS, publicationEndpoints } from '@contracts/publication';
@@ -92,7 +91,6 @@ export function DiscoverTab({
   readonly filters: OpportunityFilters | undefined;
   readonly searches: readonly SavedSearch[];
 }) {
-  const navigate = useNavigate();
   const toast = useToast();
   const [filters, setFilters, clearFilters] = useScreenFilters('SUP-06', DISCOVER_DEFAULTS);
   const [overrides, setOverrides] = useState<ReadonlyMap<number, RowOverride>>(new Map());
@@ -476,7 +474,7 @@ export function DiscoverTab({
           rows={rows}
           rowKey={(row) => String(row.tender.tenderId)}
           rowLabel={(row) => `${row.tender.reference} ${row.tender.title}`}
-          onRowClick={(row) => void navigate(opportunityPaths.workspace(row.tender.tenderId))}
+          rowHref={(row) => opportunityPaths.workspace(row.tender.tenderId)}
           loading={query.isFetching}
           error={query.error}
           onRetry={query.reload}

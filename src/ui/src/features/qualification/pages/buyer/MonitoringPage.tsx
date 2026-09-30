@@ -502,7 +502,7 @@ export default function MonitoringPage() {
               rows={decisions.data?.items}
               rowKey={(row) => String(row.id)}
               rowLabel={(row) => `${row.applicationReference} ${row.supplier.name}`}
-              onRowClick={(row) => void navigate(buyerQualificationPaths.decision(row.id))}
+              rowHref={(row) => buyerQualificationPaths.decision(row.id)}
               loading={decisions.isFetching}
               error={decisions.error}
               onRetry={decisions.reload}
@@ -534,7 +534,7 @@ export default function MonitoringPage() {
               rows={triggers.data?.items}
               rowKey={(row) => String(row.id)}
               rowLabel={(row) => `${row.supplier.name} ${row.summary}`}
-              onRowClick={(row) => void navigate(buyerQualificationPaths.trigger(row.id))}
+              rowHref={(row) => buyerQualificationPaths.trigger(row.id)}
               loading={triggers.isFetching}
               error={triggers.error}
               onRetry={triggers.reload}

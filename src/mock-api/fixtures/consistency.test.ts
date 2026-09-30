@@ -8,7 +8,10 @@
  *   the ids that travel with them;
  * - every in-app link a fixture carries matches a route the SPA registers, and the record it names exists;
  * - the storyline states agree across domains (deadlines, bidders, receipts, award values, evidence expiry,
- *   authority), and the PRD §9.2 worked example (AC-19) is exact.
+ *   authority, lots), and the PRD §9.2 worked example (AC-19) is exact;
+ * - one storyline clock (`demo-clock.ts`): every domain's "as of" is the demo "now", nothing that has happened is
+ *   dated after it, no past session is still scheduled, and the mock API reports that clock to the SPA;
+ * - one category tree per organization (`categories.ts`): each code has one id and one name in every domain.
  */
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
@@ -18,29 +21,42 @@ import { beforeAll, describe, expect, it } from 'vitest';
 
 import { ENDPOINT_CATALOG } from '../../contracts/catalog.js';
 import { getResults } from '../../contracts/evaluation.js';
+import { getSessionContext } from '../../contracts/session.js';
 import { TENDERS_STATUS } from '../../contracts/enums.js';
 import { MockRouteCollector } from '../middleware/routes.js';
 import { discoverHandlerModules, registerModules } from '../registry.js';
 import { createTestMockApp } from '../testing/index.js';
-import { ADDENDA } from './clarifications/index.js';
-import { APPROVALS, AUTHORITY_LIMITS as WORKSPACE_LIMITS, DELEGATIONS as WORKSPACE_DELEGATIONS } from './approvals.js';
-import { LOT_OUTCOMES, RECOMMENDATIONS } from './awards/index.js';
+import { ADDENDA, QUESTIONS, SESSIONS } from './clarifications/index.js';
+import { APPROVALS, AUTHORITY_LIMITS as WORKSPACE_LIMITS, DELEGATIONS as WORKSPACE_DELEGATIONS, WORKSPACE_AS_OF } from './approvals.js';
+import { BUYER_CATEGORIES } from './categories.js';
+import { AWARD_TENDERS, LOT_OUTCOMES, RECOMMENDATIONS } from './awards/index.js';
 import { BIDS, BID_TENDERS, SUBMISSION_RECEIPTS } from './bids/index.js';
 import { CALENDAR_DEADLINES } from './calendars.js';
-import { CONTRACTS } from './contracts/index.js';
+import { CONTRACTS, CONTRACT_RENEWAL_OPTIONS } from './contracts/index.js';
+import { DEMO_AS_OF, DEMO_AS_OF_DATE, DEMO_TIME_ZONE, storylineNow } from './demo-clock.js';
 import { DOCUMENTS } from './documents.js';
 import { EVALUATIONS } from './evaluation.js';
 import { NOTIFICATIONS } from './notifications.js';
-import { OPENING_BIDS } from './opening.js';
+import { OPENING_BIDS, OPENING_LOTS } from './opening.js';
 import { SERVICE_TEAM_EMAIL } from './operations/index.js';
-import { AUTHORITY_LIMITS as ORG_LIMITS, DELEGATIONS as ORG_DELEGATIONS, TENDER_REFS } from './org-admin/index.js';
+import {
+  AUTHORITY_LIMITS as ORG_LIMITS,
+  CATEGORIES as ORG_CATEGORIES,
+  CATEGORY_CATALOG as ORG_CATALOG,
+  DELEGATIONS as ORG_DELEGATIONS,
+  FIXTURE_AS_OF,
+  TENDER_REFS,
+} from './org-admin/index.js';
 import { PERSONAS, TENANTS, UNMAPPED_AUTH_ACCOUNT } from './platform.js';
-import { TENDERS as NOTICES } from './publication.js';
-import { QUALIFICATION_APPLICATIONS } from './qualification/index.js';
-import { REQUESTS } from './requests/index.js';
-import { EVIDENCE_ITEMS } from './suppliers/index.js';
+import { CATEGORIES as PUBLICATION_CATALOG, TENDERS as NOTICES } from './publication.js';
+import { POLICY_CATEGORY_REFS } from './policy.js';
+import { QUALIFICATION_APPLICATIONS, QUALIFICATION_CATEGORIES } from './qualification/index.js';
+import { CATEGORIES as REPORTING_CATEGORIES, REPORTING_AS_OF, REPORTING_AS_OF_DATE } from './reporting/index.js';
+import { CATEGORIES as REQUEST_CATEGORIES, REQUESTS } from './requests/index.js';
+import { sessionProfileOf } from './session.js';
+import { CATEGORY_CATALOG as SUPPLIER_CATALOG, EVIDENCE_ITEMS } from './suppliers/index.js';
 import { TASKS } from './tasks.js';
-import { LOTS, MILESTONES, TENDERS } from './tenders/index.js';
+import { CATEGORIES as TENDER_CATEGORIES, LOTS, MILESTONES, TENDERS } from './tenders/index.js';
 
 const FIXTURES_DIR = fileURLToPath(new URL('./', import.meta.url));
 const FEATURES_DIR = fileURLToPath(new URL('../../ui/src/features/', import.meta.url));
@@ -396,6 +412,37 @@ describe('storyline agreement across domains', () => {
     }
   });
 
+  it('gives a tender the same lots in the tenders, bids, awards, clarifications and opening fixtures (BUY-08, BUY-16)', () => {
+    // A tender either has lots in the tenders domain, and every domain cites those, or it is awarded as a whole and
+    // no domain presents a lot with its own scope. T-2026-0002 is quoted as its one lot 201 (12,000 domestic meters).
+    const mismatches: string[] = [];
+    for (const tender of TENDERS.filter((row) => !row.isTemplate)) {
+      const owned = new Map(LOTS.filter((lot) => lot.tenderId === tender.id).map((lot) => [lot.id, lot.title]));
+      const cited: Array<readonly [string, number, string | null]> = [
+        ...(BID_TENDERS.find((row) => row.id === tender.id)?.lots ?? []).map((lot) => ['bids', lot.id, lot.title.replace(/^Lot \d+ — /, '')] as const),
+        ...(AWARD_TENDERS.find((row) => row.ref.tenderId === tender.id)?.lots ?? []).map((lot) => ['awards', lot.lotId, lot.title] as const),
+        ...ADDENDA.filter((row) => row.tenderId === tender.id).flatMap((row) => row.lotIds.map((id) => ['addenda', id, null] as const)),
+        ...QUESTIONS.filter((row) => row.tenderId === tender.id && row.lotId !== null).map((row) => ['questions', row.lotId ?? 0, null] as const),
+        ...SESSIONS.filter((row) => row.tenderId === tender.id && row.lotId !== null).map((row) => ['sessions', row.lotId ?? 0, null] as const),
+        ...OPENING_LOTS.filter((row) => row.tenderId === tender.id).map((row) => ['opening', row.lotId, row.title] as const),
+      ];
+      for (const [domain, lotId, title] of cited) {
+        if (owned.size === 0) {
+          if (lotId !== tender.id * 100 + 1 || (title !== null && title !== tender.title)) {
+            mismatches.push(`${tender.reference}: ${domain} presents lot ${lotId} "${title ?? ''}" but the tender has no lots`);
+          }
+        } else if (!owned.has(lotId) || (title !== null && owned.get(lotId) !== title)) {
+          mismatches.push(`${tender.reference}: ${domain} lot ${lotId} "${title ?? ''}" is not a lot of the tender`);
+        }
+      }
+    }
+    expect(mismatches).toEqual([]);
+    expect(LOTS.filter((lot) => lot.tenderId === tenderByReference('T-2026-0002').id)).toMatchObject([
+      { id: 201, title: 'Smart meters with AMR modules', quantityDescription: expect.stringContaining('12,000 domestic meters') as unknown },
+    ]);
+    expect(tenderByReference('T-2026-0002').summary).toContain('12,000 domestic');
+  });
+
   it('opens and evaluates exactly the effective receipts of the bids domain (T-2026-0001, T-2026-0003, T-2026-0008)', () => {
     const effective = (tenderId: number) =>
       SUBMISSION_RECEIPTS.filter((receipt) => {
@@ -516,5 +563,189 @@ describe('storyline agreement across domains', () => {
     expect(approval?.title).toContain(request?.title ?? '∅');
     expect(Number(approval?.amount?.amount)).toBeGreaterThan(2_000_000);
     expect(approval?.steps.at(-1)?.approverUserId).toBe(PERSONAS.find((persona) => persona.email === 'keabetswe.approver@tenderiq.local')?.userId);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------------------
+// One storyline clock (demo-clock.ts)
+// ---------------------------------------------------------------------------------------------------------------
+
+/** Keys of instants at which something HAPPENED: none may lie after the storyline "now". */
+const HAPPENED_KEYS = new Set([
+  'acceptedAt',
+  'acknowledgedAt',
+  'answeredAt',
+  'approvedAt',
+  'archivedAt',
+  'attendanceRecordedAt',
+  'cancelledAt',
+  'closedAt',
+  'completedAt',
+  'createdAt',
+  'decidedAt',
+  'declinedAt',
+  'deliveredAt',
+  'escalatedAt',
+  'generatedAt',
+  'issuedAt',
+  'joinedAt',
+  'lastSeenAt',
+  'lastSignInAt',
+  'minutesPublishedAt',
+  'occurredAt',
+  'openedAt',
+  'publishedAt',
+  'raisedAt',
+  'readAt',
+  'receivedAt',
+  'recordedAt',
+  'rejectedAt',
+  'releasedAt',
+  'requestedAt',
+  'resolvedAt',
+  'respondedAt',
+  'reviewedAt',
+  'revokedAt',
+  'sentAt',
+  'signedAt',
+  'submittedAt',
+  'updatedAt',
+  'uploadedAt',
+  'verifiedAt',
+  'withdrawnAt',
+]);
+
+const INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/;
+
+function officialDate(instant: string, timeZone: string): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(instant));
+}
+
+describe('one storyline clock', () => {
+  it('computes the workspace, organization and reporting fixtures at the one demo "now"', () => {
+    expect(WORKSPACE_AS_OF).toBe(DEMO_AS_OF);
+    expect(FIXTURE_AS_OF).toBe(DEMO_AS_OF);
+    expect(REPORTING_AS_OF).toBe(DEMO_AS_OF);
+    expect(REPORTING_AS_OF_DATE).toBe(DEMO_AS_OF_DATE);
+    expect(officialDate(DEMO_AS_OF, DEMO_TIME_ZONE)).toBe(DEMO_AS_OF_DATE);
+  });
+
+  it('serves requests on the storyline clock and reports it to the SPA in /me/context and on every response', async () => {
+    // Arrange: the default clock of the mock API (no test clock).
+    const api = await createTestMockApp({ auth: 'fixture' });
+
+    // Act
+    const context = await api.callAs('tebogo.officer@tenderiq.local', getSessionContext, { query: {} });
+    const health = await api.request('GET', '/api/v1/health');
+
+    // Assert
+    const { serverTime } = getSessionContext.response.parse(context.body);
+    expect(serverTime >= DEMO_AS_OF).toBe(true);
+    expect(context.headers.get('x-server-time')).toBe(serverTime);
+    expect((health.headers.get('x-server-time') ?? '') >= DEMO_AS_OF).toBe(true);
+    expect(storylineNow(new Date('2026-09-30T06:00:00Z')).toISOString()).toBe('2026-10-06T08:00:00.000Z');
+    expect(storylineNow(new Date('2026-11-02T06:00:00Z')).toISOString()).toBe('2026-11-02T06:00:00.000Z');
+  });
+
+  it('dates everything that has happened on or before the storyline "now"', () => {
+    // A notice not yet released carries its scheduled release as its publication time.
+    const scheduled = new Set(walked.strings.filter((entry) => entry.key === 'scheduledReleaseAt').map((entry) => entry.value));
+    const future = walked.strings
+      .filter((entry) => HAPPENED_KEYS.has(entry.key) && INSTANT.test(entry.value) && entry.value > DEMO_AS_OF)
+      .filter((entry) => !(entry.key === 'publishedAt' && scheduled.has(entry.value)))
+      .map((entry) => `${entry.file}: ${entry.key} ${entry.value}`);
+    expect([...new Set(future)]).toEqual([]);
+  });
+
+  it('shows no session held before the storyline "now" as still scheduled (BUY-18, SUP-10, PUB-03)', () => {
+    const stale = [
+      ...SESSIONS.filter((row) => row.status === 'scheduled' && row.startsAt < DEMO_AS_OF).map((row) => `session ${row.id} ${row.title}`),
+      ...NOTICES.flatMap((notice) =>
+        notice.sessions.filter((row) => row.status === 'scheduled' && row.startsAt < DEMO_AS_OF).map((row) => `${notice.reference} ${row.title}`),
+      ),
+    ];
+    expect(stale).toEqual([]);
+  });
+
+  it('keeps the deadline of every open tender ahead of the storyline "now" and of every closed one behind it', () => {
+    const past = new Set(['closed', 'under_assessment', 'award_pending', 'partially_awarded', 'awarded', 'information_collected']);
+    for (const tender of TENDERS.filter((row) => !row.isTemplate)) {
+      const deadline = plannedDeadline(tender.id);
+      if (deadline === undefined) continue;
+      if (tender.status === 'open') expect(deadline > DEMO_AS_OF, `${tender.reference} ${deadline}`).toBe(true);
+      if (past.has(tender.status)) expect(deadline <= DEMO_AS_OF, `${tender.reference} ${deadline}`).toBe(true);
+    }
+  });
+
+  it('signs every persona in last after the notifications they have read (COM-03, COM-04)', () => {
+    const contradictions = PERSONAS.flatMap((persona) => {
+      const lastSeenAt = sessionProfileOf(persona.email).lastSeenAt ?? '';
+      const handled = NOTIFICATIONS.filter((row) => row.recipientUserId === persona.userId)
+        .flatMap((row) => [row.readAt, row.acknowledgedAt])
+        .filter((at): at is string => at !== null && at > lastSeenAt);
+      return handled.length === 0 ? [] : [`${persona.email} last signed in ${lastSeenAt}, read ${handled.sort().at(-1) ?? ''}`];
+    });
+    expect(contradictions).toEqual([]);
+  });
+
+  it('opens the C-2026-0001 renewal notice window five days after the storyline "now" (AC-32)', () => {
+    const renewal = CONTRACT_RENEWAL_OPTIONS.find((row) => row.id === 14951);
+    const days = (Date.parse(`${renewal?.noticeWindowStart ?? ''}T00:00:00Z`) - Date.parse(`${DEMO_AS_OF_DATE}T00:00:00Z`)) / 86_400_000;
+    expect(days).toBe(5);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------------------
+// Categories (categories.ts)
+// ---------------------------------------------------------------------------------------------------------------
+
+interface CategoryProjection {
+  readonly id: number;
+  readonly tenantId: number;
+  readonly code: string | null;
+  readonly name: string;
+}
+
+describe('one category tree per organization', () => {
+  it('gives each category code one id and one name per organization in every domain (BUY-01, BUY-06, BUY-14, BUY-31, BUY-33)', () => {
+    const projections: ReadonlyArray<readonly [string, readonly CategoryProjection[]]> = [
+      ['tenders', TENDER_CATEGORIES],
+      ['requests', REQUEST_CATEGORIES],
+      ['qualification', QUALIFICATION_CATEGORIES],
+      ['org-admin', ORG_CATEGORIES],
+      ['reporting', REPORTING_CATEGORIES.map((row) => ({ id: row.id, tenantId: row.tenantId, code: row.code, name: row.label }))],
+      ['policy', POLICY_CATEGORY_REFS.map((row) => ({ id: row.categoryId, tenantId: row.tenantId, code: row.code, name: row.name }))],
+    ];
+    const variants = new Map<string, Set<string>>();
+    for (const [domain, rows] of projections) {
+      for (const row of rows) {
+        const canonical = BUYER_CATEGORIES.find((category) => category.id === row.id);
+        expect(canonical, `${domain} category ${row.id}`).toMatchObject({ tenantId: row.tenantId, code: row.code, name: row.name });
+        const key = `${row.tenantId}/${row.code ?? ''}`;
+        variants.set(key, new Set([...(variants.get(key) ?? []), `${row.id} ${row.name}`]));
+      }
+    }
+    expect([...variants].filter(([, names]) => names.size > 1)).toEqual([]);
+  });
+
+  it('names only categories of the record’s own organization', () => {
+    const stray = walked.objects.flatMap(({ file, value }) =>
+      ['categoryId', 'scopeCategoryId'].flatMap((key) => {
+        const id = num(value[key]);
+        if (id === null) return [];
+        const category = BUYER_CATEGORIES.find((row) => row.id === id);
+        const tenantId = num(value.tenantId);
+        return category === undefined || (tenantId !== null && category.tenantId !== tenantId) ? [`${file}: ${key} ${id}`] : [];
+      }),
+    );
+    expect([...new Set(stray)]).toEqual([]);
+  });
+
+  it('maps every category to the one shared catalog, which the suppliers, publication and org-admin fixtures agree on', () => {
+    const catalog = new Map(SUPPLIER_CATALOG.map((entry) => [entry.code, entry.name]));
+    for (const entry of [...PUBLICATION_CATALOG, ...ORG_CATALOG]) expect(catalog.get(entry.code), entry.code).toBe(entry.name);
+    for (const category of BUYER_CATEGORIES.filter((row) => row.catalogCode !== null)) {
+      expect(catalog.has(category.catalogCode ?? ''), category.code).toBe(true);
+    }
   });
 });

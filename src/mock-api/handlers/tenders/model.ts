@@ -95,6 +95,7 @@ import { findPersonaById, findTenantById, personRef } from '../../persona.js';
 import { valueBandOf } from '../../../contracts/policy.js';
 import type { CustomFieldContext, CustomFieldValues } from '../../../contracts/policy.js';
 import { customFieldValuesOf } from '../../custom-fields.js';
+import { formatOfficialInstant } from '../bids/time.js';
 
 // ---------------------------------------------------------------------------------------------------------
 // Lookups
@@ -582,7 +583,7 @@ function approvalItems(state: TenderState): ReadinessItem[] {
         section: 'release_approval',
         code: null,
         status: 'passed',
-        title: tender.releasedAt === null ? 'The package was not released.' : `Released on ${tender.releasedAt.slice(0, 10)}.`,
+        title: tender.releasedAt === null ? 'The package was not released.' : `Released on ${formatOfficialInstant(tender.releasedAt, tender.officialTimeZone, false)}.`,
         detail: approval === undefined ? null : `Release approval #${approval.approvalId} covered revision ${approval.subjectVersion}.`,
         link,
       },
@@ -612,7 +613,8 @@ function approvalItems(state: TenderState): ReadinessItem[] {
       title: `Release checks to review for revision ${tender.draftRevision}: ${pending
         .map((check) => enumLabel('release_checks.check_area', check.checkArea))
         .join(', ')}.`,
-      detail: 'Every check must pass (or be marked not applicable) before publication.',
+      detail:
+        'Pending checks do not stop the release approval request, but publication stays blocked until every check passes (or is marked not applicable).',
       link,
     });
   }

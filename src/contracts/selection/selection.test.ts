@@ -66,6 +66,20 @@ describe('selectionEndpoints', () => {
     expect(SELECTION_VIEW_PERMISSIONS.some((code) => evaluator.has(code))).toBe(false);
   });
 
+  it('requires submission authority to answer a negotiation round, so an administrator or bid manager cannot commit a proposal (PRD §4.1)', () => {
+    // Arrange
+    const codes = endpointPermissions(selectionEndpoints.respondToRound);
+    const admin = new Set(permissionsForTemplates(['supplier_admin']));
+    const bidManager = new Set(permissionsForTemplates(['bid_manager']));
+    const signatory = new Set(permissionsForTemplates(['authorized_signatory']));
+
+    // Assert
+    expect(codes).toEqual(['supplier.response.submit']);
+    expect(codes.some((code) => admin.has(code))).toBe(false);
+    expect(codes.some((code) => bidManager.has(code))).toBe(false);
+    expect(codes.some((code) => signatory.has(code))).toBe(true);
+  });
+
   it('covers every screen of the domain', () => {
     const screens = new Set(endpoints.flatMap((endpoint) => endpoint.screens));
     for (const screen of ['BUY-22', 'BUY-23', 'BUY-24', 'BUY-25', 'BUY-27', 'SUP-18', 'SUP-19']) {

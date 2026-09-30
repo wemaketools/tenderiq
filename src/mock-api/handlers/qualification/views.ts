@@ -1136,13 +1136,27 @@ export function supplierDecisionRow(decision: FxDecision, context: ViewContext):
     supplierExplanation: decision.supplierExplanation,
     appealRoute: decision.appealRoute,
     decidedAt: decision.decidedAt,
+    reconsiderationDeadline: reconsiderationDeadlineOf(decision),
     supersededById: decision.supersededById,
     current: decision.supersededById === null,
   };
 }
 
+/** The end of the decision's stated reconsideration window: decided instant plus the program's window. */
+export function reconsiderationDeadlineOf(decision: FxDecision): { at: string; timeZone: string } {
+  const program = programOfVersion(decision.programVersionId).program;
+  const at = new Date(Date.parse(decision.decidedAt) + program.reconsiderationWindowDays * 86_400_000).toISOString();
+  return { at, timeZone: findTenantById(decision.tenantId)?.officialTimeZone ?? 'Africa/Gaborone' };
+}
+
+/** Whether a decision's outcome and currency allow a reconsideration request at all (window aside). */
 export function isReconsiderable(decision: FxDecision): boolean {
   return decision.supersededById === null && decision.outcome !== 'qualified' && decision.outcome !== 'withdrawn';
+}
+
+/** Whether the stated reconsideration window is still open at `now`. */
+export function isReconsiderationWindowOpen(decision: FxDecision, now: Date): boolean {
+  return now.getTime() < Date.parse(reconsiderationDeadlineOf(decision).at);
 }
 
 export function supplierDecisionDetail(
@@ -1181,7 +1195,11 @@ export function supplierDecisionDetail(
     reconsideration,
     renewalApplicationId: renewal?.id ?? null,
     renewalRequestedAt: decision.renewalRequestedAt,
-    canRequestReconsideration: canApply && isReconsiderable(decision) && reconsideration === null,
+    canRequestReconsideration:
+      canApply &&
+      isReconsiderable(decision) &&
+      isReconsiderationWindowOpen(decision, context.now) &&
+      reconsideration === null,
     canSupplyEvidence: canApply && decision.supersededById === null,
     canRenew: canApply && renewable,
   };

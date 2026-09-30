@@ -4,7 +4,6 @@
  * each item shows where an edition was formally submitted. Financial evidence is withheld from members without
  * `supplier.financial.view` (PRD §4.3): the list says so instead of showing a misleading total.
  */
-import { useNavigate } from 'react-router';
 
 import {
   EVIDENCE_ITEMS_EVIDENCE_TYPE,
@@ -61,7 +60,6 @@ const DEFAULTS = {
 };
 
 export default function EvidenceLibraryPage() {
-  const navigate = useNavigate();
   const canManage = usePermission(EVIDENCE_MANAGE);
   const canReadProfile = usePermission(PROFILE_READ);
   const [filters, setFilters, clearFilters] = useScreenFilters('SUP-05', DEFAULTS);
@@ -339,7 +337,7 @@ export default function EvidenceLibraryPage() {
           rows={data?.items}
           rowKey={(row) => String(row.id)}
           rowLabel={(row) => row.title}
-          onRowClick={(row) => void navigate(supplierOrgPaths.evidenceItem(row.id))}
+          rowHref={(row) => supplierOrgPaths.evidenceItem(row.id)}
           loading={query.isFetching}
           error={query.error}
           onRetry={query.reload}

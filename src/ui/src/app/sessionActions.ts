@@ -5,10 +5,11 @@
  * new active tenant, which resets every tenant-scoped slice (BR-02). The remembered tenant is a convenience only
  * (DD-36).
  */
-import type { SessionMembership } from '@contracts/session';
+import type { SessionContext, SessionMembership } from '@contracts/session';
 
 import { isApiError } from '../api/client';
 import { fetchSessionContext } from '../api/session';
+import { syncServerClock } from '../lib/clock';
 import { readRememberedTenant, rememberTenant } from '../lib/storage';
 import type { AppDispatch, RootState } from './store';
 import {
@@ -51,6 +52,16 @@ export function toSessionProblem(error: unknown): SessionProblem {
   };
 }
 
+/**
+ * Loads /me/context and aligns the application clock with its `serverTime`, so countdowns run from the server's
+ * "now" (in prototype mode, the demo storyline clock).
+ */
+async function loadSessionContext(tenantId?: number): Promise<SessionContext> {
+  const context = await fetchSessionContext(tenantId);
+  syncServerClock(context.serverTime);
+  return context;
+}
+
 /** True while the user is still signed in (results that arrive after a sign-out are dropped). */
 function stillSignedIn(getState: () => RootState): boolean {
   return getState().session.authStatus === 'signedIn';
@@ -61,7 +72,7 @@ export function selectTenant(tenantId: number): Thunk<boolean> {
   return async (dispatch, getState) => {
     dispatch(tenantSwitchStarted({ tenantId }));
     try {
-      const context = await fetchSessionContext(tenantId);
+      const context = await loadSessionContext(tenantId);
       if (!stillSignedIn(getState)) {
         return false;
       }
@@ -100,7 +111,7 @@ export function bootstrapSession(): Thunk<void> {
     dispatch(contextLoading());
     let context;
     try {
-      context = await fetchSessionContext();
+      context = await loadSessionContext();
     } catch (error) {
       if (stillSignedIn(getState)) {
         dispatch(contextFailed(toSessionProblem(error)));

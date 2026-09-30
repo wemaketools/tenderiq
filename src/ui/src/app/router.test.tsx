@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { RouterProvider, createMemoryRouter } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { AuthContext } from '../auth/authContext';
 import { ToastProvider } from '../components/ui/ToastProvider';
@@ -26,6 +26,13 @@ const modules: FeatureModule[] = [
     routes: [
       { path: 'tenders', element: <TendersPage /> },
       { path: 'secret', element: <p>secret</p>, permission: 'evaluation.chair' },
+      {
+        path: 'offline',
+        load: () =>
+          Promise.reject(
+            new TypeError('Failed to fetch dynamically imported module: http://x/Offline.tsx'),
+          ),
+      },
     ],
     nav: [
       {
@@ -96,5 +103,16 @@ describe('router', () => {
       await screen.findByText('The address may be mistyped, or the page may have moved.'),
     ).toBeInTheDocument();
     expect(screen.getByRole('navigation', { name: 'Main navigation' })).toBeInTheDocument();
+  });
+
+  it('renders a page module that failed to load as a reload prompt inside the shell', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    renderAt('/buyer/offline', { session: signedInSession() });
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'This page could not be loaded' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Reload the page' })).toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: 'Main navigation' })).toBeInTheDocument();
+    consoleError.mockRestore();
   });
 });

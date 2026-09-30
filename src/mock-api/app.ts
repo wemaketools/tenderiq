@@ -33,6 +33,7 @@ import {
   securityHeaders,
   tenantContext,
 } from './middleware/chain.js';
+import { storylineNow } from './fixtures/demo-clock.js';
 import type { MockEnv, TokenVerifier } from './middleware/chain.js';
 import { createLogger } from './middleware/logger.js';
 import type { LogSink } from './middleware/logger.js';
@@ -59,7 +60,10 @@ export interface CreateMockAppOptions {
   readonly logLevel?: LogLevel;
   /** Reported in `/me/context` `environment.appEnv`; defaults to the configured `APP_ENV`. */
   readonly appEnv?: AppEnvValue;
-  /** Clock (tests); defaults to the system clock. */
+  /**
+   * Clock (tests); defaults to the storyline clock: the system clock, never earlier than the demo "as of"
+   * (`fixtures/demo-clock.ts`), so handlers, `/me/context.serverTime` and the fixtures agree on "now".
+   */
   readonly now?: () => Date;
 }
 
@@ -79,7 +83,7 @@ export async function createMockApp(options: CreateMockAppOptions = {}): Promise
   const configured = tryGetConfig();
   const appEnv: AppEnvValue = options.appEnv ?? (configured.ok ? configured.config.appEnv : 'local');
   const logLevel: LogLevel = options.logLevel ?? (configured.ok ? configured.config.logLevel : 'info');
-  const now = options.now ?? (() => new Date());
+  const now = options.now ?? (() => storylineNow(new Date()));
   const verifyToken: TokenVerifier = options.verifyToken ?? verifyAccessToken;
 
   const bootLogger = createLogger({ sink: options.logSink, level: logLevel, env: appEnv });

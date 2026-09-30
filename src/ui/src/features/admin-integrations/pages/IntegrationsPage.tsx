@@ -175,7 +175,7 @@ export default function IntegrationsPage() {
           onRetry={integrations.reload}
           sort={{ key: filters.sort, dir: filters.dir as 'asc' | 'desc' }}
           onSortChange={(next) => setFilters({ sort: next.key, dir: next.dir, page: 1 })}
-          onRowClick={(row) => navigate(servicePaths.integration(row.id))}
+          rowHref={(row) => servicePaths.integration(row.id)}
           rowLabel={(row) => t('admin-integrations.list.rowLabel', { name: row.name })}
           empty={
             <EmptyState

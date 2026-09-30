@@ -109,6 +109,44 @@ describe('SupplierDecisionPage (SUP-24)', () => {
     ).toBeInTheDocument();
   });
 
+  it('shows the reconsideration deadline and no request action once the window has closed', async () => {
+    routeCalls({
+      'supplier.qualification.decisions.get': () =>
+        supplierDecisionDetail({ canRequestReconsideration: false }),
+      'supplier.qualification.applications.evidenceCandidates': () => CANDIDATES,
+    });
+    renderPage(<SupplierDecisionPage />, { ...PATH, permissions: SUPPLIER_APPLY });
+    expect(await screen.findByText('Reconsideration requests accepted until')).toBeInTheDocument();
+    expect(screen.getByText(/18 May 2026, 10:30/)).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Request reconsideration' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Supply updated evidence' })).toBeInTheDocument();
+  });
+
+  it('explains a closed reconsideration window when the buyer refuses the request', async () => {
+    routeCalls({
+      'supplier.qualification.decisions.get': () => supplierDecisionDetail(),
+      'supplier.qualification.applications.evidenceCandidates': () => CANDIDATES,
+      'supplier.qualification.decisions.requestReconsideration': () => {
+        throw businessError(
+          'supplier.qualification.decisions.requestReconsideration',
+          'RECONSIDERATION_WINDOW_CLOSED',
+        );
+      },
+    });
+    renderPage(<SupplierDecisionPage />, { ...PATH, permissions: SUPPLIER_APPLY });
+    fireEvent.click(await screen.findByRole('button', { name: 'Request reconsideration' }));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.change(within(dialog).getByLabelText(/^Grounds/), {
+      target: { value: 'Insurance renewed.' },
+    });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Request reconsideration' }));
+    expect(
+      await within(dialog).findByText(/The reconsideration window of this decision has closed/),
+    ).toBeInTheDocument();
+  });
+
   it('renews a renewable decision as a new draft that cites it', async () => {
     const calls = routeCalls({
       'supplier.qualification.decisions.get': () => supplierDecisionDetail({ canRenew: true }),

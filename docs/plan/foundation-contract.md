@@ -252,8 +252,12 @@ never loosen the contract.
 - **Commands are static**: validate, check the business state the fixture implies (return the declared error, e.g. a
   blocking readiness error), then return a contract-valid response describing the outcome (new ids ≥ 900, status
   after the action). The next GET still returns the fixture; the SPA shows the command result it received.
-- Instants are fixed ISO strings around the storyline dates (October 2026). Anything that must be "in the future"
-  relative to the real clock must be far enough ahead (the support grant runs until 2026-12-31T15:00:00Z).
+- The one storyline "now" is `DEMO_AS_OF = 2026-10-06T08:00:00Z` (`src/mock-api/fixtures/demo-clock.ts`). Every
+  fixture is written as of that instant: what has happened is before it, what is pending or scheduled is after it.
+  The mock API serves each request on `storylineNow()` (never earlier than `DEMO_AS_OF`), exposes it as
+  `ctx.now`, as `serverTime` of `/api/v1/me/context` and as the `x-server-time` response header; handlers and tests
+  compare against that clock, never against `Date.now()`.
+- Buyer categories come only from `src/mock-api/fixtures/categories.ts`; other domains reference them by id.
 - Money is `{ amount: '1500000.00', currency: 'BWP' }`; deadlines `{ at, timeZone: 'Africa/Gaborone' }`.
 
 ### 2.4 Verified handler example

@@ -122,6 +122,28 @@ describe('choices', () => {
   });
 });
 
+describe('RadioGroup ARIA', () => {
+  it('puts aria-required on a radiogroup named by the legend, never on the fieldset', () => {
+    render(
+      <RadioGroup
+        label="Procurement method"
+        required
+        value=""
+        onChange={() => undefined}
+        options={[
+          { value: 'open', label: 'Open' },
+          { value: 'restricted', label: 'Restricted' },
+        ]}
+      />,
+    );
+    const group = screen.getByRole('group', { name: /Procurement method/ });
+    expect(group).not.toHaveAttribute('aria-required');
+    const radiogroup = screen.getByRole('radiogroup', { name: /Procurement method/ });
+    expect(radiogroup).toHaveAttribute('aria-required', 'true');
+    expect(radiogroup).toContainElement(screen.getByRole('radio', { name: 'Open' }));
+  });
+});
+
 describe('numbers and money (decimal strings)', () => {
   it('accepts a money amount as a decimal string, strips grouping and refuses letters and a third decimal', async () => {
     render(

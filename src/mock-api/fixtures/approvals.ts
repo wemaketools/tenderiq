@@ -43,6 +43,7 @@ import {
   sourcedApprovals,
 } from './approvals/sources.js';
 import { RECORDS, WORKSPACE_AS_OF, tid, uid } from './approvals/world.js';
+import { buyerCategory } from './categories.js';
 import type { RecordKey } from './approvals/world.js';
 import { MATERIAL_CHANGES } from './tenders/release.js';
 
@@ -231,7 +232,8 @@ export interface FixtureApproval {
   readonly tenantId: number;
   readonly subjectType: ApprovalRequestsSubjectType;
   readonly subjectId: number;
-  readonly subjectReference: string;
+  /** A short record reference (`T-2026-0009`, `PR-2026-0001`) or `null` when the subject has none. */
+  readonly subjectReference: string | null;
   readonly subjectLinkPath: string;
   readonly subjectVersion: number;
   /** The subject's current version (differs after a material edit, AC-06). */
@@ -265,17 +267,34 @@ export interface FixtureApproval {
   readonly conflicts: readonly FixtureConflict[];
   readonly sod: FixtureSod | null;
   readonly holdActive: boolean;
+  /**
+   * Gates of the subject that are not met yet (BR-10, AC-24): while any is open the approval stays pending but no
+   * one can decide it, and the decision is refused with `SUBJECT_NOT_READY_FOR_APPROVAL`.
+   */
+  readonly subjectGates?: readonly FixtureSubjectGate[];
+}
+
+/** One unmet gate of the subject under approval, e.g. an open award-blocking due-diligence finding. */
+export interface FixtureSubjectGate {
+  readonly code: string;
+  readonly detail: string;
 }
 
 const KWU_ENTITY = { legalEntityId: 1, name: 'Kalahari Water Utilities Corporation' };
+/** A buyer category of the demo world (`./categories.ts`) as approval context shows it: `CODE — Name`. */
+function categoryLabel(categoryId: number): { categoryId: number; name: string } {
+  const category = buyerCategory(categoryId);
+  return { categoryId, name: `${category.code} — ${category.name}` };
+}
+
 const CATEGORY = {
-  infrastructure: { categoryId: 1, name: 'WTR-INFRA — Water infrastructure' },
-  pumps: { categoryId: 2, name: 'WTR-PUMP — Pumps and mechanical equipment' },
-  meters: { categoryId: 4, name: 'WTR-METER — Water metering' },
-  ict: { categoryId: 5, name: 'ICT-SCADA — SCADA and telemetry' },
-  leak: { categoryId: 7, name: 'ENV-LEAK — Leak detection services' },
-  civil: { categoryId: 8, name: 'CIV-WORKS — Civil works' },
-  fleet: { categoryId: 9, name: 'FLEET-SVC — Fleet maintenance services' },
+  infrastructure: categoryLabel(1),
+  pumps: categoryLabel(2),
+  meters: categoryLabel(4),
+  ict: categoryLabel(5),
+  leak: categoryLabel(7),
+  civil: categoryLabel(8),
+  fleet: categoryLabel(9),
 } as const;
 
 interface StepSpec {
@@ -653,7 +672,7 @@ const HAND_WRITTEN: readonly FixtureApproval[] = [
     tenantId: tid('kwu'),
     subjectType: 'exclusion',
     subjectId: 5101,
-    subjectReference: `${RECORDS.t3.reference} / Makgadikgadi Civil Works`,
+    subjectReference: RECORDS.t3.reference,
     subjectLinkPath: '/buyer/compliance/exclusions/5101',
     subjectVersion: 1,
     currentSubjectVersion: 1,
@@ -770,6 +789,18 @@ const HAND_WRITTEN: readonly FixtureApproval[] = [
       { key: 'diligence', label: 'Due diligence', value: 'One award-blocking finding open (professional indemnity insurance)', changedSince: false },
     ],
     ...NO_ROUTING,
+    // The awards and selection fixtures record the same gates: the award stays blocked until both clear (AC-24).
+    subjectGates: [
+      {
+        code: 'diligence',
+        detail:
+          'Limpopo Environmental Services: one award-blocking due-diligence finding is open (professional indemnity insurance not yet verified with the insurer).',
+      },
+      {
+        code: 'negotiation',
+        detail: 'The negotiation with Limpopo Environmental Services is still active; the award cannot be decided until it closes.',
+      },
+    ],
   },
   {
     id: 41,
@@ -860,7 +891,7 @@ const HAND_WRITTEN: readonly FixtureApproval[] = [
     tenantId: tid('kwu'),
     subjectType: 'late_submission_exception',
     subjectId: 204,
-    subjectReference: `${RECORDS.t8.reference} / Chobe Pipe & Valve Supplies`,
+    subjectReference: RECORDS.t8.reference,
     subjectLinkPath: `/buyer/submissions/${RECORDS.t8.id}`,
     subjectVersion: 1,
     currentSubjectVersion: 1,

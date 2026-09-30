@@ -120,7 +120,7 @@ const KWU_APPEAL =
 export const QUALIFICATION_DECISIONS: readonly FxDecision[] = Object.freeze([
   {
     id: 700, tenantId: KWU, supplierTenantId: TSODILO, applicationId: 500, programVersionId: 111,
-    outcome: 'qualified_with_conditions', scopeCategoryId: 202, scopeMaxValue: BWP('5000000.00'), scopeGeography: 'Botswana',
+    outcome: 'qualified_with_conditions', scopeCategoryId: 2, scopeMaxValue: BWP('5000000.00'), scopeGeography: 'Botswana',
     effectiveFrom: '2025-11-20', effectiveTo: '2027-11-19', reassessmentDate: '2026-11-20',
     conditions: 'Provide a current ISO 9001 certificate within 90 days.',
     allowedActivities: 'Receive invitations and submit bids for WTR-PUMP work up to BWP 5,000,000.',
@@ -134,7 +134,7 @@ export const QUALIFICATION_DECISIONS: readonly FxDecision[] = Object.freeze([
   },
   {
     id: 701, tenantId: KWU, supplierTenantId: TSODILO, applicationId: 501, programVersionId: 112,
-    outcome: 'qualified', scopeCategoryId: 202, scopeMaxValue: BWP('8000000.00'), scopeGeography: 'Botswana',
+    outcome: 'qualified', scopeCategoryId: 2, scopeMaxValue: BWP('8000000.00'), scopeGeography: 'Botswana',
     effectiveFrom: '2026-04-15', effectiveTo: '2028-04-14', reassessmentDate: '2027-04-15',
     conditions: null, allowedActivities: null, blockedGate: 'none',
     reasons: 'All thirteen criteria met with independently verified evidence. Financial review adequate (turnover BWP 42.3 million, current ratio 1.85).',
@@ -145,7 +145,7 @@ export const QUALIFICATION_DECISIONS: readonly FxDecision[] = Object.freeze([
   },
   {
     id: 702, tenantId: KWU, supplierTenantId: CHOBE, applicationId: 502, programVersionId: 112,
-    outcome: 'qualified_with_conditions', scopeCategoryId: 203, scopeMaxValue: BWP('5000000.00'), scopeGeography: 'Botswana',
+    outcome: 'qualified_with_conditions', scopeCategoryId: 3, scopeMaxValue: BWP('5000000.00'), scopeGeography: 'Botswana',
     effectiveFrom: '2026-05-04', effectiveTo: '2028-05-03', reassessmentDate: '2026-10-08',
     conditions: 'Supply a renewed public liability insurance certificate (cover of at least BWP 5,000,000) before the current policy expires on 8 Oct 2026.',
     allowedActivities: 'Receive invitations and submit bids for WTR-PIPE work up to BWP 5,000,000.',
@@ -158,7 +158,7 @@ export const QUALIFICATION_DECISIONS: readonly FxDecision[] = Object.freeze([
   },
   {
     id: 703, tenantId: KWU, supplierTenantId: SEROWE, applicationId: 504, programVersionId: 121,
-    outcome: 'qualified', scopeCategoryId: 204, scopeMaxValue: BWP('5000000.00'), scopeGeography: 'Botswana',
+    outcome: 'qualified', scopeCategoryId: 5, scopeMaxValue: BWP('5000000.00'), scopeGeography: 'Botswana',
     effectiveFrom: '2026-02-01', effectiveTo: '2029-01-31', reassessmentDate: '2027-02-01',
     conditions: null, allowedActivities: null, blockedGate: 'none',
     reasons: 'All criteria met; ISO/IEC 27001 and utility SCADA references verified.',
@@ -169,18 +169,18 @@ export const QUALIFICATION_DECISIONS: readonly FxDecision[] = Object.freeze([
   },
   {
     id: 704, tenantId: KWU, supplierTenantId: GABORONE_METER, applicationId: 505, programVersionId: 131,
-    outcome: 'qualified', scopeCategoryId: 205, scopeMaxValue: BWP('3000000.00'), scopeGeography: 'Botswana',
+    outcome: 'qualified', scopeCategoryId: 4, scopeMaxValue: BWP('3000000.00'), scopeGeography: 'Botswana',
     effectiveFrom: '2024-09-01', effectiveTo: '2026-08-31', reassessmentDate: '2025-09-01',
     conditions: null, allowedActivities: null, blockedGate: 'none',
     reasons: 'All criteria met; BOBS type approval and ISO 9001 verified.',
-    supplierExplanation: 'Qualified for water meters and metering services up to BWP 3,000,000 until 31 Aug 2026.',
+    supplierExplanation: 'Qualified for water meters and metering up to BWP 3,000,000 until 31 Aug 2026.',
     appealRoute: KWU_APPEAL, reviewerUserId: USERS.neo, approverUserId: USERS.mpho, approvalRequestId: null,
     decidedAt: '2024-08-30T10:00:00Z', supersededById: null, supersedeReason: null,
     supplierNotifiedAt: '2024-08-30T10:05:00Z', renewalRequestedAt: '2026-07-02T08:00:00Z',
   },
   {
     id: 705, tenantId: KWU, supplierTenantId: LIMPOPO, applicationId: 507, programVersionId: 141,
-    outcome: 'qualified', scopeCategoryId: 206, scopeMaxValue: BWP('2000000.00'), scopeGeography: 'Botswana',
+    outcome: 'qualified', scopeCategoryId: 11, scopeMaxValue: BWP('2000000.00'), scopeGeography: 'Botswana',
     effectiveFrom: '2026-01-20', effectiveTo: '2028-01-19', reassessmentDate: '2027-01-20',
     conditions: null, allowedActivities: null, blockedGate: 'none',
     reasons: 'All criteria met; licence renewal plan recorded (information request 1404).',
@@ -192,7 +192,7 @@ export const QUALIFICATION_DECISIONS: readonly FxDecision[] = Object.freeze([
   },
   {
     id: 706, tenantId: KWU, supplierTenantId: LIMPOPO, applicationId: 507, programVersionId: 141,
-    outcome: 'suspended', scopeCategoryId: 206, scopeMaxValue: BWP('2000000.00'), scopeGeography: 'Botswana',
+    outcome: 'suspended', scopeCategoryId: 11, scopeMaxValue: BWP('2000000.00'), scopeGeography: 'Botswana',
     effectiveFrom: '2026-09-10', effectiveTo: '2028-01-19', reassessmentDate: '2026-10-31',
     conditions: 'Suspended until a valid waste management licence from the Department of Waste Management and Pollution Control is provided.',
     allowedActivities: 'Complete work under existing purchase orders. Bids already submitted remain assessed under the rules at their submission deadline.',
@@ -205,7 +205,7 @@ export const QUALIFICATION_DECISIONS: readonly FxDecision[] = Object.freeze([
   },
   {
     id: 801, tenantId: ODC, supplierTenantId: LIMPOPO, applicationId: 601, programVersionId: 211,
-    outcome: 'qualified', scopeCategoryId: 301, scopeMaxValue: BWP('1500000.00'), scopeGeography: 'Okavango District',
+    outcome: 'qualified', scopeCategoryId: 20, scopeMaxValue: BWP('1500000.00'), scopeGeography: 'Okavango District',
     effectiveFrom: '2026-05-15', effectiveTo: '2028-05-14', reassessmentDate: '2027-05-15',
     conditions: null, allowedActivities: null, blockedGate: 'none',
     reasons: 'All criteria met; staffing plan and client references verified.',

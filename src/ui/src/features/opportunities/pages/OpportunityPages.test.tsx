@@ -229,6 +229,26 @@ describe('InvitationsPage and InvitationPage (SUP-07)', () => {
     expect(await screen.findByText('Invitation for T-2026-0002 accepted.')).toBeInTheDocument();
   });
 
+  it('follows an access request without a link to an event the organization may not see', async () => {
+    routes({
+      [`GET ${S}/invitations/206`]: {
+        ...data.invitation206(),
+        kind: 'access_request',
+        invitationStatus: 'not_invited',
+        accessStatus: 'requested',
+        opportunityPath: null,
+      },
+    });
+    renderWithProviders(<InvitationPage />, {
+      state: supplierState(['supplier.opportunities.view', 'supplier.notices.acknowledge']),
+      route: '/supplier/invitations/206',
+      path: '/supplier/invitations/:participantId',
+    });
+    expect((await screen.findAllByText('T-2026-0002')).length).toBeGreaterThan(0);
+    expect(screen.queryByRole('link', { name: 'Open the opportunity' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'T-2026-0002' })).not.toBeInTheDocument();
+  });
+
   it('declines while sharing a reason only when chosen', async () => {
     const detail = data.invitation206();
     const { requests } = routes({
@@ -401,9 +421,37 @@ describe('OpportunityWorkspacePage (SUP-08)', () => {
   it('states the session registration cut-off in official time (DD-33)', async () => {
     routes({ [`GET ${S}/opportunities/11`]: data.workspace11() });
     render11();
+    const cutOff = await screen.findByText(
+      (_content, element) =>
+        element?.classList.contains('tiq-cell-sub') === true &&
+        (element.textContent ?? '').startsWith(
+          'Register by 13 Oct 2026, 15:00 (UTC+02:00) Africa/Gaborone',
+        ),
+    );
+    expect(within(cutOff).getByTestId('official-deadline')).toBeInTheDocument();
+  });
+
+  it('links questions and briefings only when the organization takes part in the clarification channel', async () => {
+    routes({ [`GET ${S}/opportunities/6`]: data.workspace6() });
+    render();
     expect(
-      await screen.findByText('Register by 13 Oct 2026, 15:00 (UTC+02:00) Africa/Gaborone'),
-    ).toBeInTheDocument();
+      await screen.findByRole('link', { name: 'Questions and clarifications' }),
+    ).toHaveAttribute('href', '/supplier/clarifications/tenders/6');
+    expect(screen.queryByText('Questions and briefings')).not.toBeInTheDocument();
+  });
+
+  it('shows the restricted note instead of dead question and briefing links for a non-member', async () => {
+    const workspace = data.workspace11();
+    routes({ [`GET ${S}/opportunities/11`]: workspace });
+    render11();
+    expect(await screen.findByText('Questions and briefings')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'Questions and clarifications' }),
+    ).not.toBeInTheDocument();
+    for (const session of workspace.sessions) {
+      expect(screen.getByText(session.title)).toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: session.title })).not.toBeInTheDocument();
+    }
   });
 
   it('answers an unavailable opportunity with the not-found state', async () => {
@@ -432,9 +480,29 @@ describe('PursuitPage and PursuitsPage (SUP-09)', () => {
     });
     render();
     expect(await screen.findByText('Assessment (private)')).toBeInTheDocument();
+    // A decision is recorded (bid): the assessment is not labelled "not decided".
+    expect(screen.getByText('Saved; decision recorded')).toBeInTheDocument();
+    expect(screen.queryByText('Saved, not decided')).not.toBeInTheDocument();
     expect(screen.getByText('Decision (private)')).toBeInTheDocument();
     expect(screen.getByText('Shared with the buyer')).toBeInTheDocument();
     expect(screen.getByRole('table', { name: 'Pursuit team' })).toBeInTheDocument();
+  });
+
+  it('labels an undecided assessment as saved but not decided', async () => {
+    const view = data.pursuit6();
+    routes({
+      [`GET ${S}/opportunities/6/pursuit`]: {
+        ...view,
+        pursuit:
+          view.pursuit === null
+            ? null
+            : { ...view.pursuit, decision: 'undecided', decidedAt: null, decidedBy: null },
+      },
+      [`GET ${S}/pursuit-team-candidates`]: data.teamCandidates(),
+    });
+    render();
+    expect(await screen.findByText('Saved, not decided')).toBeInTheDocument();
+    expect(screen.queryByText('Saved; decision recorded')).not.toBeInTheDocument();
   });
 
   it('changes the buyer-visible intent only through "Tell the buyer" (DD-41)', async () => {

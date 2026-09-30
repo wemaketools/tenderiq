@@ -7,7 +7,8 @@ import { readFileSync } from 'node:fs';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import { ENDPOINT_CATALOG } from '../../src/contracts/catalog.js';
-import { DEFAULT_OUTPUT, buildOpenApiDocument, discoverContractEndpoints } from './generate-openapi.js';
+import { errorStatus } from '../../src/contracts/common.js';
+import { DEFAULT_OUTPUT, buildOpenApiDocument, declaredErrorsByStatus, discoverContractEndpoints } from './generate-openapi.js';
 
 type Json = Record<string, unknown>;
 
@@ -78,6 +79,47 @@ describe('OpenAPI document', () => {
       const errors = Object.keys(responses).filter((status) => /^[45]\d\d$/.test(status));
       expect(errors.length, `${method.toUpperCase()} ${path}`).toBeGreaterThan(0);
     }
+  });
+
+  it('lists every declared business error under its one registry status and under no other status', () => {
+    for (const { path, method, operation } of operations(document)) {
+      const responses = operation.responses as Record<string, Json>;
+      const declaredUnder = (status: string): string[] => {
+        const description = String(responses[status]?.description ?? '');
+        const match = /Declared business errors: ([A-Z0-9_, ]+)\./.exec(description);
+        return match?.[1] === undefined ? [] : match[1].split(', ');
+      };
+      for (const code of (operation['x-error-codes'] as string[] | undefined) ?? []) {
+        const expected = String(errorStatus(code));
+        const statuses = Object.keys(responses).filter((status) => declaredUnder(status).includes(code));
+        expect(statuses, `${method.toUpperCase()} ${path} ${code}`).toEqual([expected]);
+      }
+    }
+  });
+
+  it('puts SELF_APPROVAL_NOT_PERMITTED under 403 and NEW_DEADLINE_IN_PAST under 422, not under 409', () => {
+    // Arrange
+    const withCode = (code: string) => operations(document).filter(({ operation }) => ((operation['x-error-codes'] as string[] | undefined) ?? []).includes(code));
+    const selfApproval = withCode('SELF_APPROVAL_NOT_PERMITTED');
+    const pastDeadline = withCode('NEW_DEADLINE_IN_PAST');
+
+    // Assert
+    expect(selfApproval.length).toBeGreaterThan(0);
+    expect(pastDeadline.length).toBeGreaterThan(0);
+    for (const { operation } of selfApproval) {
+      const responses = operation.responses as Record<string, Json>;
+      expect(String(responses['403']?.description)).toContain('SELF_APPROVAL_NOT_PERMITTED');
+      expect(String(responses['409']?.description ?? '')).not.toContain('SELF_APPROVAL_NOT_PERMITTED');
+    }
+    for (const { operation } of pastDeadline) {
+      const responses = operation.responses as Record<string, Json>;
+      expect(String(responses['422']?.description)).toContain('NEW_DEADLINE_IN_PAST');
+      expect(String(responses['409']?.description ?? '')).not.toContain('NEW_DEADLINE_IN_PAST');
+    }
+  });
+
+  it('refuses to document an error code that has no registry status', () => {
+    expect(() => declaredErrorsByStatus({ id: 'test.unregistered', errors: ['NOT_A_REGISTERED_CODE'] })).toThrow(/no registry status/);
   });
 
   it('matches the committed docs/technical/api/openapi.json (run npm run docs:api after a contract change)', () => {

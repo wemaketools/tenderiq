@@ -94,6 +94,16 @@
     "fix": {
       "status": "done",
       "checks": "typecheck/typecheck:ui/eslint/prettier clean on requests paths; vitest unit requests 115/115; SPA requests+planning 64/64; screenshots on 4105/5205 (servers stopped)"
+    },
+    "qa-fixes": {
+      "status": "done",
+      "findings": [
+        "register status-filter counts inline (tiq-tab-count)",
+        "register Request column 18rem, purpose clamped to one line, Age not numeric-aligned",
+        "T-2026-0005 plan item 1,920,000 / release 2026-10-19, strategy 505 at 1,450,000; strategy 502 aligned to T-2026-0003 estimate 125,000",
+        "AC-05 next action names the awaited approver (awaitingDecisionFrom on RequestDetail.decision and RequestDecisionView)"
+      ],
+      "checks": "typecheck, typecheck:ui, eslint + prettier (requests/planning paths) clean; vitest unit requests paths 118/118; SPA requests+planning 69/69"
     }
   },
   "status": "done",

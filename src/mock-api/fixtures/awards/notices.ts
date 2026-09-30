@@ -5,7 +5,7 @@
  * - T-2026-0001: intent (lot 1), unsuccessful (Chobe, lot 1), cancellation (lot 2), a standstill change (extension
  *   while Chobe's complaint was answered), a complaint update and the final award notice. The lot 1 standstill
  *   completed after its extension; Chobe's complaint hold was released before the final award.
- * - T-2026-0007: intent and unsuccessful notices (one e-mail delivery to Chobe failed and awaits a resend), a
+ * - T-2026-0007: intent and unsuccessful notices (the e-mail delivery of the intent notice to Tsodilo failed and awaits a resend), a
  *   complaint update announcing the hold, and a DRAFT final award notice that cannot be issued while the hold is
  *   active. The standstill is running; Limpopo's complaint hold blocks final award and contract signature (AC-25).
  * - T-2026-0009: preferred-bidder notices (selection domain): Serowe ICT selected, then withdrawn after failed due
@@ -117,17 +117,16 @@ const T7_INTENT_RECIPIENTS = [
     acknowledgedAt: '2026-09-22T08:35:00Z',
     acknowledgedBy: person(USERS.makgadikgadiAdmin),
   }),
-  recipient(5702, 'tsodilo', USERS.tsodiloBidManager, { deliveredAt: '2026-09-22T08:00:05Z', openedAt: '2026-09-22T12:00:00Z' }),
+  recipient(5702, 'tsodilo', USERS.tsodiloBidManager, {
+    deliveredAt: null,
+    deliveryStatus: 'failed',
+    failureReason: 'The recipient mail server rejected the message (mailbox full). The in-app notice is available.',
+  }),
   recipient(5703, 'limpopo-env', USERS.limpopoAdmin, {
     deliveredAt: '2026-09-22T08:00:06Z',
     openedAt: '2026-09-22T09:45:00Z',
     acknowledgedAt: '2026-09-22T09:50:00Z',
     acknowledgedBy: person(USERS.limpopoAdmin),
-  }),
-  recipient(5704, 'chobe-pipe', USERS.chobeBidManager, {
-    deliveredAt: null,
-    deliveryStatus: 'failed',
-    failureReason: 'The recipient mail server rejected the message (mailbox full). The in-app notice is available.',
   }),
 ];
 
@@ -139,19 +138,12 @@ const T7_UNSUCCESSFUL_RECIPIENTS = [
     acknowledgedAt: '2026-09-22T09:52:00Z',
     acknowledgedBy: person(USERS.limpopoAdmin),
   }),
-  recipient(5803, 'chobe-pipe', USERS.chobeBidManager, {
-    deliveredAt: '2026-09-22T08:05:06Z',
-    openedAt: '2026-09-23T07:10:00Z',
-    acknowledgedAt: '2026-09-23T07:12:00Z',
-    acknowledgedBy: person(USERS.chobeBidManager),
-  }),
 ];
 
 const T7_COMPLAINT_UPDATE_RECIPIENTS = [
   recipient(5901, 'makgadikgadi', USERS.makgadikgadiAdmin, { deliveredAt: '2026-09-25T12:30:05Z', openedAt: '2026-09-25T13:00:00Z' }),
   recipient(5902, 'tsodilo', USERS.tsodiloBidManager, { deliveredAt: '2026-09-25T12:30:05Z' }),
   recipient(5903, 'limpopo-env', USERS.limpopoAdmin, { deliveredAt: '2026-09-25T12:30:06Z', openedAt: '2026-09-25T12:45:00Z' }),
-  recipient(5904, 'chobe-pipe', USERS.chobeBidManager, { deliveredAt: '2026-09-25T12:30:06Z' }),
 ];
 
 // ---------------------------------------------------------------------------------------------------------
@@ -273,7 +265,7 @@ export const OUTCOME_NOTICES: readonly OutcomeNoticeFixture[] = Object.freeze([
       issuedAt: '2026-08-06T08:10:00Z',
       issuedBy: person(USERS.tebogo),
       body:
-        'Lot 2 (Solar pumping systems — Kgalagadi) is cancelled because no compliant offer was received. The only offer failed mandatory requirement REQ-T-02 (solar array sizing for each site). The lot will be re-tendered after a scope redesign.',
+        'Lot 2 (Solar pumping systems — Kgalagadi) is cancelled because no compliant offer was received. Both offers failed mandatory requirement REQ-T-02 (solar array sizing for each site). The lot will be re-tendered after a scope redesign.',
       audienceDescription: 'Every supplier with an offer on lot 2.',
       approvalRequestId: 35,
       disclosureReview: REVIEWED(USERS.dineo, '2026-08-05T15:10:00Z', null),
@@ -538,7 +530,7 @@ export const OUTCOME_NOTICES: readonly OutcomeNoticeFixture[] = Object.freeze([
       issuedAt: '2026-02-16T08:00:00Z',
       issuedBy: person(USERS.tebogo),
       body:
-        'Kalahari Water Utilities intends to award fleet vehicle maintenance to Tsodilo Engineering (Pty) Ltd at BWP 1,850,000.00 for three years. This is not a final award. A standstill of 10 calendar days ends on 26 Feb 2026, 17:00 (UTC+02:00) Africa/Gaborone.',
+        'Kalahari Water Utilities intends to award fleet vehicle maintenance to Tsodilo Engineering (Pty) Ltd at BWP 1,850,000.00 for twelve months (with renewal and extension options). This is not a final award. A standstill of 10 calendar days ends on 26 Feb 2026, 17:00 (UTC+02:00) Africa/Gaborone.',
       audienceDescription: 'Every supplier with an effective quotation.',
       approvalRequestId: null,
       disclosureReview: REVIEWED(USERS.dineo, '2026-02-13T14:00:00Z', null),

@@ -2,9 +2,13 @@
  * Mock handlers of the contracts contract (CON-01 … CON-11, SUP-23): tenant and supplier isolation, permission
  * denials, the storyline scenarios AC-28 … AC-32, declared business errors and 422s. Real Supabase Auth (DD-43).
  */
+import { readFileSync } from 'node:fs';
+
 import { beforeAll, describe, expect, it } from 'vitest';
 
+import { PLATFORM_ERRORS } from '../../../contracts/common.js';
 import { contractsEndpoints as api } from '../../../contracts/contracts.js';
+import { DEMO_AS_OF } from '../../fixtures/demo-clock.js';
 import { createTestMockApp } from '../../testing/index.js';
 import type { TestMockApp } from '../../testing/index.js';
 import { register } from './index.js';
@@ -69,6 +73,16 @@ describe('contracts handler module', () => {
     for (const endpoint of Object.values(api)) {
       expect(app.endpointIds).toContain(endpoint.id);
     }
+  });
+});
+
+describe('declared business errors', () => {
+  it('uses only error codes that a contracts endpoint declares or the platform defines (never an undeclared 500)', () => {
+    const source = readFileSync(new URL('./index.ts', import.meta.url), 'utf8');
+    const used = new Set([...source.matchAll(/fail\(\s*\d+,\s*'([A-Z_]+)'/g)].map((match) => match[1]));
+    const declared = new Set<string>([...Object.values(api).flatMap((endpoint) => endpoint.errors), ...Object.keys(PLATFORM_ERRORS)]);
+    expect(used.size).toBeGreaterThan(20);
+    expect([...used].filter((code) => code !== undefined && !declared.has(code))).toEqual([]);
   });
 });
 
@@ -229,7 +243,10 @@ describe('contract formation (CON-02, BR-04, BR-33)', () => {
     const response = await app.callAs(TEBOGO, api.preparation, { tenant: 'kwu', params: { contractId: PUMPS_SUPPLY } });
     const preparation = api.preparation.response.parse(response.body);
     expect(preparation.differsFromAward).toBe(true);
-    expect(preparation.differenceApproval).toMatchObject({ approvalId: 42, status: 'pending', inApprovalWorkspace: true });
+    // Approval 42 was requested by the contract manager; the procurement officer is neither requester nor decider.
+    expect(preparation.differenceApproval).toMatchObject({ approvalId: 42, status: 'pending', inApprovalWorkspace: false });
+    const asRequester = await app.callAs(MASEGO, api.preparation, { tenant: 'kwu', params: { contractId: PUMPS_SUPPLY } });
+    expect(api.preparation.response.parse(asRequester.body).differenceApproval).toMatchObject({ approvalId: 42, inApprovalWorkspace: true });
     expect(preparation.differences.filter((difference) => difference.material)).toHaveLength(2);
     expect(preparation.differences.find((difference) => difference.field === 'value')?.amountDelta?.amount).toBe('48000.00');
     expect(preparation.checks.find((check) => check.id === 'difference_approval')?.state).toBe('blocking');
@@ -243,6 +260,15 @@ describe('contract formation (CON-02, BR-04, BR-33)', () => {
     });
     expect(response.status).toBe(200);
     expect(api.reviewDecision.response.parse(response.body).status).toBe('awaiting_signature');
+  });
+
+  it('links the contract approval history only for viewers the approval workspace lets open the request', async () => {
+    const asRequester = await app.callAs(TEBOGO, api.preparation, { tenant: 'kwu', params: { contractId: PUMPS_SUPPLY } });
+    const requesterHistory = api.preparation.response.parse(asRequester.body).approvalHistory;
+    expect(requesterHistory.find((approval) => approval.approvalId === 14302)?.inApprovalWorkspace).toBe(true);
+    const asManager = await app.callAs(MASEGO, api.preparation, { tenant: 'kwu', params: { contractId: PUMPS_SUPPLY } });
+    const managerHistory = api.preparation.response.parse(asManager.body).approvalHistory;
+    expect(managerHistory.find((approval) => approval.approvalId === 14302)?.inApprovalWorkspace).toBe(false);
   });
 
   it('refuses to submit a contract that is not a draft', async () => {
@@ -561,8 +587,14 @@ describe('changes and disputes (CON-09, AC-31)', () => {
 });
 
 describe('renewal (CON-10, AC-32, BR-37)', () => {
+  /** The mock API on the storyline clock (`fixtures/demo-clock.ts`), the "now" AC-32 is written for. */
+  let storyline: TestMockApp;
+  beforeAll(async () => {
+    storyline = await createTestMockApp({ modules: [{ name: 'contracts', register }], now: () => new Date(DEMO_AS_OF) });
+  });
+
   it('shows the renewal window opening in 5 days with no decision and no automatic renewal', async () => {
-    const response = await app.callAs(MASEGO, api.renewals, { tenant: 'kwu', params: { contractId: FLEET } });
+    const response = await storyline.callAs(MASEGO, api.renewals, { tenant: 'kwu', params: { contractId: FLEET } });
     const renewals = api.renewals.response.parse(response.body);
     expect(renewals.noAutomaticRenewal).toBe(true);
     const option = renewals.options.find((candidate) => candidate.id === 14951);
@@ -571,17 +603,17 @@ describe('renewal (CON-10, AC-32, BR-37)', () => {
   });
 
   it('flags the upcoming renewal decision in the register', async () => {
-    const page = api.list.response.parse((await app.callAs(MASEGO, api.list, { tenant: 'kwu', query: { q: 'C-2026-0001' } })).body);
+    const page = api.list.response.parse((await storyline.callAs(MASEGO, api.list, { tenant: 'kwu', query: { q: 'C-2026-0001' } })).body);
     expect(page.items[0]?.nextDecision?.kind).toBe('renewal_notice');
     expect(page.items[0]?.nextRenewalDeadline?.at).toBe('2026-12-31T15:00:00Z');
-    expect(page.items[0]?.nextRenewalWindow).toEqual({ windowStart: '2026-10-05', state: 'not_open', daysUntilOpens: 5 });
+    expect(page.items[0]?.nextRenewalWindow).toEqual({ windowStart: '2026-10-11', state: 'not_open', daysUntilOpens: 5 });
   });
 
   it('counts a notice window opening within 90 days in the register KPI even when the deadline is further away', async () => {
-    const page = api.list.response.parse((await app.callAs(MASEGO, api.list, { tenant: 'kwu' })).body);
-    // C-2026-0001: window opens in 5 days (deadline in 92 days); C-2025-0005: window open, deadline 31 Oct 2026.
+    const page = api.list.response.parse((await storyline.callAs(MASEGO, api.list, { tenant: 'kwu' })).body);
+    // C-2026-0001: window opens in 5 days (deadline in 86 days); C-2025-0005: window open, deadline 31 Oct 2026.
     expect(page.summary.renewalsWithin90Days).toBe(2);
-    const filtered = api.list.response.parse((await app.callAs(MASEGO, api.list, { tenant: 'kwu', query: { renewalWithinDays: 90 } })).body);
+    const filtered = api.list.response.parse((await storyline.callAs(MASEGO, api.list, { tenant: 'kwu', query: { renewalWithinDays: 90 } })).body);
     expect(filtered.items.map((row) => row.reference).sort()).toEqual(['C-2025-0005', 'C-2026-0001']);
   });
 

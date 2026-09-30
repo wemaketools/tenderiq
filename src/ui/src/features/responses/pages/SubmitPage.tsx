@@ -8,7 +8,7 @@
  * authoritative for the whole view: the header, status, next action and effective offer come from it, and the
  * pre-submission preview gives way to the receipt, its inventory and the route to the response history.
  */
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
 
 import { getSubmissionPreview, listSubmissionAttempts, submitBid } from '@contracts/bids';
@@ -135,39 +135,53 @@ function ReceiptResult({
   readonly timeZone: string;
 }) {
   const receipt = result.receipt;
+  const regionRef = useRef<HTMLDivElement>(null);
+  // Move focus to the official receipt once it renders, so keyboard and screen reader users land on the result
+  // instead of the closed dialog's former position.
+  useEffect(() => {
+    regionRef.current?.focus();
+  }, [receipt.id]);
   return (
-    <Card
-      title={t('responses.receipt.officialTitle', { receiptNo: receipt.receiptNo })}
-      subtitle={t('responses.receipt.notCompliance')}
-      actions={
-        <span className="tiq-inline">
-          <Link to={responsePaths.receipt(receipt.id)}>{t('responses.receipt.open')}</Link>
-          <ButtonLink to={responsePaths.history(receipt.bidId)} icon="history">
-            {t('responses.submit.toHistory')}
-          </ButtonLink>
-        </span>
-      }
+    <div
+      ref={regionRef}
+      tabIndex={-1}
+      aria-label={t('responses.receipt.officialTitle', { receiptNo: receipt.receiptNo })}
+      role="region"
+      data-testid="receipt-result"
     >
-      <DetailList
-        items={[
-          {
-            label: t('responses.receipt.receivedAt'),
-            value: formatOfficialReceiptTime(receipt.receivedAt, timeZone),
-          },
-          {
-            label: t('responses.receipt.status'),
-            value: <StatusChip enum="submission_receipts.status" value={receipt.status} />,
-          },
-          { label: t('responses.receipt.legalParty'), value: receipt.legalParty.legalName },
-          { label: t('responses.receipt.lots'), value: receipt.lotsSummary },
-          {
-            label: t('responses.receipt.revision'),
-            value: t('responses.common.revisionNo', { no: receipt.revisionNo }),
-          },
-          { label: t('responses.receipt.documents'), value: String(receipt.inventory.length) },
-        ]}
-      />
-    </Card>
+      <Card
+        title={t('responses.receipt.officialTitle', { receiptNo: receipt.receiptNo })}
+        subtitle={t('responses.receipt.notCompliance')}
+        actions={
+          <span className="tiq-inline">
+            <Link to={responsePaths.receipt(receipt.id)}>{t('responses.receipt.open')}</Link>
+            <ButtonLink to={responsePaths.history(receipt.bidId)} icon="history">
+              {t('responses.submit.toHistory')}
+            </ButtonLink>
+          </span>
+        }
+      >
+        <DetailList
+          items={[
+            {
+              label: t('responses.receipt.receivedAt'),
+              value: formatOfficialReceiptTime(receipt.receivedAt, timeZone),
+            },
+            {
+              label: t('responses.receipt.status'),
+              value: <StatusChip enum="submission_receipts.status" value={receipt.status} />,
+            },
+            { label: t('responses.receipt.legalParty'), value: receipt.legalParty.legalName },
+            { label: t('responses.receipt.lots'), value: receipt.lotsSummary },
+            {
+              label: t('responses.receipt.revision'),
+              value: t('responses.common.revisionNo', { no: receipt.revisionNo }),
+            },
+            { label: t('responses.receipt.documents'), value: String(receipt.inventory.length) },
+          ]}
+        />
+      </Card>
+    </div>
   );
 }
 

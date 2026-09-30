@@ -89,7 +89,7 @@ export const MILESTONES: readonly FxMilestone[] = Object.freeze([
     ['site_visit', '2026-09-03T07:30:00Z', { note: 'Mandatory site visit at the Boteti pipeline valve chambers.' }],
     ['questions_deadline', '2026-09-11T13:00:00Z'],
     ['submission_deadline', '2026-09-25T08:00:00Z'],
-    ['opening', '2026-10-02T08:00:00Z', { note: 'Qualification envelopes at the next opening committee sitting (30 Sep and 1 Oct are public holidays).' }],
+    ['opening', '2026-10-07T10:00:00Z', { note: 'Qualification envelopes at the opening committee sitting of Wednesday 7 Oct (30 Sep and 1 Oct are public holidays).' }],
     ['expected_award', '2026-11-20T08:00:00Z', INTERNAL],
   ]),
   ...milestones(9, [
@@ -99,11 +99,11 @@ export const MILESTONES: readonly FxMilestone[] = Object.freeze([
     ['expected_award', '2026-11-27T08:00:00Z', INTERNAL],
   ]),
   ...milestones(10, [
-    ['questions_deadline', '2026-03-20T13:00:00Z'],
-    ['submission_deadline', '2026-04-03T08:00:00Z'],
-    ['opening', '2026-04-03T09:00:00Z'],
-    ['expected_award', '2026-05-15T08:00:00Z', INTERNAL],
-    ['contract_start', '2026-07-01T06:00:00Z', INTERNAL],
+    ['questions_deadline', '2026-01-20T13:00:00Z'],
+    ['submission_deadline', '2026-02-03T08:00:00Z'],
+    ['opening', '2026-02-03T09:00:00Z'],
+    ['expected_award', '2026-02-27T08:00:00Z', INTERNAL],
+    ['contract_start', '2026-04-01T06:00:00Z', INTERNAL],
   ]),
   ...milestones(
     11,

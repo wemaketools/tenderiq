@@ -23,6 +23,14 @@ describe('DebriefsPage (BUY-29)', () => {
     expect(screen.getAllByTestId('official-deadline').length).toBeGreaterThan(0);
     expect(screen.getByRole('link', { name: 'Complaints' })).toBeInTheDocument();
   });
+
+  it('lays the filters, KPIs and table out in a spaced page', async () => {
+    installFetch({ 'GET /api/v1/buyer/debriefs': () => ({ body: debriefPage() }) });
+    renderBuyer(<DebriefsPage />, { route: '/buyer/award-cases', path: '/buyer/award-cases' });
+
+    const heading = await screen.findByRole('heading', { level: 1 });
+    expect(heading.closest('.tiq-page')).not.toBeNull();
+  });
 });
 
 describe('DebriefPage (BUY-29)', () => {

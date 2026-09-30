@@ -5,6 +5,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  BidStartOptions,
   PRICING_VIEW_PERMISSIONS,
   RESPONSE_TEAM_PERMISSIONS,
   SaveAnswerBody,
@@ -27,8 +28,8 @@ function issueCodes(result: { success: boolean; error?: { issues: Array<{ messag
 }
 
 describe('bid endpoints', () => {
-  it('defines 42 valid endpoints with unique ids and routes', () => {
-    expect(ENDPOINTS).toHaveLength(42);
+  it('defines 43 valid endpoints with unique ids and routes', () => {
+    expect(ENDPOINTS).toHaveLength(43);
     for (const endpoint of ENDPOINTS) {
       expect(validateEndpointDefinition(endpoint)).toEqual([]);
     }
@@ -83,6 +84,30 @@ describe('bid endpoints', () => {
 });
 
 describe('request schemas', () => {
+  it('requires at least one start option and a known block reason when a response cannot be started', () => {
+    const base = {
+      tender: {
+        tenderId: 11,
+        reference: 'T-2026-0011',
+        title: 'Office cleaning services',
+        eventType: 'rfq',
+        status: 'open',
+        buyer: { tenantId: 3, name: 'Okavango District Council', slug: 'odc' },
+      },
+      roundType: 'initial',
+      deadline: { at: '2026-10-23T10:00:00Z', timeZone: 'Africa/Gaborone' },
+      alternativesAllowed: false,
+      lots: [],
+    };
+    expect(BidStartOptions.safeParse({ ...base, options: [] }).success).toBe(false);
+    expect(
+      BidStartOptions.safeParse({ ...base, options: [{ isAlternative: false, canStart: false, blockedBy: 'CLOSED', existingBidId: null }] }).success,
+    ).toBe(false);
+    expect(
+      BidStartOptions.safeParse({ ...base, options: [{ isAlternative: false, canStart: false, blockedBy: 'BID_ALREADY_EXISTS', existingBidId: 14 }] }).success,
+    ).toBe(true);
+  });
+
   it('requires a deviation note when an answer declares a deviation', () => {
     const result = SaveAnswerBody.safeParse({ revisionId: 1, isDeviation: true, progress: 'complete' });
     expect(issueCodes(result)).toContain('DEVIATION_NOTE_REQUIRED');

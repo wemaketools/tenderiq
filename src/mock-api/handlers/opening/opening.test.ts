@@ -444,7 +444,7 @@ describe('EVA-03 clarifications', () => {
     // Assert
     expect(thato.items.map((row) => row.id).sort()).toEqual([4103, 4106, 4110, 4114]);
     expect(hidden.status).toBe(404);
-    expect(chair.total).toBe(16);
+    expect(chair.total).toBe(17);
   });
 
   it('lets the chair consolidate duplicate drafts on the same bid', async () => {
@@ -538,6 +538,19 @@ describe('SUP-18 supplier assessment requests', () => {
     // Assert
     expect(rows.items.map((row) => row.id).sort()).toEqual([4101, 4106, 4111]);
     expect(rows.items.every((row) => !('effect' in row) && !('raisedBy' in row))).toBe(true);
+  });
+
+  it('gives each request its own CL reference, distinct from the tender reference, and searches and sorts by it', async () => {
+    // Act
+    const rows = page(await api.callAs('tsodilo.bidmanager@tenderiq.local', E.listAssessmentRequests, { tenant: 'tsodilo', query: { sort: 'reference', dir: 'desc' } }));
+    const searched = page(await api.callAs('tsodilo.bidmanager@tenderiq.local', E.listAssessmentRequests, { tenant: 'tsodilo', query: { q: 'CL-4108' } }));
+
+    // Assert
+    expect(rows.items.length).toBeGreaterThan(1);
+    expect(rows.items.every((row) => row.reference === `CL-${String(row.id)}` && row.reference !== row.tenderReference)).toBe(true);
+    expect(new Set(rows.items.map((row) => row.reference)).size).toBe(rows.items.length);
+    expect(rows.items.map((row) => row.reference)).toEqual([...rows.items.map((row) => row.reference)].sort().reverse());
+    expect(searched.items.map((row) => row.id)).toEqual([4108]);
   });
 
   it('hides another supplier’s request and a draft', async () => {

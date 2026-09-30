@@ -506,7 +506,7 @@ Rules (BR-11, BR-12, PRD §19, architecture-plan §3.4):
 4. A countdown may accompany the official deadline, **never replace it**.
 5. Lot-specific deadlines (`lots.submission_deadline`) are shown per lot where they differ from the tender's. A lot's deadline, when set, is authoritative for that lot; otherwise the tender's submission deadline applies (DD-15).
 6. After an addendum changes a date, the current deadline is shown with the amendment history (PUB-03).
-7. Official receipt times (`submission_receipts.received_at`) come from the server and are shown in the same official format. The client clock is never used for deadline logic.
+7. Official receipt times (`submission_receipts.received_at`) come from the server and are shown in the same official format. The client clock is never used for deadline logic. Countdowns, overdue marks and relative times use the application clock of `src/ui/src/lib/clock.ts`: the browser clock plus the server offset measured from the `x-server-time` response header ([07-api.md](07-api.md#31-headers)) and from `serverTime` of `/api/v1/me/context`, so in the prototype they follow the storyline clock. Components read it through `useNow()` (`src/ui/src/lib/useNow.ts`) and never call `Date.now()` during render; event handlers use `clockNow()` / `clockDate()` instead of `Date.now()` or `new Date()`.
 8. Holds never move dates in the UI: a hold is displayed as a hold with its blocked actions (BR-13).
 9. Overdue items (tasks, obligations, follow-ups) use a danger chip.
 

@@ -445,6 +445,7 @@ export default {
     scope: 'Addendum {no} of {reference}: {title}',
     newDeadline: 'New submission deadline',
     currentDeadline: 'Current submission deadline',
+    previousDeadline: 'Previous submission deadline',
     changeCard: 'Proposed change',
     reason: 'Reason',
     changeAreas: 'Change areas',

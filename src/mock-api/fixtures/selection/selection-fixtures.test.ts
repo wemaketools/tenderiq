@@ -14,6 +14,7 @@ import {
   ReferenceCheck,
   ShortlistDetail,
   SupplierAssessmentInvite,
+  SupplierFinalOfferRound,
   SupplierNegotiationDetail,
   TenderSelectionSummary,
   isEffectAllowed,
@@ -21,13 +22,16 @@ import {
 import {
   awardBlockers,
   diligenceDetail,
+  finalOfferBlockers,
   finalOfferDetail,
+  isSupplierVisibleRound,
   negotiationDetail,
   preferredDetail,
   processDecisionView,
   referenceCheckView,
   sessionDetail,
   shortlistDetail,
+  supplierFinalOfferView,
   supplierInviteView,
   supplierNegotiationDetail,
   tenderSummary,
@@ -168,6 +172,34 @@ describe('selection fixtures are internally consistent', () => {
       }
     }
     expect(REFERENCE_CHECKS.some((check) => !check.consentConfirmed)).toBe(true);
+  });
+});
+
+describe('final-offer rounds shown to suppliers (SUP-19, BR-30)', () => {
+  it('has at least one issued round visible to an invited supplier, with instructions and an official deadline', () => {
+    // Arrange
+    const visible = FINAL_OFFER_ROUNDS.flatMap((round) =>
+      round.invitees
+        .filter((invitee) => isSupplierVisibleRound(round, invitee.supplierTenantId))
+        .map((invitee) => SupplierFinalOfferRound.parse(supplierFinalOfferView(round, invitee.supplierTenantId))),
+    );
+
+    // Assert
+    expect(visible.some((view) => view.status === 'issued' && view.deadline !== null)).toBe(true);
+    for (const view of visible) {
+      expect(view.instructions.length).toBeGreaterThan(0);
+      expect(view.responseWorkspaceLink).toMatch(/^\/supplier\/responses\/\d+$/);
+    }
+  });
+
+  it('issues a round only under explicit procedural authority', () => {
+    for (const round of FINAL_OFFER_ROUNDS.filter((row) => row.status !== 'draft' && row.status !== 'awaiting_approval')) {
+      const tender = SELECTION_TENDERS.find((row) => row.tenderId === round.tenderId);
+      expect(tender).toBeDefined();
+      if (tender !== undefined) {
+        expect(finalOfferBlockers(tender), `round ${round.roundId}`).toEqual([]);
+      }
+    }
   });
 });
 

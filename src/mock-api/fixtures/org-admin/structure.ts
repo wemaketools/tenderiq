@@ -6,7 +6,9 @@
  * ODC deliberately keeps a simple structure (FR-01: no invented departments or committees).
  */
 import type { FundingSourcesSourceType, TenantsOnboardingStage, TenantsVerificationStatus } from '../../../contracts/enums.js';
+import { BUYER_CATEGORIES } from '../categories.js';
 import { TENANT_IDS } from '../platform.js';
+import { CATEGORY_CATALOG as SUPPLIER_CATEGORY_CATALOG } from '../suppliers/catalog.js';
 import { uid } from './refs.js';
 
 export interface FixtureOrganizationSettings {
@@ -53,7 +55,7 @@ export const ORGANIZATION_SETTINGS: readonly FixtureOrganizationSettings[] = Obj
     taxIdentifier: 'C01234567',
     verificationStatus: 'identity_verified',
     onboardingStage: 'pilot',
-    planCode: 'buyer-professional',
+    planCode: 'pilot',
     acceptedCurrencies: ['BWP', 'ZAR', 'USD'],
     defaultCalendar: { id: 1, name: 'Botswana Public Holidays 2026' },
     responsibilities: {
@@ -86,7 +88,7 @@ export const ORGANIZATION_SETTINGS: readonly FixtureOrganizationSettings[] = Obj
     taxIdentifier: null,
     verificationStatus: 'contact_verified',
     onboardingStage: 'configuring',
-    planCode: 'buyer-essentials',
+    planCode: 'buyer_standard',
     acceptedCurrencies: ['BWP'],
     defaultCalendar: null,
     responsibilities: {
@@ -227,20 +229,53 @@ export const LOCATIONS: readonly FixtureLocation[] = Object.freeze([
   { id: 64, tenantId: ODC, name: 'Council Offices, Maun', address: 'Council Offices, Maun', region: 'North-West', country: 'BW', ...live('2026-02-02T08:00:00Z', 3, 1) },
 ] satisfies FixtureLocation[]);
 
-export const CATEGORIES: readonly FixtureCategory[] = Object.freeze([
-  { id: 31, tenantId: KWU, name: 'Water infrastructure', code: 'WTR-INFRA', parentId: null, catalogCode: 'WTR-INFRA', ...live('2026-01-12T08:00:00Z', 12, 1) },
-  { id: 32, tenantId: KWU, name: 'Pumps and mechanical', code: 'WTR-PUMP', parentId: 31, catalogCode: 'WTR-PUMP', ...live('2026-01-12T08:00:00Z', 9, 1, 1) },
-  { id: 33, tenantId: KWU, name: 'Pipes and valves', code: 'WTR-PIPE', parentId: 31, catalogCode: 'WTR-PIPE', ...live('2026-01-12T08:00:00Z', 6) },
-  { id: 34, tenantId: KWU, name: 'Water meters', code: 'WTR-METER', parentId: null, catalogCode: 'WTR-METER', ...live('2026-01-12T08:00:00Z', 5, 1) },
-  { id: 35, tenantId: KWU, name: 'Treatment chemicals', code: 'WTR-TREAT', parentId: null, catalogCode: 'WTR-TREAT', ...live('2026-01-12T08:00:00Z', 3) },
-  { id: 36, tenantId: KWU, name: 'SCADA and telemetry', code: 'ICT-SCADA', parentId: null, catalogCode: 'ICT-SCADA', ...live('2026-01-12T08:00:00Z', 4) },
-  { id: 37, tenantId: KWU, name: 'Fleet maintenance', code: 'FLEET', parentId: null, catalogCode: 'FLEET-MAINT', ...live('2026-01-12T08:00:00Z', 3, 0, 1) },
-  { id: 38, tenantId: KWU, name: 'Civil works', code: 'CIVIL', parentId: null, catalogCode: 'CIVIL-WORKS', ...live('2026-01-12T08:00:00Z', 4) },
-  { id: 39, tenantId: KWU, name: 'Environmental services', code: 'ENV', parentId: null, catalogCode: 'ENV-SERV', ...live('2026-01-12T08:00:00Z', 2) },
-  { id: 40, tenantId: KWU, name: 'Office stationery (legacy)', code: 'OFF-LEG', parentId: null, catalogCode: 'OFF-SUPPLY', ...retired('2026-01-12T08:00:00Z', '2026-02-27T15:00:00Z', 5) },
-  { id: 65, tenantId: ODC, name: 'Cleaning services', code: 'CLEAN', parentId: null, catalogCode: 'FAC-CLEAN', ...live('2026-02-02T08:00:00Z', 2, 1) },
-  { id: 66, tenantId: ODC, name: 'Building maintenance', code: 'BLDG', parentId: null, catalogCode: 'FAC-MAINT', ...live('2026-02-02T08:00:00Z', 1) },
-] satisfies FixtureCategory[]);
+/**
+ * Usage of each buyer category (records that reference it, open tenders, active contracts), by category id. The
+ * categories themselves are the demo world's (`../categories.ts`): the same ids, codes and names as the tenders,
+ * requests, qualification, policy and reporting fixtures.
+ */
+const CATEGORY_USAGE: Readonly<Record<number, Pick<FixtureCategory, 'active' | 'deactivatedAt' | 'createdAt' | 'referenceCount' | 'openTenders' | 'activeContracts'>>> = {
+  1: live('2026-01-12T08:00:00Z', 12, 1),
+  2: live('2026-01-12T08:00:00Z', 9, 1, 1),
+  3: live('2026-01-12T08:00:00Z', 6),
+  4: live('2026-01-12T08:00:00Z', 5, 1),
+  5: live('2026-01-12T08:00:00Z', 4),
+  6: live('2026-01-12T08:00:00Z', 3, 1),
+  7: live('2026-01-12T08:00:00Z', 2),
+  8: live('2026-01-12T08:00:00Z', 4),
+  9: live('2026-01-12T08:00:00Z', 3, 0, 1),
+  10: live('2026-01-12T08:00:00Z', 1),
+  11: live('2026-01-12T08:00:00Z', 2),
+  12: live('2026-01-12T08:00:00Z', 1),
+  13: live('2026-01-12T08:00:00Z', 2),
+  14: live('2026-01-12T08:00:00Z', 1),
+  15: live('2026-01-12T08:00:00Z', 2),
+  16: live('2026-01-12T08:00:00Z', 5),
+  17: live('2026-01-12T08:00:00Z', 4),
+  18: retired('2026-01-12T08:00:00Z', '2026-02-27T15:00:00Z', 5),
+  20: live('2026-02-02T08:00:00Z', 2, 1),
+  21: live('2026-02-02T08:00:00Z', 1),
+  22: live('2026-02-02T08:00:00Z', 1),
+  23: live('2026-02-02T08:00:00Z', 1),
+};
+
+export const CATEGORIES: readonly FixtureCategory[] = Object.freeze(
+  BUYER_CATEGORIES.map((category) => {
+    const usage = CATEGORY_USAGE[category.id];
+    if (usage === undefined) {
+      throw new Error(`Category ${category.code} has no usage row in the org-admin fixtures.`);
+    }
+    return {
+      id: category.id,
+      tenantId: category.tenantId,
+      name: category.name,
+      code: category.code,
+      parentId: category.parentId,
+      catalogCode: category.catalogCode,
+      ...usage,
+    };
+  }) satisfies FixtureCategory[],
+);
 
 export const COST_CENTERS: readonly FixtureCostCenter[] = Object.freeze([
   { id: 41, tenantId: KWU, code: 'CC-OPS-100', name: 'Operations — borehole maintenance', departmentId: 11, ...live('2026-01-12T08:00:00Z', 7, 1) },
@@ -268,18 +303,7 @@ export interface FixtureCatalogCategory {
   readonly description: string | null;
 }
 
-/** The global shared taxonomy (`category_catalog`). */
-export const CATEGORY_CATALOG: readonly FixtureCatalogCategory[] = Object.freeze([
-  { code: 'WTR-INFRA', name: 'Water infrastructure', parentCode: null, description: 'Water supply and distribution infrastructure.' },
-  { code: 'WTR-PUMP', name: 'Pumps and mechanical equipment', parentCode: 'WTR-INFRA', description: 'Borehole, booster and dosing pumps.' },
-  { code: 'WTR-PIPE', name: 'Pipes, valves and fittings', parentCode: 'WTR-INFRA', description: null },
-  { code: 'WTR-METER', name: 'Water meters', parentCode: null, description: 'Mechanical and smart meters, AMR/AMI.' },
-  { code: 'WTR-TREAT', name: 'Water treatment chemicals', parentCode: null, description: null },
-  { code: 'ICT-SCADA', name: 'SCADA and telemetry', parentCode: null, description: 'Control systems, RTUs and telemetry networks.' },
-  { code: 'FLEET-MAINT', name: 'Fleet maintenance', parentCode: null, description: null },
-  { code: 'CIVIL-WORKS', name: 'Civil works', parentCode: null, description: 'Reservoirs, pipelines and structures.' },
-  { code: 'ENV-SERV', name: 'Environmental services', parentCode: null, description: null },
-  { code: 'FAC-CLEAN', name: 'Cleaning services', parentCode: null, description: null },
-  { code: 'FAC-MAINT', name: 'Building maintenance', parentCode: null, description: null },
-  { code: 'OFF-SUPPLY', name: 'Office supplies', parentCode: null, description: null },
-] satisfies FixtureCatalogCategory[]);
+/** The global shared taxonomy (`category_catalog`), as the suppliers fixtures (its owner) define it. */
+export const CATEGORY_CATALOG: readonly FixtureCatalogCategory[] = Object.freeze(
+  SUPPLIER_CATEGORY_CATALOG.map(({ code, name, parentCode, description }) => ({ code, name, parentCode, description })),
+);

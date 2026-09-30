@@ -232,6 +232,17 @@ describe('tenant context: one identical 403', () => {
     expect(stable(otherOperator)).toMatchObject({ code: 'TENANT_ACCESS_DENIED' });
   });
 
+  it('opens only the support surfaces the grant scope allows (metadata_only grant: metadata yes, records no)', async () => {
+    // Act
+    const metadata = await api.requestAs('support.agent@tenderiq.local', 'GET', '/api/v1/buyer/test-platform/support-metadata', { tenant: 'kwu' });
+    const records = await api.requestAs('support.agent@tenderiq.local', 'GET', '/api/v1/buyer/test-platform/support-records', { tenant: 'kwu' });
+
+    // Assert
+    expect(metadata).toMatchObject({ status: 200, body: { tenantId: tenantIdOf('kwu'), access: 'support_grant' } });
+    expect(records.status).toBe(403);
+    expect(stable(records)).toMatchObject({ code: 'FORBIDDEN' });
+  });
+
   it('requires X-Tenant-Id equal to a member tenant on a /me row action, checking the permission there', async () => {
     const ok = await api.requestAs(SAM, 'POST', '/api/v1/me/test-platform/rows/r1/ack', { tenant: 'kwu' });
     const missing = await api.requestAs(SAM, 'POST', '/api/v1/me/test-platform/rows/r1/ack');
@@ -343,7 +354,20 @@ describe('response validation and errors', () => {
   it('returns a declared business error with its status and code', async () => {
     const response = await api.requestAs(TEBOGO, 'POST', '/api/v1/buyer/test-platform/locked', { tenant: 'kwu' });
     expect(response.status).toBe(409);
-    expect(stable(response)).toMatchObject({ status: 409, code: 'ITEM_LOCKED', detail: 'The item is locked by an active hold.' });
+    expect(stable(response)).toMatchObject({ status: 409, code: 'HOLD_BLOCKS_ACTION', detail: 'The item is locked by an active hold.' });
+  });
+
+  it('turns a declared business error sent with a status other than its registry status into a 500', async () => {
+    // Arrange
+    const before = api.logs.length;
+
+    // Act
+    const response = await api.requestAs(TEBOGO, 'POST', '/api/v1/buyer/test-platform/misstatused', { tenant: 'kwu' });
+
+    // Assert
+    expect(response.status).toBe(500);
+    expect(stable(response)).toMatchObject({ code: 'INTERNAL_ERROR', detail: SANITIZED_SERVER_ERROR_DETAIL });
+    expect(api.logs.slice(before).join('\n')).toContain('wrong status');
   });
 
   it('turns an undeclared business error code into a 500', async () => {

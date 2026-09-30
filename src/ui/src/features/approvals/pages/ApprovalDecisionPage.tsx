@@ -4,7 +4,7 @@
  * return, with required reasons. Shows the AC-05 routing ("exceeds the authority of X — routed to Y") and the
  * AC-06 invalidation ("invalidated by a change") states.
  */
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { getMyApproval } from '@contracts/approvals';
 import type { ApprovalDecision, ApprovalDetail } from '@contracts/approvals';
@@ -26,7 +26,6 @@ import {
   MoneyText,
   OverdueChip,
   PageHeader,
-  Reference,
   SkeletonBlock,
   StatusChip,
   Timeline,
@@ -39,6 +38,7 @@ import { useCommandResult, useDisplayTimeZone, useIdParam } from '../../tasks/li
 import { AuthorityCard, DecisionReadiness, IndependenceCard } from '../components/ApprovalChecks';
 import { InvalidationNotice, RoutingNotice } from '../components/ApprovalNotices';
 import { DecisionDialog } from '../components/DecisionDialog';
+import { SubjectReference } from '../components/SubjectReference';
 
 const STEP_TONE: Readonly<Record<ApprovalDetail['steps'][number]['status'], TimelineTone>> = {
   pending: 'info',
@@ -76,6 +76,19 @@ function nextAction(approval: ApprovalDetail): string {
   return t('approvals.detail.next.none');
 }
 
+/** The decision-recorded confirmation; focus moves to it once it renders (the dialog that recorded it is gone). */
+function DecisionRecorded() {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    ref.current?.focus();
+  }, []);
+  return (
+    <div ref={ref} tabIndex={-1} data-testid="decision-recorded">
+      <Banner tone="success">{t('approvals.decide.recorded')}</Banner>
+    </div>
+  );
+}
+
 function ApprovalView({
   approval,
   recorded,
@@ -105,8 +118,8 @@ function ApprovalView({
             <Chip tone="neutral" size="sm" icon="building">
               {approval.organization.tenantName}
             </Chip>
-            {approval.subjectReference !== null && (
-              <Reference value={approval.subjectReference} to={approval.subjectLinkPath} />
+            {(approval.subjectReference !== null || approval.subjectLinkPath !== null) && (
+              <SubjectReference value={approval.subjectReference} to={approval.subjectLinkPath} />
             )}
             <StatusChip enum="approval_requests.status" value={approval.status} />
             <Chip tone="neutral-outlined" size="sm">
@@ -127,7 +140,7 @@ function ApprovalView({
           </>
         }
       />
-      {recorded && <Banner tone="success">{t('approvals.decide.recorded')}</Banner>}
+      {recorded && <DecisionRecorded />}
       {approval.routing !== null && approval.routing !== undefined && (
         <RoutingNotice routing={approval.routing} timeZone={timeZone} />
       )}
@@ -150,10 +163,12 @@ function ApprovalView({
                 {
                   key: 'record',
                   label: t('approvals.detail.record'),
-                  value:
-                    approval.subjectReference === null ? null : (
-                      <Reference value={approval.subjectReference} to={approval.subjectLinkPath} />
-                    ),
+                  value: (
+                    <SubjectReference
+                      value={approval.subjectReference}
+                      to={approval.subjectLinkPath}
+                    />
+                  ),
                 },
                 {
                   key: 'version',
@@ -318,7 +333,7 @@ function ApprovalView({
               <ul className="tiq-check-list">
                 {approval.evidence.map((item) => (
                   <li key={item.documentId} className="tiq-inline">
-                    <Reference
+                    <SubjectReference
                       value={item.title}
                       to={INBOX_PATHS.documentVersion(item.documentId, item.versionId)}
                     />
@@ -399,7 +414,7 @@ function ApprovalView({
                     id: 'title',
                     header: t('approvals.detail.relatedCol.title'),
                     cell: (row) => (
-                      <Reference value={row.title} to={INBOX_PATHS.approval(row.id)} />
+                      <SubjectReference value={row.title} to={INBOX_PATHS.approval(row.id)} />
                     ),
                   },
                   {

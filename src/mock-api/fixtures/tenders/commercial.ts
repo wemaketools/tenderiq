@@ -136,9 +136,9 @@ export const PRICING_SCHEDULES: readonly FxPricingSchedule[] = Object.freeze([
     ['A-02', 'Leak pinpointing per confirmed leak', 'leak', '350'],
     ['A-03', 'Mobilization', 'sum', '1'],
   ]),
-  schedule(10, 1, { lotId: null, name: 'Fleet maintenance fees', instructions: 'Monthly fee per vehicle class; parts at cost plus the quoted margin.', taxTreatment: VAT, evaluationPeriods: 36 }, [
-    ['F-01', 'Light vehicle scheduled maintenance', 'vehicle-month', '95', MONTHLY],
-    ['F-02', 'Heavy vehicle scheduled maintenance', 'vehicle-month', '45', MONTHLY],
+  schedule(10, 1, { lotId: null, name: 'Fleet maintenance fees', instructions: 'Monthly fee per vehicle class; parts at cost plus the quoted margin.', taxTreatment: VAT, evaluationPeriods: 12 }, [
+    ['F-01', 'Light vehicle scheduled maintenance', 'vehicle-month', '62', MONTHLY],
+    ['F-02', 'Heavy vehicle scheduled maintenance', 'vehicle-month', '24', MONTHLY],
     ['F-03', 'Parts margin (%)', 'percent', '1', { includeInEvaluation: false }],
   ]),
   schedule(11, 1, { tenantId: ODC, lotId: null, name: 'Cleaning services', instructions: 'Monthly fee per site.', taxTreatment: VAT, evaluationPeriods: 24 }, [
@@ -190,7 +190,11 @@ export const TENDER_TERMS: readonly FxTerm[] = Object.freeze([
   ]),
   ...standardTerms(8, '2026-08-17T08:00:00Z', 'KWU General Conditions of Contract for Goods (2025 edition).'),
   ...standardTerms(9, '2026-06-29T08:00:00Z', 'KWU services agreement with survey performance schedule.'),
-  ...standardTerms(10, '2026-02-23T08:00:00Z', 'KWU services agreement (36 months) with service-level schedule.'),
+  ...standardTerms(
+    10,
+    '2025-12-15T08:00:00Z',
+    'KWU services agreement (12 months, with one 12-month renewal option and one 3-month extension option) with service-level schedule.',
+  ),
   term(11, 1, 'draft_contract', 'ODC standard services contract (24 months).', '2026-09-09T08:00:00Z', ODC),
   term(11, 2, 'payment', 'Payment within 30 days of invoice.', '2026-09-09T08:00:00Z', ODC),
   term(12, 2, 'insurance', 'Public liability of at least BWP 5 million.', '2026-09-29T14:20:00Z'),

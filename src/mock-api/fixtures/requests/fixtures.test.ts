@@ -5,10 +5,11 @@
 import { describe, expect, it } from 'vitest';
 
 import { Money, Reference } from '../../../contracts/common.js';
-import { gt } from '../../../contracts/decimal.js';
+import { compare, gt } from '../../../contracts/decimal.js';
 import { PROCUREMENT_REQUESTS_STATUS } from '../../../contracts/enums.js';
 import { findPersonaById } from '../../persona.js';
 import { TENANT_IDS } from '../platform.js';
+import { TENDERS as TENDER_RECORDS } from '../tenders/tenders.js';
 import {
   ADVANCE_NOTICES,
   CATEGORIES,
@@ -185,5 +186,41 @@ describe('strategy fixtures', () => {
     for (const strategy of STRATEGIES.filter((candidate) => candidate.procedure === 'direct')) {
       expect(strategy.directAwardGrounds).not.toBeNull();
     }
+  });
+
+  it('keeps every plan item and strategy linked to a tender within that tender’s budget and release date (BUY-05, BUY-06)', () => {
+    const tenderOf = (tenantId: number, tenderId: number) => {
+      const tender = TENDER_RECORDS.find((candidate) => candidate.id === tenderId && candidate.tenantId === tenantId);
+      if (tender === undefined) {
+        throw new Error(`Missing tender ${tenderId}`);
+      }
+      return tender;
+    };
+    for (const item of PLAN_ITEMS.filter((candidate) => candidate.tenderId !== null)) {
+      const tender = tenderOf(item.tenantId, item.tenderId ?? 0);
+      const ceiling = tender.budgetAmount ?? tender.estimatedValue;
+      if (item.expectedValue !== null && ceiling !== null) {
+        expect(compare(item.expectedValue.amount, ceiling), `plan item ${item.id}`).toBeLessThanOrEqual(0);
+      }
+      if (tender.scheduledReleaseAt !== null) {
+        expect(item.plannedReleaseDate, `plan item ${item.id}`).toBe(tender.scheduledReleaseAt.slice(0, 10));
+      }
+    }
+    for (const strategy of STRATEGIES) {
+      for (const tenderId of strategy.tenderIds) {
+        const tender = tenderOf(strategy.tenantId, tenderId);
+        const ceiling = tender.budgetAmount ?? tender.estimatedValue;
+        if (strategy.estimatedValue !== null && ceiling !== null) {
+          expect(compare(strategy.estimatedValue, ceiling), `strategy ${strategy.id}`).toBeLessThanOrEqual(0);
+        }
+      }
+    }
+  });
+
+  it('carries T-2026-0005 at its storyline values: strategy at the original BWP 1,450,000, plan at the revised 1,920,000 (AC-06)', () => {
+    expect(STRATEGIES.find((strategy) => strategy.id === 505)?.estimatedValue).toBe('1450000.00');
+    const item = PLAN_ITEMS.find((candidate) => candidate.tenderId === 5);
+    expect(item?.expectedValue).toEqual({ amount: '1920000.00', currency: 'BWP' });
+    expect(item?.plannedReleaseDate).toBe('2026-10-19');
   });
 });

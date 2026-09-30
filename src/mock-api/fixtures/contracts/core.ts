@@ -18,6 +18,7 @@
  * Ids: contracts 1–7; every other contracts-domain id is in the 14xxx range so it never collides with another
  * domain's fixtures. Tender ids equal the storyline number (T-2026-0010 → 10).
  */
+import { LEGAL_ENTITIES as ORG_LEGAL_ENTITIES } from '../org-admin/structure.js';
 import { TENANT_IDS } from '../platform.js';
 import type {
   FixtureAllocation,
@@ -61,6 +62,15 @@ export const CONTRACT_IDS = {
   pumpsSpares: 8,
 } as const;
 
+/** The organization's registered legal entity (ADM-01 is the source of truth for names and registration numbers). */
+function orgLegalEntity(id: number) {
+  const entity = ORG_LEGAL_ENTITIES.find((item) => item.id === id);
+  if (entity === undefined) {
+    throw new Error(`Legal entity ${id} is missing from the organization fixtures.`);
+  }
+  return entity;
+}
+
 const BWP = 'BWP';
 function bwp(amount: string) {
   return { amount, currency: BWP };
@@ -70,8 +80,8 @@ export const CONTRACT_LEGAL_ENTITIES: readonly FixtureLegalEntity[] = Object.fre
   {
     legalEntityId: 1,
     tenantId: TENANT_IDS.kwu,
-    name: 'Kalahari Water Utilities Corporation',
-    registrationNumber: 'BW00001234567',
+    name: orgLegalEntity(1).name,
+    registrationNumber: orgLegalEntity(1).registrationNumber,
     active: true,
   },
   {
@@ -121,7 +131,7 @@ export const CONTRACT_LOT_OUTCOMES: readonly FixtureLotOutcome[] = Object.freeze
     finalAwardedAt: null,
     conditions: null,
     reason:
-      'Lot cancelled because no compliant offer was received: the only offer failed mandatory requirement REQ-T-02 (solar array sizing for each site). The lot will be re-tendered after a scope redesign.',
+      'Lot cancelled because no compliant offer was received: both lot 2 offers failed mandatory requirement REQ-T-02 (solar array sizing for each site). The lot will be re-tendered after a scope redesign.',
   },
   {
     id: 14013,
@@ -898,7 +908,7 @@ export const CONTRACT_HANDOVERS: readonly FixtureHandover[] = Object.freeze([
     performanceMeasuresSummary: 'Turnaround time, fleet availability, first-time fix rate and report timeliness, reviewed quarterly.',
     risks: 'Parts supply delays for older heavy vehicles; single workshop capacity at Mahalapye.',
     outstandingConditions: 'None at handover.',
-    renewalDatesSummary: 'Renewal notice window opens 5 October 2026; notice deadline 31 December 2026.',
+    renewalDatesSummary: 'Renewal notice window opens 11 October 2026; notice deadline 31 December 2026.',
     securityExpirySummary: 'Motor trade insurance expires 20 October 2026; performance bond valid until 30 June 2027.',
     contractManagerUserId: CONTRACT_USERS.masego,
     submittedByUserId: CONTRACT_USERS.tebogo,

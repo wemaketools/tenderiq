@@ -30,6 +30,11 @@ describe('TenderPublicationPage (BUY-14)', () => {
       await screen.findByText('Not advertised: an external notice is unconfirmed'),
     ).toBeInTheDocument();
     expect(screen.getByText('Exception #901')).toBeInTheDocument();
+    // The inbox has no per-task route: the exception task is opened from the task inbox (no dead link).
+    expect(screen.getByRole('link', { name: 'Open in task inbox' })).toHaveAttribute(
+      'href',
+      '/me/tasks',
+    );
     expect(screen.getByText('0 of 1 confirmed')).toBeInTheDocument();
     expect(screen.getByText('Reconcile the external notice')).toBeInTheDocument();
     expect(screen.getAllByTestId('official-deadline').length).toBeGreaterThan(0);

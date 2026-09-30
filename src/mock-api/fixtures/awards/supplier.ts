@@ -6,7 +6,7 @@
  * this file holds only what is specific to the supplier view (its own lot results, instructions, deadlines).
  *
  * - Tsodilo: T-2026-0001 (lot 1 awarded, lot 3 pending → mixed), T-2026-0007 (unsuccessful), T-2026-0010 (awarded).
- * - Chobe: T-2026-0001 (lot 1 unsuccessful, lot 2 cancelled, lot 3 pending → mixed), T-2026-0007 (unsuccessful).
+ * - Chobe: T-2026-0001 (lot 1 unsuccessful, lot 2 cancelled, lot 3 pending → mixed). Chobe did not bid on T-2026-0007.
  * - Makgadikgadi: T-2026-0007 (intention to award, NOT a final award: BR-31), T-2026-0010 (unsuccessful).
  * - Limpopo: T-2026-0007 (unsuccessful; debrief provided, AC-27; complaint with a hold, AC-25) and T-2026-0009
  *   (preferred bidder under the declared contingency: NOT an award, BR-31).
@@ -14,7 +14,7 @@
  * - Gaborone Metering has no outcome notice yet (empty state).
  *
  * T-2026-0007 dates follow the Botswana Public Holidays 2026 calendar (see notices.ts): the debrief window closed on
- * 29 Sep 2026, 17:00 (5 working days after the 22 Sep notices), so Chobe can no longer request one; the complaint
+ * 29 Sep 2026, 17:00 (5 working days after the 22 Sep notices), so a new request is refused; the complaint
  * window and the standstill end on 8 Oct 2026, 17:00 (10 working days; 30 Sep and 1 Oct are holidays).
  */
 import type { SupplierOutcomeDetail } from '../../../contracts/awards.js';
@@ -170,7 +170,7 @@ export const SUPPLIER_OUTCOMES: readonly SupplierOutcomeFixture[] = Object.freez
           awardedValue: null,
           conditions: null,
           reason:
-            'Lot 2 was cancelled because no compliant offer was received: the only offer failed mandatory requirement REQ-T-02 (solar array sizing for each site).',
+            'Lot 2 was cancelled because no compliant offer was received: both lot 2 offers failed mandatory requirement REQ-T-02 (solar array sizing for each site).',
         },
         { lot: lotRef(103), result: 'pending', awardedValue: null, conditions: null, reason: 'Lot 3 is still under evaluation.' },
       ],
@@ -190,43 +190,6 @@ export const SUPPLIER_OUTCOMES: readonly SupplierOutcomeFixture[] = Object.freez
       debriefInstructions: DEBRIEF_KWU,
       challengeInstructions: CHALLENGE_KWU,
       complaintDeadline: deadline('2026-08-20T15:00:00Z'),
-    },
-  },
-  {
-    tenantId: TENANT_IDS.kwu,
-    supplierTenantId: TENANT_IDS['chobe-pipe'],
-    noticeIds: [57, 58, 59],
-    core: {
-      tenderId: 7,
-      buyer: buyer('kwu'),
-      reference: 'T-2026-0007',
-      title: 'Reservoir rehabilitation works',
-      result: 'unsuccessful',
-      lots: [
-        {
-          lot: lotRef(701),
-          result: 'unsuccessful',
-          awardedValue: null,
-          conditions: null,
-          reason: 'Your compliant offer ranked fourth (69.99 points). The intended award is to Makgadikgadi Civil Works at BWP 7,850,000.00.',
-        },
-      ],
-      standstillEndsAt: deadline('2026-10-08T15:00:00Z'),
-      officialTimeZone: 'Africa/Gaborone',
-      standstill: {
-        status: 'running',
-        endsAt: deadline('2026-10-08T15:00:00Z'),
-        extendedTo: null,
-        effectiveEndsAt: deadline('2026-10-08T15:00:00Z'),
-        dayType: 'working',
-        extensionReason: null,
-      },
-      procurementHoldActive: true,
-      canRequestDebrief: false,
-      debriefDeadline: deadline('2026-09-29T15:00:00Z'),
-      debriefInstructions: DEBRIEF_KWU,
-      challengeInstructions: CHALLENGE_KWU,
-      complaintDeadline: deadline('2026-10-08T15:00:00Z'),
     },
   },
   {

@@ -57,7 +57,9 @@ import type {
 import { changeRequestLabel } from '../../../contracts/contracts.js';
 import { add, div, formatMoney, gt, lt, mul, round, sub, sum } from '../../../contracts/decimal.js';
 import type { ObligationsStatus } from '../../../contracts/enums.js';
+import { findFixtureApproval } from '../../fixtures/approvals.js';
 import { PERSONAS } from '../../fixtures/platform.js';
+import { involvementOf } from '../approvals/view.js';
 import {
   CONTRACTS,
   CONTRACT_ACCEPTANCE_DECISIONS,
@@ -95,7 +97,8 @@ import type {
   FixtureSecurity,
   FixtureSignatory,
 } from '../../fixtures/contracts/index.js';
-import { findTenantById, membershipPermissions, personRef } from '../../persona.js';
+import { activeMemberships, findTenantById, membershipPermissions, personRef } from '../../persona.js';
+import type { Persona } from '../../persona.js';
 
 // ---------------------------------------------------------------------------------------------------------
 // Small helpers
@@ -139,6 +142,33 @@ export function countLabel(count: number, singular: string, plural: string): str
 /** The calendar date of `now` in the given IANA zone (`YYYY-MM-DD`). */
 export function localDate(now: Date, timeZone: string): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
+}
+
+const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const;
+
+/** An instant as human text in the official zone (DD-33): `6 Jul 2026, 11:00 (UTC+02:00) Africa/Gaborone`. */
+export function formatOfficialInstant(at: string, timeZone: string): string {
+  const date = new Date(at);
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(date);
+  const value = (type: Intl.DateTimeFormatPartTypes) => parts.find((item) => item.type === type)?.value ?? '';
+  const zoneName =
+    new Intl.DateTimeFormat('en-US', { timeZone, timeZoneName: 'longOffset' }).formatToParts(date).find((item) => item.type === 'timeZoneName')?.value ??
+    'GMT';
+  const match = /^GMT(?:([+-])(\d{1,2})(?::(\d{2}))?)?$/.exec(zoneName);
+  const offset =
+    match === null || match[1] === undefined || match[2] === undefined
+      ? 'UTC+00:00'
+      : `UTC${match[1]}${match[2].padStart(2, '0')}:${match[3] ?? '00'}`;
+  const month = MONTH_NAMES[Number(value('month')) - 1] ?? value('month');
+  return `${value('day')} ${month} ${value('year')}, ${value('hour')}:${value('minute')} (${offset}) ${timeZone}`;
 }
 
 function daysBetween(fromDate: string, toDate: string): number {
@@ -286,6 +316,46 @@ export function approvalRef(approvalId: number | null): ContractApprovalRef | nu
     decidedAt: approval.decidedAt,
     inApprovalWorkspace: approval.inApprovalWorkspace,
   };
+}
+
+/**
+ * True when the approval workspace can open the request for this viewer: it holds the request and the viewer is its
+ * requester, an approver or a delegate (the workspace refuses everyone else with 404 APPROVAL_NOT_FOUND).
+ */
+export function viewerCanOpenApproval(approvalId: number, viewer: Persona | null): boolean {
+  if (viewer === null) {
+    return false;
+  }
+  const request = findFixtureApproval(approvalId);
+  return (
+    request !== undefined &&
+    activeMemberships(viewer).some((membership) => membership.tenantId === request.tenantId) &&
+    involvementOf(request, viewer.userId) !== null
+  );
+}
+
+function isApprovalRefShape(value: object): value is { approvalId: number; subjectType: string; inApprovalWorkspace: boolean } {
+  const record = value as Record<string, unknown>;
+  return typeof record.approvalId === 'number' && typeof record.subjectType === 'string' && typeof record.inApprovalWorkspace === 'boolean';
+}
+
+/**
+ * Resolves every approval reference in a response for its viewer: `inApprovalWorkspace` stays true only when the
+ * viewer can open the request in `/me/approvals/:approvalId`, so the SPA never links to a page that answers 404.
+ */
+export function withViewerApprovalAccess<T>(value: T, viewer: Persona | null): T {
+  if (Array.isArray(value)) {
+    return value.map((item: unknown) => withViewerApprovalAccess(item, viewer)) as T;
+  }
+  if (value === null || typeof value !== 'object') {
+    return value;
+  }
+  const entries = Object.entries(value).map(([key, child]) => [key, withViewerApprovalAccess(child as unknown, viewer)] as const);
+  const copy: Record<string, unknown> = Object.fromEntries(entries);
+  if (isApprovalRefShape(value)) {
+    copy.inApprovalWorkspace = value.inApprovalWorkspace && viewerCanOpenApproval(value.approvalId, viewer);
+  }
+  return copy as T;
 }
 
 /** True when the contract differs from the award and its `contract_difference` approval is not approved (AC-28). */
@@ -1493,7 +1563,9 @@ export function closeoutChecks(contract: FixtureContract): ContractCheck[] {
     {
       id: 'final_acceptance',
       label: 'Final acceptance recorded',
-      detail: closeout?.finalAcceptanceAt ?? null,
+      detail: closeout?.finalAcceptanceAt
+        ? `Final acceptance recorded on ${formatOfficialInstant(closeout.finalAcceptanceAt, timeZoneOf(contract))}.`
+        : null,
       state: closeout?.finalAcceptanceAt ? 'passed' : 'blocking',
     },
     {

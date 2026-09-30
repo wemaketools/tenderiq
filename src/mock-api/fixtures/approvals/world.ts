@@ -10,6 +10,7 @@
 import { createHash } from 'node:crypto';
 
 import { CONTRACTS } from '../contracts/core.js';
+import { DEMO_AS_OF, DEMO_TIME_ZONE, storylineInstant, storylineNow } from '../demo-clock.js';
 import { PERSONA_EMAIL_DOMAIN, TENANT_IDS } from '../platform.js';
 import type { TenantSlug } from '../platform.js';
 import { REQUESTS } from '../requests/requests.js';
@@ -17,28 +18,19 @@ import { TENDERS } from '../tenders/tenders.js';
 import { personaByEmail } from '../../persona.js';
 
 /**
- * The storyline "now" used for derived fixture facts such as `isOverdue` (a fixed instant keeps the demo stable
- * whatever the real clock says).
+ * The storyline "now" used for derived fixture facts such as `isOverdue`: the one demo clock of every fixture domain
+ * (`../demo-clock.ts`), so the workspace agrees with the dashboards and the SPA countdowns.
  */
-export const WORKSPACE_AS_OF = '2026-10-06T08:00:00Z';
+export const WORKSPACE_AS_OF = DEMO_AS_OF;
 
 /** The official zone of every demo organization. */
-export const OFFICIAL_ZONE = 'Africa/Gaborone';
+export const OFFICIAL_ZONE = DEMO_TIME_ZONE;
 
 /**
- * The instant a state-changing action is stamped with: the request time, but never earlier than the storyline "now"
- * (the fixtures run to early October, so an action taken on a real clock before that would predate the records it
- * acts on).
+ * The instant a state-changing action is stamped with: the request time on the storyline clock (never earlier than
+ * the storyline "now", so an action never predates the records it acts on).
  */
-export function storylineNow(now: Date): Date {
-  const asOf = Date.parse(WORKSPACE_AS_OF);
-  return now.getTime() >= asOf ? now : new Date(asOf);
-}
-
-/** `storylineNow` as an ISO 8601 UTC instant without milliseconds. */
-export function storylineInstant(now: Date): string {
-  return storylineNow(now).toISOString().replace(/\.\d{3}Z$/, 'Z');
-}
+export { storylineInstant, storylineNow };
 
 /** The user id of a persona login such as `mpho.manager`. */
 export function uid(login: string): number {

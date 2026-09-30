@@ -4,7 +4,6 @@
  * reviewer also sees when a declarant belongs to supplier organizations (dual membership), without exposing
  * unrelated personal information to anyone else.
  */
-import { useNavigate } from 'react-router';
 
 import {
   CONFLICT_DECLARATIONS_DISPOSITION,
@@ -64,7 +63,6 @@ const DEFAULTS = {
 };
 
 export default function ConflictsPage() {
-  const navigate = useNavigate();
   const timeZone = useOfficialTimeZone();
   const [filters, setFilters, clearFilters] = useScreenFilters('ADM-04:conflicts', DEFAULTS);
   const query = useApiQuery(orgAdminEndpoints.listConflictDeclarations, {
@@ -289,7 +287,7 @@ export default function ConflictsPage() {
           rows={query.data?.items}
           rowKey={(row) => String(row.declarationId)}
           rowLabel={(row) => `${row.declarant.fullName} ${row.subject.title}`}
-          onRowClick={(row) => void navigate(buyerAccessPaths.conflict(row.declarationId))}
+          rowHref={(row) => buyerAccessPaths.conflict(row.declarationId)}
           loading={query.isFetching}
           error={query.error}
           onRetry={query.reload}

@@ -16,6 +16,7 @@ import type {
   EvaluationCriterion,
   ScoreCell,
 } from '@contracts/evaluation';
+import type { ClarificationDetail } from '@contracts/opening';
 
 import type { ApiError } from '../../../api/client';
 import { useApiMutation, useApiQuery } from '../../../api/hooks';
@@ -52,6 +53,7 @@ import type { ReadinessItem } from '../../../components/ui';
 import { ReadinessChecklist } from '../../../components/ui';
 import { formatCount, formatDateTime, formatDecimalString } from '../../../lib/format';
 import { t } from '../../../lib/i18n';
+import { CellClarificationDialog } from '../components/CellClarificationDialog';
 import { PriceGateChip, ScoreValue } from '../components/chips';
 import { checkCells, draftOf, inputOf, splitKey, withCell } from '../lib/assessment';
 import type { CellDraft } from '../lib/assessment';
@@ -66,6 +68,24 @@ import {
   ratingOptions,
   weightedPoints,
 } from '../lib/scores';
+
+/**
+ * A field label whose visible text stays short while its accessible name also says which criterion and bid the field
+ * scores, so the identical fields of each criterion card are distinguishable to screen readers (WCAG 2.4.6, 1.3.1).
+ */
+function contextLabel(text: string, criterion: string, bid: string) {
+  return (
+    <>
+      <span aria-hidden="true">{text}</span>
+      <span className="tiq-visually-hidden">
+        {t('evaluation.assessment.fieldContext', { label: text, criterion, bid })}
+      </span>
+    </>
+  );
+}
+
+/** The chair's clarification coordination queue (EVA-03, owned by the opening feature). */
+const CLARIFICATIONS_PATH = '/buyer/bid-clarifications';
 
 const CLOSED = new Set(['submitted', 'finalized', 'recused', 'reassigned']);
 
@@ -211,6 +231,12 @@ function AssessmentWorkspace({
     assessment.scores.map((cell) => [cellKey(cell.bidId, cell.criterionId), cell]),
   );
   const editable = !assessment.readOnly && canScore && !CLOSED.has(assessment.status);
+  // EVA-02 → EVA-03: an assessor sends a flagged question to the chair's clarification queue.
+  const canRaise =
+    !assessment.readOnly &&
+    canScore &&
+    assessment.status !== 'recused' &&
+    assessment.status !== 'reassigned';
   const canCorrect =
     !assessment.readOnly &&
     canScore &&
@@ -224,6 +250,8 @@ function AssessmentWorkspace({
   const [correcting, setCorrecting] = useState<ScoreCell | null>(null);
   const [correctRating, setCorrectRating] = useState('');
   const [correctRationale, setCorrectRationale] = useState('');
+  const [raising, setRaising] = useState<ScoreCell | null>(null);
+  const [raised, setRaised] = useState<Readonly<Record<string, ClarificationDetail>>>({});
 
   const save = useApiMutation(saveScores);
   const submit = useApiMutation(submitAssessment);
@@ -257,6 +285,12 @@ function AssessmentWorkspace({
     const found = assessment.bids.find((item) => item.bidId === bidId);
     return found === undefined ? String(bidId) : bidLabel(found);
   };
+
+  /** A correction-dialog field label that also names, for screen readers, the criterion and bid being corrected. */
+  const correctionLabel = (text: string) =>
+    correcting === null
+      ? text
+      : contextLabel(text, criterionName(correcting.criterionId), bidName(correcting.bidId));
 
   const readiness: ReadinessItem[] = [
     ...checks
@@ -332,6 +366,8 @@ function AssessmentWorkspace({
       plan,
     );
     const titleId = `criterion-${key}`;
+    const context = { criterion: `${criterion.code} ${criterion.name}`, bid: bidLabel(current) };
+    const fieldLabel = (text: string) => contextLabel(text, context.criterion, context.bid);
     return (
       <Card
         key={key}
@@ -363,11 +399,15 @@ function AssessmentWorkspace({
             )}
             <ResponsePanel bid={current} criterionId={criterion.criterionId} />
           </div>
-          <div className="tiq-form-stack">
+          <div
+            className="tiq-form-stack"
+            role="group"
+            aria-label={t('evaluation.assessment.cellGroup', context)}
+          >
             {editable ? (
               <>
                 <Select
-                  label={t('evaluation.assessment.rating', { max: plan.scaleMax })}
+                  label={fieldLabel(t('evaluation.assessment.rating', { max: plan.scaleMax }))}
                   required
                   placeholder={t('evaluation.score.notScored')}
                   value={draft.isNotApplicable ? '' : draft.score}
@@ -388,7 +428,7 @@ function AssessmentWorkspace({
                 />
                 {criterion.naPermitted && (
                   <Checkbox
-                    label={t('evaluation.assessment.notApplicable')}
+                    label={fieldLabel(t('evaluation.assessment.notApplicable'))}
                     checked={draft.isNotApplicable}
                     onChange={(checked) =>
                       update(key, { isNotApplicable: checked, score: checked ? '' : draft.score })
@@ -396,7 +436,7 @@ function AssessmentWorkspace({
                   />
                 )}
                 <TextArea
-                  label={t('evaluation.assessment.rationale')}
+                  label={fieldLabel(t('evaluation.assessment.rationale'))}
                   required
                   rows={3}
                   value={draft.rationale}
@@ -404,7 +444,7 @@ function AssessmentWorkspace({
                   error={fieldError(saveError, sentKeys, key, 'rationale')}
                 />
                 <TextArea
-                  label={t('evaluation.assessment.evidence')}
+                  label={fieldLabel(t('evaluation.assessment.evidence'))}
                   hint={t('evaluation.assessment.evidenceHint')}
                   rows={2}
                   value={draft.evidence}
@@ -412,13 +452,13 @@ function AssessmentWorkspace({
                   error={fieldError(saveError, sentKeys, key, 'evidenceRefs')}
                 />
                 <Checkbox
-                  label={t('evaluation.assessment.clarify')}
+                  label={fieldLabel(t('evaluation.assessment.clarify'))}
                   checked={draft.clarificationNeeded}
                   onChange={(clarificationNeeded) => update(key, { clarificationNeeded })}
                 />
                 {draft.clarificationNeeded && (
                   <TextArea
-                    label={t('evaluation.assessment.clarifyQuestion')}
+                    label={fieldLabel(t('evaluation.assessment.clarifyQuestion'))}
                     required
                     rows={2}
                     value={draft.clarificationQuestion}
@@ -470,6 +510,26 @@ function AssessmentWorkspace({
                 ]}
               />
             )}
+            {canRaise &&
+              !isDirty &&
+              saved !== undefined &&
+              saved.clarificationNeeded &&
+              saved.clarificationQuestion !== null &&
+              (raised[key] === undefined ? (
+                <div className="tiq-row-actions">
+                  <Button size="sm" icon="messageQuestion" onClick={() => setRaising(saved)}>
+                    {fieldLabel(t('evaluation.assessment.raise.action'))}
+                  </Button>
+                </div>
+              ) : (
+                <Banner
+                  tone="success"
+                  title={t('evaluation.assessment.raise.done', { id: raised[key].id })}
+                >
+                  <p>{t('evaluation.assessment.raise.doneBody')}</p>
+                  <Link to={CLARIFICATIONS_PATH}>{t('evaluation.assessment.raise.open')}</Link>
+                </Banner>
+              ))}
             {canCorrect &&
               saved !== undefined &&
               saved.scoreId !== null &&
@@ -782,6 +842,22 @@ function AssessmentWorkspace({
         <ReadinessChecklist label={t('evaluation.assessment.readiness')} items={readiness} />
       </ConfirmActionDialog>
 
+      {raising !== null && (
+        <CellClarificationDialog
+          bidId={raising.bidId}
+          question={raising.clarificationQuestion ?? ''}
+          scope={`${criterionName(raising.criterionId)} · ${bidName(raising.bidId)} · ${assessment.tender.reference}`}
+          timeZone={timeZone}
+          onCancel={() => setRaising(null)}
+          onRaised={(clarification) => {
+            const key = cellKey(raising.bidId, raising.criterionId);
+            setRaised((current) => ({ ...current, [key]: clarification }));
+            setRaising(null);
+            toast.show(t('evaluation.assessment.raise.done', { id: clarification.id }), 'success');
+          }}
+        />
+      )}
+
       <ConfirmActionDialog
         open={correcting !== null}
         title={t('evaluation.assessment.correctTitle')}
@@ -817,14 +893,14 @@ function AssessmentWorkspace({
         }}
       >
         <Select
-          label={t('evaluation.assessment.newRating')}
+          label={correctionLabel(t('evaluation.assessment.newRating'))}
           placeholder={t('evaluation.score.notScored')}
           value={correctRating}
           options={ratingOptions(plan.scaleAnchors, correctRating === '' ? null : correctRating)}
           onChange={setCorrectRating}
         />
         <TextArea
-          label={t('evaluation.assessment.newRationale')}
+          label={correctionLabel(t('evaluation.assessment.newRationale'))}
           required
           rows={3}
           value={correctRationale}

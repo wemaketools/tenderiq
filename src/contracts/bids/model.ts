@@ -338,6 +338,44 @@ export type BidListQueryInput = z.input<typeof BidListQuery>;
 export const BidPage = pageOf(BidSummary);
 export type BidPage = z.infer<typeof BidPage>;
 
+/**
+ * Why a response workspace cannot be opened for a tender round (the `startBid` refusals, plus the caller's missing
+ * `supplier.response.edit` permission). Not a database enumeration: these mirror the endpoint's error codes.
+ */
+export const BID_START_BLOCKS = [
+  'TENDER_NOT_OPEN',
+  'ROUND_NOT_OPEN',
+  'BID_ALREADY_EXISTS',
+  'ALTERNATIVES_NOT_ALLOWED',
+  'NOT_PERMITTED',
+] as const;
+export const BidStartBlock = z.enum(BID_START_BLOCKS);
+export type BidStartBlock = z.infer<typeof BidStartBlock>;
+
+/** One workspace the supplier could open for the current round: the main offer or an alternative offer. */
+export const BidStartOption = z.object({
+  isAlternative: z.boolean(),
+  canStart: z.boolean(),
+  /** The first reason the workspace cannot be opened; null when `canStart`. */
+  blockedBy: BidStartBlock.nullable(),
+  /** The supplier's existing response for this round and variant (`BID_ALREADY_EXISTS`). */
+  existingBidId: Id.nullable(),
+});
+export type BidStartOption = z.infer<typeof BidStartOption>;
+
+/** What the supplier may start for a tender (SUP-08 hand-off to SUP-12): the round, deadline and offer variants. */
+export const BidStartOptions = z.object({
+  tender: BidTenderRef,
+  /** The current round, which a new workspace answers. */
+  roundType: BidsRoundType,
+  deadline: OfficialDeadline,
+  alternativesAllowed: z.boolean(),
+  lots: z.array(LotRef),
+  /** The main offer first, then the alternative offer when the tender accepts alternatives. */
+  options: z.array(BidStartOption).min(1),
+});
+export type BidStartOptions = z.infer<typeof BidStartOptions>;
+
 /** A lot of the tender, with the supplier's eligibility and selection. */
 export const BidLotOption = LotRef.extend({
   description: z.string().nullable(),

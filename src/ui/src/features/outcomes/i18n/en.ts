@@ -53,10 +53,8 @@ export default {
     },
     caption: 'Your outcomes',
     col: {
-      tender: 'Tender',
-      buyer: 'Buyer',
-      result: 'Result',
-      lots: 'Lots',
+      tender: 'Tender and buyer',
+      result: 'Result by lot',
       latestNotice: 'Latest notice',
       standstill: 'Standstill ends',
       debrief: 'Debrief',

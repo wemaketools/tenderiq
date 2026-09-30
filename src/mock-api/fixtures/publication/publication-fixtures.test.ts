@@ -158,9 +158,16 @@ describe('publication fixtures are internally consistent', () => {
         if (bidTender.rounds.length === 1) {
           expect(tender.submissionDeadline, tender.reference).toBe(bidTender.rounds[0]?.deadline);
         }
-        if (bidTender.lots.length > 1) {
-          expect(tender.lots.map((entry) => `${entry.lotId}:${entry.stage}`)).toEqual(bidTender.lots.map((entry) => `${entry.id}:${entry.stage}`));
+        // Every lot the bids (and hence the clarifications) fixtures cite, including a single Lot 1, is published.
+        if (bidTender.lots.length > 0) {
+          expect(tender.lots.map((entry) => `${entry.lotId}:${entry.stage}`), tender.reference).toEqual(
+            bidTender.lots.map((entry) => `${entry.id}:${entry.stage}`),
+          );
         }
+      }
+      for (const addendum of issued) {
+        // An addendum's affected lots all resolve to published lots (PUB-04: no "affects all lots" by omission).
+        expect(tender.addenda.find((entry) => entry.addendumId === addendum.id)?.affectedLotNos, `addendum ${addendum.id}`).toHaveLength(addendum.lotIds.length);
       }
       for (const document of tender.documents) {
         const addendum = tender.addenda.find((entry) => entry.number === document.addendumNo);

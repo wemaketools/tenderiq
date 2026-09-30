@@ -3,7 +3,6 @@
  * representation transfer, administrator recovery), with filters, status and the decision. Each change is reviewed
  * with evidence; historical submissions keep their original representation.
  */
-import { useNavigate } from 'react-router';
 
 import {
   SUPPLIER_IDENTITY_CHANGES_CHANGE_TYPE,
@@ -44,7 +43,6 @@ const DEFAULTS = {
 };
 
 export function IdentityChangesPanel() {
-  const navigate = useNavigate();
   const zone = useOfficialTimeZone();
   const [filters, setFilters, clearFilters] = useScreenFilters('SUP-03-identity', DEFAULTS);
   const query = useApiQuery(suppliersEndpoints.listIdentityChanges, {
@@ -156,7 +154,7 @@ export function IdentityChangesPanel() {
           rowLabel={(row) =>
             `${tEnum('supplier_identity_changes.change_type', row.changeType)}: ${row.proposedValue}`
           }
-          onRowClick={(row) => void navigate(supplierOrgPaths.identityChange(row.id))}
+          rowHref={(row) => supplierOrgPaths.identityChange(row.id)}
           loading={query.isFetching}
           error={query.error}
           onRetry={query.reload}

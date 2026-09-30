@@ -4,7 +4,6 @@
  * holds; every other records role sees them read-only.
  */
 import { useState } from 'react';
-import { useNavigate } from 'react-router';
 
 import { HOLDS_SUBJECT_TYPE } from '@contracts/enums';
 import {
@@ -52,7 +51,6 @@ const DEFAULTS = {
 };
 
 export default function HoldsPage() {
-  const navigate = useNavigate();
   const tenant = useActiveTenant();
   const now = useNow();
   const canManage = usePermission('records.hold.manage');
@@ -236,7 +234,7 @@ export default function HoldsPage() {
           rows={data?.items}
           rowKey={(row) => String(row.id)}
           rowLabel={(row) => t('records.holds.openNamed', { subject: row.subjectLabel })}
-          onRowClick={(row) => void navigate(recordsPaths.hold(row.id))}
+          rowHref={(row) => recordsPaths.hold(row.id)}
           loading={query.isFetching}
           error={query.error}
           onRetry={query.reload}

@@ -67,6 +67,34 @@ describe('AnswerPage (SUP-12 answer)', () => {
     ).toBeInTheDocument();
   });
 
+  it('shows an evidence expiry as a calendar date in the official time zone, without a time of day', async () => {
+    // Arrange
+    routeCalls({
+      'supplier.bids.get': () => bidDetail(),
+      'supplier.bids.getAnswer': () => answerDetail(),
+      'supplier.bids.declarations': () =>
+        declarations({
+          evidenceOptions: [
+            {
+              evidenceItemId: 31,
+              title: 'ISO 9001:2015 certificate',
+              evidenceType: 'certificate',
+              expiresAt: '2027-03-30T22:00:00Z',
+              status: 'current',
+              attached: false,
+            },
+          ],
+        }),
+    });
+
+    // Act
+    renderPage();
+
+    // Assert
+    const option = await screen.findByRole('option', { name: /ISO 9001:2015 certificate/ });
+    expect(option.textContent).toBe('ISO 9001:2015 certificate (expires 31 Mar 2027)');
+  });
+
   it('requires an explanation before a deviation is saved', async () => {
     // Arrange
     const user = userEvent.setup();

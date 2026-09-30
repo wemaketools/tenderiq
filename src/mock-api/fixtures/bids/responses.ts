@@ -698,7 +698,7 @@ const BID_SPECS: readonly BidSpec[] = [
     lotIds: [1001],
     state: 'submitted',
     priceBase: '940000.00',
-    revisions: [received('2026-04-02T13:00:00Z', '2026-03-16T08:00:00Z', 'selected_for_evaluation', '2026-04-07T08:00:00Z')],
+    revisions: [received('2026-02-02T13:00:00Z', '2026-01-16T08:00:00Z', 'selected_for_evaluation', '2026-02-04T08:00:00Z')],
   },
   {
     id: 27,
@@ -707,7 +707,7 @@ const BID_SPECS: readonly BidSpec[] = [
     lotIds: [1001],
     state: 'submitted',
     priceBase: '1015000.00',
-    revisions: [received('2026-04-03T07:00:00Z', '2026-03-18T08:00:00Z', 'selected_for_evaluation', '2026-04-07T08:00:00Z')],
+    revisions: [received('2026-02-03T07:00:00Z', '2026-01-19T08:00:00Z', 'selected_for_evaluation', '2026-02-04T08:00:00Z')],
   },
   // T-2026-0011 Office cleaning (ODC, open until 23 Oct 2026 12:00 after addendum 1).
   {
@@ -782,6 +782,8 @@ const ANSWER_OVERRIDES: Readonly<Record<number, Readonly<Record<number, AnswerOv
   // Tsodilo's supplement answers the OIML requirement with its partner's certificates.
   62: { 2008: { uploads: ['tsodilo-oiml-r49-certificates.pdf'] } },
   71: { 2008: { uploads: ['mogobe-oiml-r49-certificates.pdf'] } },
+  // Tsodilo's T-2026-0010 quotation (2 Feb 2026) predates its current liability policy (added 1 Mar 2026).
+  261: { 10001: { evidenceItemIds: [401] } },
   // Tsodilo T-2026-0006 draft: assigned work, partial content, reused content awaiting review (AC-03).
   141: {
     6001: { assignedUserId: 25, evidenceItemIds: [403], updatedAt: '2026-09-18T10:00:00Z' },

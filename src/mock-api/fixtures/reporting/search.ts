@@ -9,8 +9,11 @@
 import type { SearchResultType, SavedView } from '../../../contracts/reporting.js';
 import type { EnumName } from '../../../contracts/enums.js';
 import type { PermissionCode } from '../../../contracts/permissions.js';
+import { DEMO_AS_OF } from '../demo-clock.js';
 import { TENANT_IDS } from '../platform.js';
-import { SUPPLIER_INVITATIONS, SUPPLIER_OUTCOMES, SUPPLIER_PURSUITS } from './dashboard.js';
+import { EVIDENCE_ITEMS } from '../suppliers/evidence-items.js';
+import { TASKS } from '../tasks.js';
+import { SUPPLIER_EVIDENCE, SUPPLIER_INVITATIONS, SUPPLIER_OUTCOMES, SUPPLIER_PURSUITS } from './dashboard.js';
 import type { FixtureSupplierPursuit } from './dashboard.js';
 import { KWU, LEGACY_TENDER_ID, LINKS, ODC, USERS, tenderFact } from './storyline.js';
 
@@ -56,6 +59,7 @@ const STATIC_ENTRIES: readonly FixtureSearchEntry[] = [
   entry({ tenantId: KWU, type: 'tender', recordId: 9, title: 'Acoustic leak detection services', reference: 'T-2026-0009', subtitle: 'RFP · restricted · Network Operations', status: tenderStatus('under_assessment'), to: LINKS.buyerTender(9), updatedAt: '2026-10-02T13:05:00Z', keywords: 'SRV-LEAK leak acoustic water', visibleWith: ['tender.view'] }),
   entry({ tenantId: KWU, type: 'tender', recordId: 10, title: 'Fleet vehicle maintenance', reference: 'T-2026-0010', subtitle: 'RFQ · Fleet and Facilities', status: tenderStatus('awarded'), to: LINKS.buyerTender(10), updatedAt: '2026-09-01T09:00:00Z', keywords: 'SRV-FLEET fleet vehicles', visibleWith: ['tender.view'] }),
   entry({ tenantId: KWU, type: 'tender', recordId: 12, title: 'Treatment works electrical maintenance', reference: 'T-2026-0012', subtitle: 'RFQ · draft · Technical Services', status: tenderStatus('draft'), to: LINKS.buyerTender(12), updatedAt: '2026-09-29T14:20:00Z', keywords: 'ELEC-MAINT electrical treatment water', visibleWith: ['tender.view'] }),
+  entry({ tenantId: KWU, type: 'tender', recordId: 14, title: 'Water treatment works instrumentation', reference: 'T-2026-0014', subtitle: 'Tender · 5 lots · Technical Services', status: tenderStatus('under_assessment'), to: LINKS.buyerTender(14), updatedAt: '2026-09-28T09:00:00Z', keywords: 'WTR-INFRA instrumentation flow meters analysers water', visibleWith: ['tender.view'] }),
   entry({ tenantId: KWU, type: 'tender', recordId: LEGACY_TENDER_ID, title: 'Maun wellfield pump supply (legacy import, 2018)', reference: 'T-2025-0003', subtitle: 'Tender · archived · legal hold', status: tenderStatus('archived'), to: LINKS.auditTrail('tender', LEGACY_TENDER_ID), updatedAt: '2026-08-14T09:30:00Z', keywords: 'WTR-PUMP legacy pumps', visibleWith: ['tender.view'] }),
   // --- KWU requests (all requests with request.view_all; the requester always sees their own) ---
   entry({ tenantId: KWU, type: 'request', recordId: 1, title: 'Borehole pump replacement programme', reference: 'PR-2026-0001', subtitle: 'Converted to T-2026-0001', status: { enum: 'procurement_requests.status', value: 'converted' }, to: LINKS.buyerRequest(1), updatedAt: '2026-06-20T08:00:00Z', keywords: 'pumps water boreholes', visibleWith: ['request.view_all'], alsoVisibleTo: [USERS.kagiso] }),
@@ -82,22 +86,14 @@ const STATIC_ENTRIES: readonly FixtureSearchEntry[] = [
   entry({ tenantId: KWU, type: 'document', recordId: 207, title: 'Evaluation report — Reservoir rehabilitation works', reference: 'T-2026-0007', subtitle: 'Restricted assessment', status: { enum: 'documents.classification', value: 'restricted_assessment' }, to: LINKS.document(207), updatedAt: '2026-09-10T14:00:00Z', keywords: 'reservoir evaluation report', visibleWith: ['evaluation.chair', 'evaluation.signoff'] }),
   entry({ tenantId: KWU, type: 'document', recordId: 224, title: 'Meter reading services agreement (legacy import)', reference: 'C-2025-0007', subtitle: 'Commercially confidential · records', status: { enum: 'documents.classification', value: 'commercially_confidential' }, to: LINKS.document(224), updatedAt: '2026-08-14T09:30:00Z', keywords: 'legal hold meter reading legacy', visibleWith: ['audit.view', 'records.hold.manage'] }),
   entry({ tenantId: KWU, type: 'document', recordId: 209, title: 'Signed contract — Fleet vehicle maintenance', reference: 'C-2026-0001', subtitle: 'Commercially confidential', status: { enum: 'documents.classification', value: 'commercially_confidential' }, to: LINKS.document(209), updatedAt: '2026-08-28T10:00:00Z', keywords: 'fleet contract signed', visibleWith: ['contract.view'] }),
-  // --- KWU tasks (own tasks only) ---
-  entry({ tenantId: KWU, type: 'task', recordId: 115, title: 'Triage question Q-206 on T-2026-0002 (delivery to the Maun depot)', reference: 'T-2026-0002', subtitle: 'Due 7 Oct 2026', status: { enum: 'tasks.status', value: 'open' }, to: LINKS.tasks(115), updatedAt: '2026-10-03T11:30:00Z', keywords: 'questions meters water', visibleWith: [], ownerUserIds: [USERS.tebogo] }),
-  entry({ tenantId: KWU, type: 'task', recordId: 113, title: 'Request release approval again for T-2026-0005 (revision 3)', reference: 'T-2026-0005', subtitle: 'Overdue since 3 Oct 2026', status: { enum: 'tasks.status', value: 'open' }, to: LINKS.tasks(113), updatedAt: '2026-10-02T12:45:00Z', keywords: 'release approval water chemicals', visibleWith: [], ownerUserIds: [USERS.tebogo] }),
-  entry({ tenantId: KWU, type: 'task', recordId: 103, title: 'Approve PR-2026-0003 Northern wellfield pipeline extension', reference: 'PR-2026-0003', subtitle: 'Due 8 Oct 2026', status: { enum: 'tasks.status', value: 'open' }, to: LINKS.tasks(103), updatedAt: '2026-09-28T09:15:00Z', keywords: 'funding pipeline wellfield approval', visibleWith: [], ownerUserIds: [USERS.keabetswe] }),
-  entry({ tenantId: KWU, type: 'task', recordId: 139, title: 'Declare conflicts of interest for the T-2026-0003 evaluation', reference: 'T-2026-0003', subtitle: 'Conflict routed for review', status: { enum: 'tasks.status', value: 'in_progress' }, to: LINKS.tasks(139), updatedAt: '2026-09-30T16:00:00Z', keywords: 'scada evaluation conflict', visibleWith: [], ownerUserIds: [USERS.samDual, USERS.thato] }),
-  entry({ tenantId: KWU, type: 'task', recordId: 134, title: 'Review the remediation of the rejected Q3 service report (C-2026-0001)', reference: 'C-2026-0001', subtitle: 'Due 20 Oct 2026', status: { enum: 'tasks.status', value: 'open' }, to: LINKS.tasks(134), updatedAt: '2026-10-01T10:00:00Z', keywords: 'fleet service report', visibleWith: [], ownerUserIds: [USERS.masego] }),
   // --- ODC ---
   entry({ tenantId: ODC, type: 'tender', recordId: 11, title: 'Office cleaning services', reference: 'T-2026-0011', subtitle: 'RFQ · Corporate Services', status: tenderStatus('open'), to: LINKS.buyerTender(11), updatedAt: '2026-10-01T09:00:00Z', keywords: 'SRV-CLEAN cleaning offices', visibleWith: ['tender.view'] }),
+  entry({ tenantId: ODC, type: 'tender', recordId: 13, title: 'Community borehole drilling — Maun cluster', reference: 'T-2026-0013', subtitle: 'Tender · ready for release · Facilities Management', status: tenderStatus('ready'), to: LINKS.buyerTender(13), updatedAt: '2026-09-29T09:00:00Z', keywords: 'boreholes drilling maun water', visibleWith: ['tender.view'] }),
   entry({ tenantId: ODC, type: 'contract', recordId: 7, title: 'Council office cleaning services', reference: 'C-2025-0004', subtitle: 'Limpopo Environmental Services · active', status: { enum: 'contracts.status', value: 'active' }, to: LINKS.buyerContract(7), updatedAt: '2026-10-03T08:00:00Z', keywords: 'cleaning offices', visibleWith: ['contract.view'] }),
-  entry({ tenantId: ODC, type: 'task', recordId: 141, title: 'Answer question Q-302 on T-2026-0011 (weekend cleaning during council sessions)', reference: 'T-2026-0011', subtitle: 'Due 5 Oct 2026', status: { enum: 'tasks.status', value: 'open' }, to: LINKS.tasks(141), updatedAt: '2026-10-01T09:00:00Z', keywords: 'cleaning questions', visibleWith: [], ownerUserIds: [USERS.officerOdc] }),
   // --- Tsodilo Engineering (own records only) ---
   entry({ tenantId: S.tsodilo, type: 'contract', recordId: 1, title: 'Fleet vehicle maintenance', reference: 'C-2026-0001', subtitle: 'Kalahari Water Utilities · active', status: { enum: 'contracts.status', value: 'active' }, to: LINKS.supplierContract(1), updatedAt: '2026-10-01T10:00:00Z', keywords: 'fleet', visibleWith: ['supplier.contract.participate', 'supplier.outcomes.view'] }),
   entry({ tenantId: S.tsodilo, type: 'contract', recordId: 2, title: 'Borehole pumps Lot 1: supply and installation', reference: 'C-2026-0002', subtitle: 'Kalahari Water Utilities · awaiting signature', status: { enum: 'contracts.status', value: 'awaiting_signature' }, to: LINKS.supplierContract(2), updatedAt: '2026-09-20T12:00:00Z', keywords: 'pumps water', visibleWith: ['supplier.contract.participate', 'supplier.outcomes.view'] }),
-  entry({ tenantId: S.tsodilo, type: 'document', recordId: 105, title: 'Public liability insurance 2025/26 (cover increased)', reference: null, subtitle: 'Evidence library · expires 31 Oct 2026', status: { enum: 'documents.classification', value: 'supplier_private' }, to: LINKS.supplierEvidence(105), updatedAt: '2026-01-10T08:00:00Z', keywords: 'insurance evidence', visibleWith: ['supplier.evidence.manage'] }),
   // --- Chobe Pipe & Valve Supplies ---
-  entry({ tenantId: S['chobe-pipe'], type: 'document', recordId: 202, title: 'Public liability insurance 2025/26', reference: null, subtitle: 'Evidence library · expires 8 Oct 2026', status: { enum: 'documents.classification', value: 'supplier_private' }, to: LINKS.supplierEvidence(202), updatedAt: '2025-10-14T08:00:00Z', keywords: 'insurance evidence', visibleWith: ['supplier.evidence.manage'] }),
   entry({ tenantId: S['chobe-pipe'], type: 'contract', recordId: 6, title: 'Network valve maintenance call-out services', reference: 'C-2025-0005', subtitle: 'Kalahari Water Utilities · suspended', status: { enum: 'contracts.status', value: 'suspended' }, to: LINKS.supplierContract(6), updatedAt: '2026-09-12T08:00:00Z', keywords: 'valves water maintenance', visibleWith: ['supplier.contract.participate', 'supplier.outcomes.view'] }),
   // --- Serowe ICT Solutions ---
   // --- Gaborone Metering Co. ---
@@ -111,6 +107,87 @@ const STATIC_ENTRIES: readonly FixtureSearchEntry[] = [
   entry({ tenantId: S['tenderiq-ops'], type: 'organization', recordId: S.tsodilo, title: 'Tsodilo Engineering', reference: null, subtitle: 'Supplier organization', status: { enum: 'tenants.status', value: 'active' }, to: LINKS.opsCustomer(S.tsodilo), updatedAt: '2026-02-10T08:00:00Z', keywords: 'supplier engineering', visibleWith: ['ops.customers.manage', 'ops.oversight.view'] }),
   entry({ tenantId: S['tenderiq-ops'], type: 'organization', recordId: S['gaborone-meter'], title: 'Gaborone Metering Co.', reference: null, subtitle: 'Supplier organization', status: { enum: 'tenants.status', value: 'active' }, to: LINKS.opsCustomer(S['gaborone-meter']), updatedAt: '2026-03-23T08:00:00Z', keywords: 'supplier meters water', visibleWith: ['ops.customers.manage', 'ops.oversight.view'] }),
 ];
+
+// ---------------------------------------------------------------------------------------------------------
+// Tasks and supplier evidence: derived from the owning domains (task inbox `../tasks.ts`, evidence library
+// `../suppliers/evidence-items.ts`), so a hit shows the record's own title, due or expiry date and status and opens
+// the record it names.
+// ---------------------------------------------------------------------------------------------------------
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const;
+
+/** `2026-10-08` → `8 Oct 2026`. */
+function dayLabel(date: string): string {
+  const [year = '', month = '1', day = '1'] = date.split('-');
+  return `${Number(day)} ${MONTHS[Number(month) - 1] ?? ''} ${year}`;
+}
+
+/** The official (Africa/Gaborone, UTC+02:00) calendar date of an instant. */
+function officialDate(instant: string): string {
+  return new Date(Date.parse(instant) + 2 * 3_600_000).toISOString().slice(0, 10);
+}
+
+/** The tasks the index holds, with the words they also match on. */
+const INDEXED_TASKS: ReadonlyArray<readonly [number, string]> = [
+  [115, 'questions meters water'],
+  [113, 'release approval water chemicals'],
+  [103, 'funding pipeline wellfield approval'],
+  [139, 'scada evaluation conflict'],
+  [134, 'fleet service report'],
+  [141, 'cleaning questions'],
+];
+
+function taskEntries(): FixtureSearchEntry[] {
+  return INDEXED_TASKS.map(([taskId, keywords]) => {
+    const task = TASKS.find((row) => row.id === taskId);
+    if (task === undefined || task.assigneeUserId === null) {
+      throw new Error(`Task ${taskId} is not an assigned task of the task inbox fixtures.`);
+    }
+    const open = task.status === 'open' || task.status === 'in_progress';
+    const due =
+      task.dueAt === null
+        ? 'No due date'
+        : open && task.dueAt < DEMO_AS_OF
+          ? `Overdue since ${dayLabel(officialDate(task.dueAt))}`
+          : `Due ${dayLabel(officialDate(task.dueAt))}`;
+    const lastEvent = task.history.reduce((latest, event) => (event.at > latest ? event.at : latest), task.createdAt);
+    return entry({
+      tenantId: task.tenantId,
+      type: 'task',
+      recordId: task.id,
+      title: task.title,
+      reference: task.sourceReference,
+      subtitle: due,
+      status: { enum: 'tasks.status', value: task.status },
+      to: LINKS.tasks(task.id),
+      updatedAt: lastEvent,
+      keywords,
+      visibleWith: [],
+      ownerUserIds: [task.assigneeUserId],
+    });
+  });
+}
+
+/** Dated evidence of each supplier's own library (SUP-05): the items SUP-01 lists as expiring come from here too. */
+function evidenceEntries(): FixtureSearchEntry[] {
+  return SUPPLIER_EVIDENCE.map((row) => {
+    const item = EVIDENCE_ITEMS.find((candidate) => candidate.id === row.evidenceId);
+    const expired = row.expiresAt < DEMO_AS_OF.slice(0, 10);
+    return entry({
+      tenantId: row.supplierTenantId,
+      type: 'document',
+      recordId: row.evidenceId,
+      title: row.title,
+      reference: item?.referenceNumber ?? null,
+      subtitle: `Evidence library · ${expired ? 'expired' : 'expires'} ${dayLabel(row.expiresAt)}`,
+      status: { enum: 'documents.classification', value: 'supplier_private' },
+      to: LINKS.supplierEvidence(row.evidenceId),
+      updatedAt: item?.updatedAt ?? item?.createdAt ?? DEMO_AS_OF,
+      keywords: `${row.evidenceType} evidence`,
+      visibleWith: ['supplier.evidence.manage'],
+    });
+  });
+}
 
 // ---------------------------------------------------------------------------------------------------------
 // Supplier tender entries: derived from the supplier's own pursuits, bids and outcomes (SUP-01 rows), so the
@@ -183,7 +260,7 @@ function supplierTenderEntries(): FixtureSearchEntry[] {
   });
 }
 
-export const SEARCH_INDEX: readonly FixtureSearchEntry[] = [...STATIC_ENTRIES, ...supplierTenderEntries()];
+export const SEARCH_INDEX: readonly FixtureSearchEntry[] = [...STATIC_ENTRIES, ...taskEntries(), ...evidenceEntries(), ...supplierTenderEntries()];
 
 /** A saved view as stored (`saved_views`): owned by one user in one tenant. */
 export interface FixtureSavedView extends Omit<SavedView, 'organization'> {

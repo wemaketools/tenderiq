@@ -16,6 +16,7 @@ import {
   DateTimeInput,
   useToast,
 } from '../../../components/ui';
+import { clockNow } from '../../../lib/clock';
 import { t, tEnum } from '../../../lib/i18n';
 import { withSelectionMessage } from '../lib/errors';
 import { bidLabel, tenderLabel } from '../lib/labels';
@@ -65,7 +66,7 @@ export function IssueInvitesDialog({ session, onClose, onIssued }: IssueInvitesD
           setProblem(t('selection.invites.timeRequired'));
           return;
         }
-        const earliest = Date.now() + session.preparationDays * DAY_MS;
+        const earliest = clockNow() + session.preparationDays * DAY_MS;
         if (entries.some(([, at]) => at !== null && Date.parse(at) < earliest)) {
           setProblem(t('selection.invites.tooSoon', { days: session.preparationDays }));
           return;

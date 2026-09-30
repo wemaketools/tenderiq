@@ -424,11 +424,7 @@ function SearchWorkspace({
               description={t('search.views.noneHint')}
             />
           ) : (
-            <ul
-              className="tiq-stack"
-              style={{ listStyle: 'none', margin: 0, padding: 0 }}
-              aria-label={t('search.views.title')}
-            >
+            <ul className="tiq-stack" aria-label={t('search.views.title')}>
               {views.data.items.map((view) => (
                 <li key={view.id} className="tiq-stack">
                   <div className="tiq-inline">

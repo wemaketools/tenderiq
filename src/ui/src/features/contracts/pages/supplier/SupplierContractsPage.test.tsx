@@ -34,6 +34,20 @@ describe('SupplierContractsPage (SUP-23)', () => {
     expect(within(row).getByText('2 open')).toBeInTheDocument();
   });
 
+  it('spaces the filters and the table as one page', async () => {
+    routeCalls({ 'supplier.contracts.list': page() });
+    const { container } = renderPage(<SupplierContractsPage />, {
+      route: '/supplier/contracts',
+      path: '/supplier/contracts',
+      kind: 'supplier',
+      permissions: PARTICIPATE,
+    });
+    await screen.findByText('C-2026-0002');
+    const root = container.querySelector('.tiq-page');
+    expect(root).not.toBeNull();
+    expect(root?.querySelector('table')).not.toBeNull();
+  });
+
   it('shows the empty state for a supplier without contracts and filters by action required', async () => {
     const calls = routeCalls({ 'supplier.contracts.list': page([]) });
     const user = userEvent.setup();

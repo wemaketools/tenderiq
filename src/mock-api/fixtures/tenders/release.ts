@@ -84,7 +84,7 @@ export const RELEASE_CHECKS: readonly FxReleaseCheck[] = Object.freeze([
   ...checks(7, 2, '2026-05-07T10:00:00Z'),
   ...checks(8, 2, '2026-08-20T10:00:00Z'),
   ...checks(9, 3, '2026-07-03T10:00:00Z'),
-  ...checks(10, 2, '2026-02-26T10:00:00Z'),
+  ...checks(10, 2, '2026-01-07T10:00:00Z'),
   ...checks(11, 2, '2026-09-14T10:00:00Z', RELEASE_CHECKS_CHECK_AREA, ODC),
   ...checks(12, 1, '2026-09-24T09:00:00Z', ['supplier_burden', 'terms']),
   ...checks(12, 2, '2026-09-29T15:30:00Z', ['accessibility']).map((check) => ({
@@ -163,7 +163,7 @@ export const RELEASE_APPROVALS: readonly FxReleaseApproval[] = Object.freeze([
   released(208, 8, 2, '2350000.00', '2026-08-20T11:00:00Z', '2026-08-21T09:00:00Z'),
   released(209, 9, 3, '3100000.00', '2026-07-03T11:00:00Z', '2026-07-04T08:00:00Z'),
   // Requested by the departed officer, who owned T-2026-0010 at the time (AC-04 history).
-  { ...released(210, 10, 2, '2850000.00', '2026-02-26T11:00:00Z', '2026-02-27T09:00:00Z'), requestedBy: USERS.former },
+  { ...released(210, 10, 2, '1900000.00', '2026-01-07T11:00:00Z', '2026-01-08T09:00:00Z'), requestedBy: USERS.former },
 ]);
 
 export const MATERIAL_CHANGES: readonly FxMaterialChange[] = Object.freeze([
@@ -316,7 +316,7 @@ export const PACKAGE_DOCUMENTS: readonly FxPackageDocument[] = Object.freeze([
   ...standardPackage(7, 'T-2026-0007', '2026-05-07T08:00:00Z'),
   ...standardPackage(8, 'T-2026-0008', '2026-08-20T08:00:00Z'),
   ...standardPackage(9, 'T-2026-0009', '2026-07-03T08:00:00Z'),
-  ...standardPackage(10, 'T-2026-0010', '2026-02-26T08:00:00Z'),
+  ...standardPackage(10, 'T-2026-0010', '2026-01-07T08:00:00Z'),
   ...documents(
     11,
     'T-2026-0011',
@@ -368,7 +368,7 @@ export const TENDER_VERSIONS: readonly FxTenderVersion[] = Object.freeze([
       7: '2026-05-11T07:00:00Z',
       8: '2026-08-24T07:00:00Z',
       9: '2026-07-06T07:00:00Z',
-      10: '2026-03-02T07:00:00Z',
+      10: '2026-01-12T07:00:00Z',
     }[tenderId] as string,
     issuedBy: USERS.tebogo,
     changeSummary: 'Initial release.',

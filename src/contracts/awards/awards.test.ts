@@ -19,6 +19,8 @@ import {
 } from '../awards.js';
 import { splitIssueMessage } from '../common.js';
 import { ENUMS } from '../enums.js';
+import { templatePermissions } from '../permissions.js';
+import type { PermissionCode } from '../permissions.js';
 
 const endpoints = Object.values(awardEndpoints);
 
@@ -54,7 +56,7 @@ describe('awardEndpoints', () => {
   it('keeps the award approval decision on award.approve and supplier writes on supplier permissions', () => {
     expect(awardEndpoints.decideRecommendation.permission).toBe('award.approve');
     expect(awardEndpoints.createComplaint.permission).toBe('supplier.complaint.submit');
-    expect(awardEndpoints.acceptOutcomeNoticeTerms.permission).toBe('supplier.contract.participate');
+    expect(awardEndpoints.acceptOutcomeNoticeTerms.permission).toBe('supplier.response.submit');
     expect(AWARD_READ_PERMISSIONS).toContain('audit.view');
   });
 
@@ -138,5 +140,22 @@ describe('award request schemas', () => {
 
   it('uses the enumerations of enums.ts for award records', () => {
     expect(ENUMS['lot_outcomes.outcome']).toEqual(['award', 'partial_award', 'conditional_award', 'no_award', 'cancelled']);
+  });
+});
+
+describe('accepting award notice terms (PRD §4.1: only an authorized signatory accepts commitments)', () => {
+  const required = awardEndpoints.acceptOutcomeNoticeTerms.permission;
+  const requiredList: readonly PermissionCode[] =
+    required === undefined ? [] : typeof required === 'string' ? [required] : required;
+  const holds = (codes: readonly PermissionCode[]): boolean => requiredList.some((code) => codes.includes(code));
+
+  it('is not open to a supplier_finance member, whose only contract permission is supplier.contract.participate', () => {
+    expect(requiredList).not.toContain('supplier.contract.participate');
+    expect(holds(templatePermissions('supplier_finance'))).toBe(false);
+    expect(holds(templatePermissions('bid_manager'))).toBe(false);
+  });
+
+  it('is open to the authorized signatory template', () => {
+    expect(holds(templatePermissions('authorized_signatory'))).toBe(true);
   });
 });

@@ -237,7 +237,10 @@ export const ContractApprovalRef = z.object({
   requestedAt: Instant,
   currentApprover: PersonRef.nullable(),
   decidedAt: Instant.nullable(),
-  /** True when the approval workspace (`/me/approvals/:approvalId`) holds this request and can open it. */
+  /**
+   * Resolved per viewer: true only when the approval workspace (`/me/approvals/:approvalId`) holds this request AND
+   * opens it for the viewer (the requester, an approver or a delegate). Otherwise the SPA shows plain text.
+   */
   inApprovalWorkspace: z.boolean(),
 });
 export type ContractApprovalRef = z.infer<typeof ContractApprovalRef>;
@@ -1842,7 +1845,7 @@ export const contractsEndpoints = {
     permission: 'contract.prepare',
     params: ContractParams,
     response: ContractStatusResult,
-    errors: ['CONTRACT_NOT_DRAFT', 'DIFFERENCE_EXPLANATION_REQUIRED', 'ALLOCATION_EXCEEDS_AWARD'],
+    errors: ['CONTRACT_NOT_DRAFT', 'DIFFERENCE_EXPLANATION_REQUIRED', 'ALLOCATION_EXCEEDS_AWARD', 'CUSTOM_FIELDS_INCOMPLETE'],
     screens: ['CON-02'],
   }),
   reviewDecision: defineEndpoint({

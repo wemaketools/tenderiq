@@ -1387,7 +1387,16 @@ function registerFinalOffers(app: MockApp): void {
         invitees: bids.flatMap((bid) =>
           bid === undefined
             ? []
-            : [{ bidId: bid.bidId, supplierTenantId: bid.supplierTenantId, notifiedAt: null, finalOfferReceivedAt: null, finalOffer: null }],
+            : [
+                {
+                  bidId: bid.bidId,
+                  supplierTenantId: bid.supplierTenantId,
+                  responseBidId: null,
+                  notifiedAt: null,
+                  finalOfferReceivedAt: null,
+                  finalOffer: null,
+                },
+              ],
         ),
         updatedAt: at,
       },
