@@ -111,4 +111,25 @@ test.describe('prototype shell', () => {
     await expect(menuButton).toHaveAttribute('aria-expanded', 'true');
     await expect(page.locator('.tiq-brand-name')).toBeVisible();
   });
+
+  test('a manager with every permission sees section headings with only the current section and My work open', async ({ page }) => {
+    await signIn(page, 'mpho.manager');
+    await expect(page).toHaveURL(/\/buyer/);
+    await page.setViewportSize({ width: 1600, height: 1000 });
+    await page.goto('/buyer/tenders/5');
+    const nav = page.getByRole('navigation', { name: 'Main navigation' });
+    await expect(nav.getByRole('button', { name: /^Sourcing/ })).toHaveAttribute('aria-expanded', 'true');
+    await expect(nav.getByRole('button', { name: /^My work/ })).toHaveAttribute('aria-expanded', 'true');
+    await expect(nav.getByRole('button', { name: /^Administration/ })).toHaveAttribute('aria-expanded', 'false');
+    await expect(nav.getByRole('link', { name: 'Tenders' })).toHaveClass(/tiq-nav-item--active/);
+    // Search, notifications and help live in the top bar only.
+    await expect(nav.getByRole('link', { name: /^(Search|Notifications|Help & support)/ })).toHaveCount(0);
+    expect(await nav.getByRole('link').count()).toBeLessThanOrEqual(12);
+
+    await nav.getByRole('button', { name: /^Administration/ }).click();
+    await expect(nav.getByRole('link', { name: 'My organizations' })).toBeVisible();
+    await page.reload();
+    await expect(nav.getByRole('button', { name: /^Administration/ })).toHaveAttribute('aria-expanded', 'true');
+    await expectNoAxeViolations(page);
+  });
 });

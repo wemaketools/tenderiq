@@ -126,7 +126,7 @@ export const features: FeatureModule[] = [
         id: 'supplier.assessmentRequests',
         label: 'opening.nav.assessmentRequests',
         path: 'assessment-requests',
-        section: 'sourcing',
+        section: 'responding',
         order: 60,
         icon: 'messageSquare',
         permission: ASSESSMENT_REQUEST_VIEW_PERMISSIONS,

@@ -4,13 +4,17 @@ import { navGroupsFor } from '../../app/featureRegistry';
 import { features } from './routes';
 
 describe('search feature registration', () => {
-  it('offers personal search to every organization kind without a permission', () => {
+  it('leaves search to the top bar search box: no sidebar entry for any organization kind (DD-48)', () => {
     for (const tenantKind of ['buyer', 'supplier', 'operator'] as const) {
       const destinations = navGroupsFor(features, { tenantKind, permissions: [] }).flatMap(
         (group) => group.items.map((item) => item.to),
       );
-      expect(destinations).toEqual(['/me/search']);
+      expect(destinations).toEqual([]);
     }
+  });
+
+  it('opens search to every organization kind without a permission', () => {
+    expect(features[0]?.routes.every((route) => route.permission === undefined)).toBe(true);
   });
 
   it('mounts the search page lazily in the personal area', () => {

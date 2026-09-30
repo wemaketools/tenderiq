@@ -915,7 +915,7 @@ UI features: `ops`, `help`, `admin-integrations`. FR-22, PRD §21; BR-46, BR-47.
 - [12-traceability.md](12-traceability.md): FR, BR, screen and AC traceability.
 - [13-delivery-and-resilience.md](13-delivery-and-resilience.md): stages, approval gate, resume.
 - [03-data-model/README.md](03-data-model/README.md): tables behind each resource group; [03-data-model/12-records-reporting-operations.md](03-data-model/12-records-reporting-operations.md): `exports`, `rate_limit_buckets` and `request_idempotency`.
-- [../plan/design-decisions.md](../plan/design-decisions.md): the decision log (DD-01 … DD-47; DD-38 withdrawn) this document follows.
+- [../plan/design-decisions.md](../plan/design-decisions.md): the decision log (DD-01 … DD-48; DD-38 withdrawn) this document follows.
 - [../plan/email-delivery-options.md](../plan/email-delivery-options.md): the email channel locally and the deferred hosted provider options.
 - [adr/0007-in-app-formal-notices.md](adr/0007-in-app-formal-notices.md): formal notices over the `in_app` and `email` channels; [adr/0012-supplier-registration-via-provisioned-accounts.md](adr/0012-supplier-registration-via-provisioned-accounts.md): supplier registration.
 - [adr/README.md](adr/README.md), [glossary.md](glossary.md).

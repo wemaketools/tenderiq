@@ -454,7 +454,7 @@ flowchart TB
 ### 6.2 Shell and design system
 
 The shell follows `docs/css` and `docs/screenshots/overview.png` (architecture-plan §1, §7):
-- Dark sidebar with the tenant label (`<TENANT NAME (PILOT)>`), the wordmark `Tender` + accent `IQ`, and the sub-brand "Tender Intelligence". Grouped navigation with line icons, an accent pill for the active item, a separator before the admin group, and a user card with a menu for switching organization, profile, theme and sign-out.
+- Dark sidebar with the tenant label (`<TENANT NAME (PILOT)>`), the wordmark `Tender` + accent `IQ`, and the sub-brand "Tender Intelligence". Grouped navigation under collapsible section headings (DD-48) with line icons, an accent pill for the active item, a separator before the admin group, and a user card with a menu for switching organization, profile, theme and sign-out.
 - Top bar with the page title, the section action of the active sidebar destination in accent teal (to the left of search), global search, tasks, a notifications bell with badge and help. Page and record actions render in the page's content head row (DD-46).
 - Page composition: `PageHeader`, then the `FilterBar` card, the KPI row, content cards and tables. Tables have uppercase headers, sort carets, monospace accent references (`T-2026-0003`), `StatusChip` tones for every lifecycle state, and right-aligned money with its currency.
 - Theme: `docs/css/theme/*.css` is ported to `src/ui/src/theme/`, with `--qiq-*`/`.qiq-*` renamed to `--tiq-*`/`.tiq-*`. Light and dark themes are token-driven. The user's choice is stored in `users.theme` through `/me/theme`. Components never contain raw hex values or literal pixel gaps, and a guard test enforces this.
@@ -831,7 +831,7 @@ After the owner review of 2026-09-29, every architecture-plan §11 item is accep
 
 ### 10.4 Design decision log entries applied here
 
-`docs/plan/design-decisions.md` (DD-01 … DD-47; DD-38 is withdrawn) amends the plan and the blueprint and wins on conflict. The entries that shape this document:
+`docs/plan/design-decisions.md` (DD-01 … DD-48; DD-38 is withdrawn) amends the plan and the blueprint and wins on conflict. The entries that shape this document:
 
 | Entry | Decision in one line | Where it applies |
 |---|---|---|

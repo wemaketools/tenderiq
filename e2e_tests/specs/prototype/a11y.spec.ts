@@ -92,14 +92,22 @@ async function checkPage(page: Page, where: string): Promise<string[]> {
   return problems;
 }
 
+/** The top bar destinations that have no sidebar entry (DD-48): every signed-in user reaches them. */
+const TOPBAR_DESTINATIONS = ['/me/search', '/me/notifications', '/me/help'];
+
 async function navDestinations(page: Page): Promise<string[]> {
   await settle(page);
   const nav = page.getByRole('navigation', { name: 'Main navigation' });
   await expect(nav.getByRole('link').first()).toBeVisible();
+  // Open every collapsed section (DD-48), so each destination is visited.
+  const closed = nav.locator('button[aria-expanded="false"]');
+  while ((await closed.count()) > 0) {
+    await closed.first().click();
+  }
   const hrefs = await nav
     .getByRole('link')
     .evaluateAll((links) => links.map((link) => link.getAttribute('href') ?? ''));
-  return [...new Set(hrefs.filter((href) => href.startsWith('/')))];
+  return [...new Set([...hrefs.filter((href) => href.startsWith('/')), ...TOPBAR_DESTINATIONS])];
 }
 
 test.describe('accessibility sweep', () => {

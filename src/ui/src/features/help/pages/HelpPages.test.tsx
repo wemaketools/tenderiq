@@ -50,11 +50,10 @@ describe('HelpCentrePage (COM-09)', () => {
   });
 
   it('opens a case for the chosen organization only after the acknowledgement', async () => {
-    // The top bar's "Open a case" section action opens the dialog through ?new=1 (DD-46).
-    const { requests } = centre(
-      { [`POST ${M}/support-cases`]: () => ({ status: 201, body: myCase() }) },
-      '/me/help?new=1',
-    );
+    const { requests } = centre({
+      [`POST ${M}/support-cases`]: () => ({ status: 201, body: myCase() }),
+    });
+    await userEvent.click(await screen.findByRole('button', { name: 'Open a case' }));
     const dialog = await screen.findByRole('dialog');
     await userEvent.selectOptions(within(dialog).getByLabelText(/^Concerns/), 'usage');
     await userEvent.type(within(dialog).getByLabelText(/^Subject/), 'Cannot find the addendum');

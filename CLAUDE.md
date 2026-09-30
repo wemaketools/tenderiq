@@ -6,7 +6,7 @@ TenderIQ ("Tender Intelligence") is a multi-organization tender management web a
 
 Read before writing anything, in this order of precedence:
 
-1. `docs/plan/design-decisions.md`: decision log DD-01 … DD-47 (DD-38 withdrawn). It amends everything below and wins on conflict.
+1. `docs/plan/design-decisions.md`: decision log DD-01 … DD-48 (DD-38 withdrawn). It amends everything below and wins on conflict.
 2. `docs/plan/architecture-plan.md`: stages (§0), contracts (§3.10), prototype mode (§3.11), layout and URL map (§4), file ownership (§5), design system (§7).
 3. `docs/architecture-brief.md`: technical conventions, followed literally unless the plan (§11) records an approved deviation.
 4. `docs/plan/schema-blueprint.md` (tables, enums, permission codes), `docs/plan/demo-storyline.md` (the single demo world), `docs/PRD.md` (business requirements; screen tables are binding for UI).

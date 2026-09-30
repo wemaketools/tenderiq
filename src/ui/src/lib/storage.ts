@@ -1,6 +1,7 @@
 /**
- * localStorage for conveniences only (DD-36): the remembered active tenant per user and the last theme. Nothing
- * here is trusted: the active tenant is re-validated by /me/context and the API checks X-Tenant-Id on every call.
+ * localStorage for conveniences only (DD-36): the remembered active tenant per user, the last theme and the open
+ * sidebar sections (DD-48). Nothing here is trusted: the active tenant is re-validated by /me/context and the API
+ * checks X-Tenant-Id on every call.
  * Every access is guarded, because storage can be unavailable (private mode, blocked site data).
  */
 
@@ -49,4 +50,29 @@ export function readStoredTheme(): StoredTheme | null {
 
 export function storeTheme(theme: StoredTheme): void {
   write('theme', theme);
+}
+
+/** Sidebar sections the user opened (`true`) or closed (`false`) (DD-48); unknown or malformed values are ignored. */
+export function readNavSections(): Record<string, boolean> {
+  const raw = read('nav.sections');
+  if (raw === null) {
+    return {};
+  }
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return {};
+    }
+    return Object.fromEntries(
+      Object.entries(parsed).filter(
+        (entry): entry is [string, boolean] => typeof entry[1] === 'boolean',
+      ),
+    );
+  } catch {
+    return {};
+  }
+}
+
+export function storeNavSections(sections: Readonly<Record<string, boolean>>): void {
+  write('nav.sections', JSON.stringify(sections));
 }

@@ -1,6 +1,6 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { FeatureModule } from '../../app/featureRegistry';
 import { notificationCountsLoaded, navBadgeSet, taskCountsLoaded } from '../../app/slices/badges';
@@ -109,6 +109,145 @@ describe('Sidebar', () => {
     expect(
       await within(nav).findByRole('link', { name: 'Help and support, 4 waiting' }),
     ).toBeInTheDocument();
+  });
+});
+
+describe('Sidebar sections (DD-48)', () => {
+  const grouped: FeatureModule[] = [
+    {
+      id: 'grouped',
+      area: 'buyer',
+      routes: [],
+      nav: [
+        {
+          id: 'b.home',
+          label: 'shell.brand.sub',
+          path: 'overview',
+          section: 'home',
+          order: 1,
+          icon: 'dashboard',
+        },
+        {
+          id: 'b.tasks',
+          label: 'shell.topbar.tasks',
+          path: 'tasks',
+          section: 'work',
+          order: 1,
+          icon: 'checkSquare',
+        },
+        {
+          id: 'b.docs',
+          label: 'shell.user.profile',
+          path: 'docs',
+          section: 'work',
+          order: 2,
+          icon: 'folder',
+        },
+        {
+          id: 'b.tenders',
+          label: 'shell.user.switch',
+          path: 'tenders',
+          section: 'sourcing',
+          order: 1,
+          icon: 'fileText',
+        },
+        {
+          id: 'b.clar',
+          label: 'shell.topbar.help',
+          path: 'clarifications',
+          section: 'sourcing',
+          order: 2,
+          icon: 'messageQuestion',
+          badge: { navBadgeId: 'clar' },
+        },
+        {
+          id: 'b.users',
+          label: 'shell.user.signOut',
+          path: 'admin/users',
+          section: 'admin',
+          order: 1,
+          icon: 'users',
+          badge: { navBadgeId: 'users' },
+        },
+        {
+          id: 'b.policy',
+          label: 'shell.user.menu',
+          path: 'admin/policy',
+          section: 'admin',
+          order: 2,
+          icon: 'settings',
+        },
+      ],
+    },
+  ];
+
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
+  function heading(name: string | RegExp) {
+    return screen.getByRole('button', { name });
+  }
+
+  it('opens the current page section and My work, closes the others and totals their badges', async () => {
+    const { store } = renderWithProviders(<Sidebar tenant={makeTenant()} modules={grouped} />, {
+      state: { session: signedInSession() },
+      route: '/buyer/tenders/5',
+    });
+    store.dispatch(navBadgeSet({ id: 'users', count: 4 }));
+    store.dispatch(navBadgeSet({ id: 'clar', count: 2 }));
+
+    expect(heading('Sourcing')).toHaveAttribute('aria-expanded', 'true');
+    expect(heading('My work')).toHaveAttribute('aria-expanded', 'true');
+    expect(
+      await screen.findByRole('button', { name: 'Administration, 4 waiting' }),
+    ).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByRole('link', { name: 'Switch organization' })).toBeVisible();
+    expect(screen.queryByRole('link', { name: 'Sign out, 4 waiting' })).not.toBeInTheDocument();
+    // A single destination needs no heading.
+    expect(screen.queryByRole('button', { name: 'Home' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Tender Intelligence' })).toBeVisible();
+  });
+
+  it('opens a closed section on its heading and remembers it', async () => {
+    const first = renderWithProviders(<Sidebar tenant={makeTenant()} modules={grouped} />, {
+      state: { session: signedInSession() },
+      route: '/buyer/tenders',
+    });
+    await userEvent.click(heading('Administration'));
+    expect(heading('Administration')).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('link', { name: 'Account menu' })).toBeVisible();
+    await userEvent.click(heading('My work'));
+    expect(heading('My work')).toHaveAttribute('aria-expanded', 'false');
+    first.unmount();
+
+    renderWithProviders(<Sidebar tenant={makeTenant()} modules={grouped} />, {
+      state: { session: signedInSession() },
+      route: '/buyer/tenders',
+    });
+    expect(heading('Administration')).toHaveAttribute('aria-expanded', 'true');
+    expect(heading('My work')).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('closes the current section only until the user moves to another page', async () => {
+    const { router } = renderWithProviders(<Sidebar tenant={makeTenant()} modules={grouped} />, {
+      state: { session: signedInSession() },
+      route: '/buyer/tenders',
+    });
+    await userEvent.click(heading('Sourcing'));
+    expect(heading('Sourcing')).toHaveAttribute('aria-expanded', 'false');
+
+    await act(() => router.navigate('/buyer/tenders/5'));
+    expect(heading('Sourcing')).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('shows every destination without headings in the icon rail', () => {
+    renderWithProviders(<Sidebar tenant={makeTenant()} modules={grouped} rail />, {
+      state: { session: signedInSession() },
+      route: '/buyer/tenders',
+    });
+    expect(screen.queryByRole('button', { name: 'Administration' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Account menu' })).toBeVisible();
   });
 });
 

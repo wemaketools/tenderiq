@@ -15,17 +15,7 @@ export const features: FeatureModule[] = [
         title: 'notifications.center.title',
       },
     ],
-    nav: [
-      {
-        id: 'me.notifications',
-        label: 'notifications.nav.center',
-        path: 'notifications',
-        section: 'work',
-        order: 30,
-        icon: 'bell',
-        badge: 'notifications',
-      },
-    ],
+    // No sidebar entry: the top bar bell, with the unread count, leads here (DD-48).
   },
   {
     id: 'notification-rules',

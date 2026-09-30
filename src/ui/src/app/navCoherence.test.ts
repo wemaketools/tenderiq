@@ -71,10 +71,26 @@ describe('sidebar coherence', () => {
   });
 
   it.each(KINDS)(
-    'keeps the personal and help destinations of a %s sidebar at the end of the administration section',
+    'keeps the personal destinations of a %s sidebar at the end of the administration section',
     (kind) => {
       const admin = sidebar(kind).find((group) => group.section === 'admin');
-      expect(admin?.items.at(-1)?.to).toBe('/me/help');
+      expect(admin?.items.at(-1)?.to).toMatch(/^\/me\//);
+    },
+  );
+
+  it.each(KINDS)(
+    'leaves search, notifications and help of a %s organization to the top bar and names every section (DD-48)',
+    (kind) => {
+      const groups = sidebar(kind);
+      const destinations = groups.flatMap((group) => group.items.map((item) => item.to));
+      expect(destinations).not.toContain('/me/search');
+      expect(destinations).not.toContain('/me/notifications');
+      expect(destinations).not.toContain('/me/help');
+      expect(
+        groups
+          .map((group) => `shell.nav.section.${group.section}`)
+          .filter((key) => !hasTranslation(key)),
+      ).toEqual([]);
     },
   );
 

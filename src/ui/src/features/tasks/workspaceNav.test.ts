@@ -33,11 +33,10 @@ function route(area: string, path: string) {
 }
 
 describe('workspace navigation', () => {
-  it('shows the personal inbox, notifications and documents to every account holder', () => {
+  it('shows the personal inbox and documents to every account holder, notifications only in the top bar (DD-48)', () => {
     for (const kind of ['buyer', 'supplier', 'operator'] as const) {
-      expect(navIds(kind, [])).toEqual(
-        expect.arrayContaining(['me.tasks', 'me.notifications', 'me.documents']),
-      );
+      expect(navIds(kind, [])).toEqual(expect.arrayContaining(['me.tasks', 'me.documents']));
+      expect(navIds(kind, [])).not.toContain('me.notifications');
     }
   });
 

@@ -51,14 +51,16 @@ export const TENANT_KIND_AREA: Readonly<Record<TenantKind, 'buyer' | 'supplier' 
 export type PermissionRequirement = PermissionCode | readonly [PermissionCode, ...PermissionCode[]];
 
 /**
- * Sidebar sections, in display order. The shell draws a separator before `admin`. Section headings are not shown
- * (the reference sidebar has none); sections group related destinations.
+ * Sidebar sections, in display order (DD-48). Each section with more than one destination has a collapsible
+ * heading (`shell.nav.section.<id>`); the section of the current page is always open. The shell draws a separator
+ * before `admin`.
  */
 export const NAV_SECTIONS = [
   'home',
   'work',
   'planning',
   'sourcing',
+  'responding',
   'evaluation',
   'award',
   'contracts',

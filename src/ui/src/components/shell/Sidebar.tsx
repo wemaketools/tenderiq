@@ -3,17 +3,28 @@
  * and "Tender Intelligence"; navigation built from the feature registry for the active organization's kind and
  * permissions, grouped by section with a separator before the admin group; the user card at the bottom.
  * Below 1280px it collapses to an icon rail, below 768px it is a drawer (DD-36).
+ *
+ * Sections (DD-48): a section with more than one destination has a heading that opens and closes it. The section of
+ * the current page is always open (closing it lasts until the user moves to another page); the others remember what
+ * the user chose, and "My work" starts open. A closed section shows the total of its badges on its heading. The icon
+ * rail has no room for headings, so it shows every destination.
  */
-import { Fragment } from 'react';
-import { NavLink } from 'react-router';
+import { Fragment, useState } from 'react';
+import { NavLink, useLocation } from 'react-router';
 
 import type { ActiveTenantContext } from '@contracts/session';
 
-import { features, navGroupsFor } from '../../app/featureRegistry';
-import type { FeatureModule, NavBadgeSource, ResolvedNavItem } from '../../app/featureRegistry';
+import { activeNavItem, features, navGroupsFor } from '../../app/featureRegistry';
+import type {
+  FeatureModule,
+  NavBadgeSource,
+  NavGroup,
+  ResolvedNavItem,
+} from '../../app/featureRegistry';
 import { useAppSelector } from '../../app/hooks';
 import type { RootState } from '../../app/store';
 import { t } from '../../lib/i18n';
+import { readNavSections, storeNavSections } from '../../lib/storage';
 import { Icon } from '../ui/Icon';
 import { UserCard } from './UserCard';
 
@@ -24,7 +35,12 @@ export interface SidebarProps {
   readonly id?: string;
   /** The feature modules to build the navigation from (default: the registry). */
   readonly modules?: readonly FeatureModule[];
+  /** True for the icon rail (1280px down to 768px): no section headings, every destination shown. */
+  readonly rail?: boolean;
 }
+
+/** Sections open until the user closes them. */
+const OPEN_BY_DEFAULT: ReadonlySet<string> = new Set(['work']);
 
 function badgeCount(source: NavBadgeSource | undefined, state: RootState): number | null {
   if (source === undefined) return null;
@@ -32,6 +48,10 @@ function badgeCount(source: NavBadgeSource | undefined, state: RootState): numbe
   if (source === 'tasks') return state.badges.me.tasksOpen;
   if (source === 'tasksOverdue') return state.badges.me.tasksOverdue;
   return state.badges.nav[source.navBadgeId] ?? null;
+}
+
+function countText(count: number): string {
+  return count > 99 ? '99+' : String(count);
 }
 
 function NavEntry({
@@ -61,7 +81,7 @@ function NavEntry({
         <span className="tiq-nav-label">{label}</span>
         {count !== null && count > 0 && (
           <span className="tiq-nav-badge" aria-hidden="true">
-            {count > 99 ? '99+' : count}
+            {countText(count)}
           </span>
         )}
       </NavLink>
@@ -69,11 +89,92 @@ function NavEntry({
   );
 }
 
-export function Sidebar({ tenant, onNavigate, id, modules = features }: SidebarProps) {
+function NavSection({
+  group,
+  collapsible,
+  open,
+  onToggle,
+  onNavigate,
+}: {
+  readonly group: NavGroup;
+  readonly collapsible: boolean;
+  readonly open: boolean;
+  readonly onToggle: () => void;
+  readonly onNavigate?: () => void;
+}) {
+  const total = useAppSelector((state) =>
+    group.items.reduce((sum, item) => sum + (badgeCount(item.badge, state) ?? 0), 0),
+  );
+  const label = t(`shell.nav.section.${group.section}`);
+  const listId = `tiq-nav-section-${group.section}`;
+  const list = (
+    <ul id={listId} className="tiq-nav-section" aria-label={label} hidden={collapsible && !open}>
+      {group.items.map((item) => (
+        <NavEntry key={item.id} item={item} onNavigate={onNavigate} />
+      ))}
+    </ul>
+  );
+  if (!collapsible) {
+    return list;
+  }
+  return (
+    <div className="tiq-nav-group">
+      <button
+        type="button"
+        className="tiq-nav-heading"
+        aria-expanded={open}
+        aria-controls={listId}
+        aria-label={
+          !open && total > 0 ? t('shell.nav.labelWithBadge', { label, count: total }) : label
+        }
+        onClick={onToggle}
+      >
+        <span className="tiq-nav-heading-label">{label}</span>
+        {!open && total > 0 && (
+          <span className="tiq-nav-badge" aria-hidden="true">
+            {countText(total)}
+          </span>
+        )}
+        <Icon name={open ? 'chevronDown' : 'chevronRight'} />
+      </button>
+      {list}
+    </div>
+  );
+}
+
+export function Sidebar({
+  tenant,
+  onNavigate,
+  id,
+  modules = features,
+  rail = false,
+}: SidebarProps) {
+  const location = useLocation();
+  const [stored, setStored] = useState<Record<string, boolean>>(readNavSections);
+  // Closing the current page's section lasts while the user stays on that page.
+  const [closedHere, setClosedHere] = useState<string | null>(null);
   const groups = navGroupsFor(modules, {
     tenantKind: tenant.kind,
     permissions: tenant.permissions,
   });
+  const activeSection = activeNavItem(groups, location.pathname)?.section ?? null;
+  const hereKey = (section: string): string => `${section}|${location.pathname}`;
+
+  const isOpen = (section: string): boolean =>
+    section === activeSection
+      ? closedHere !== hereKey(section)
+      : (stored[section] ?? OPEN_BY_DEFAULT.has(section));
+  const toggle = (section: string): void => {
+    const open = isOpen(section);
+    if (section === activeSection) {
+      setClosedHere(open ? hereKey(section) : null);
+      return;
+    }
+    const next = { ...stored, [section]: !open };
+    setStored(next);
+    storeNavSections(next);
+  };
+
   return (
     <aside className="tiq-sidebar" id={id} aria-label={t('shell.sidebar.label')}>
       <div className="tiq-brand">
@@ -93,11 +194,13 @@ export function Sidebar({ tenant, onNavigate, id, modules = features }: SidebarP
         {groups.map((group) => (
           <Fragment key={group.section}>
             {group.section === 'admin' && <hr className="tiq-sidebar-sep" />}
-            <ul className="tiq-nav-section" aria-label={t(`shell.nav.section.${group.section}`)}>
-              {group.items.map((item) => (
-                <NavEntry key={item.id} item={item} onNavigate={onNavigate} />
-              ))}
-            </ul>
+            <NavSection
+              group={group}
+              collapsible={!rail && group.items.length > 1}
+              open={isOpen(group.section)}
+              onToggle={() => toggle(group.section)}
+              onNavigate={onNavigate}
+            />
           </Fragment>
         ))}
       </nav>

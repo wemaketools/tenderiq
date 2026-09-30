@@ -111,6 +111,11 @@ export default function HelpCentrePage() {
             {t('help.accommodation.open')}
           </Button>
         }
+        primaryAction={
+          <Button variant="primary" icon="lifeBuoy" onClick={() => setOpeningCase(true)}>
+            {t('help.cases.open.open')}
+          </Button>
+        }
       />
       <Banner tone="warning" title={t('help.notChannelTitle')}>
         <p>{t('help.notChannel')}</p>

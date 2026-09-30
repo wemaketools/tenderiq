@@ -14,7 +14,7 @@ import { activeNavItem, features, navGroupsFor } from '../../app/featureRegistry
 import type { FeatureModule, ResolvedSectionAction } from '../../app/featureRegistry';
 import { useActiveTenant } from '../../app/hooks';
 import { t } from '../../lib/i18n';
-import { DRAWER_QUERY, useMediaQuery } from '../../lib/useMediaQuery';
+import { DRAWER_QUERY, RAIL_QUERY, useMediaQuery } from '../../lib/useMediaQuery';
 import { MAIN_REGION_ID } from '../ui/focusReturn';
 import { PageSlotsContext } from '../ui/pageSlots';
 import type { PageSlots } from '../ui/pageSlots';
@@ -37,6 +37,7 @@ export function AppShell({ modules = features }: { readonly modules?: readonly F
   const tenant = useActiveTenant();
   const location = useLocation();
   const drawerMode = useMediaQuery(DRAWER_QUERY);
+  const railMode = useMediaQuery(RAIL_QUERY) && !drawerMode;
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [titleSlot, setTitleSlot] = useState<HTMLElement | null>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
@@ -95,6 +96,7 @@ export function AppShell({ modules = features }: { readonly modules?: readonly F
           id={SIDEBAR_ID}
           tenant={tenant}
           modules={modules}
+          rail={railMode}
           onNavigate={drawerMode ? closeAfterNavigation : undefined}
         />
         {open && (

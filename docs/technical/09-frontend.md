@@ -212,7 +212,7 @@ flowchart LR
     S1["Tenant label - KALAHARI WATER UTILITIES (PILOT)"]
     S2["Wordmark - Tender plus accent IQ"]
     S3["Sub-brand - Tender Intelligence"]
-    S4["Nav sections - line icon, label, accent pill when active, count badge"]
+    S4["Nav sections - collapsible headings, line icon, label, accent pill when active, count badge"]
     S5["Separator"]
     S6["Admin nav group"]
     S7["User card - initials, name, organization - menu: switch organization, profile, theme, sign out"]
@@ -697,7 +697,7 @@ The SPA registers **284 feature routes** in 50 feature modules (34 feature direc
 
 ### 8.2 As-built navigation
 
-The sidebar shows the items of the active organization's area plus the `common` items, filtered by the active membership's permissions (any of the listed codes) and, for two `common` items, by tenant kind. Sections render in the order `home`, `work`, `planning`, `sourcing`, `evaluation`, `award`, `contracts`, `suppliers`, `insights`, `platform`, then a separator and `admin`; section headings are not shown, as in the reference sidebar. Items sort by `order` inside a section. The top bar's search, notification bell and help link reach `/me/search`, `/me/notifications` and `/me/help`. Badges: `open tasks` and `unread notifications` come from the `badges` slice (`/me` summaries, across all memberships); a `feature count` is reported by the feature for the active organization (open clarification questions).
+The sidebar shows the items of the active organization's area plus the `common` items, filtered by the active membership's permissions (any of the listed codes) and, for two `common` items, by tenant kind. Sections render in the order `home`, `work`, `planning`, `sourcing`, `responding`, `evaluation`, `award`, `contracts`, `suppliers`, `insights`, `platform`, then a separator and `admin`. Items sort by `order` inside a section. Section headings (DD-48): a section with more than one destination has a heading button ("My work", "Requests and planning", "Sourcing", "Responses and assessment", "Opening and evaluation", "Selection and award", "Suppliers", "Reports and records", "Platform operations", "Administration") that opens and closes it. The section of the current page is always open (closing it lasts until the next page), "My work" starts open, the others start closed and remember the user's choice in local storage (`tiq.nav.sections`), and a closed heading shows the total of its badges. The icon rail shows every destination without headings. Search, notifications and help have no sidebar entry: the top bar's search box, bell and help icon reach `/me/search`, `/me/notifications` and `/me/help`. Badges: `open tasks` and `unread notifications` come from the `badges` slice (`/me` summaries, across all memberships); a `feature count` is reported by the feature for the active organization (open clarification questions).
 
 | Area | Section | Order | Destination | Nav item id | Shown when the membership holds (any of) | Badge |
 |---|---|---|---|---|---|---|
@@ -714,7 +714,7 @@ The sidebar shows the items of the active organization's area plus the `common` 
 | buyer | evaluation | 30 | `/buyer/bid-clarifications` | `buyer.bidClarifications` | `compliance.assess` or `evaluation.chair` or `exclusion.approve` or `evaluation.score` | — |
 | buyer | evaluation | 40 | `/buyer/evaluation/assignments` | `buyer.evaluation.assignments` | `evaluation.score` or `evaluation.commercial` or `evaluation.chair` | — |
 | buyer | evaluation | 50 | `/buyer/evaluation` | `buyer.evaluation.evaluations` | `evaluation.chair` or `evaluation.score` or `evaluation.commercial` or `evaluation.moderate` or `evaluation.signoff` or `award.recommend` or `award.approve` | — |
-| buyer | evaluation | 60 | `/buyer/selection` | `buyer.selection` | `selection.manage` or `shortlist.approve` or `diligence.manage` or `negotiation.conduct` or `negotiation.approve` or `award.approve` or `audit.view` or `evaluation.chair` or `evaluation.score` | — |
+| buyer | award | 5 | `/buyer/selection` | `buyer.selection` | `selection.manage` or `shortlist.approve` or `diligence.manage` or `negotiation.conduct` or `negotiation.approve` or `award.approve` or `audit.view` or `evaluation.chair` or `evaluation.score` | — |
 | buyer | award | 10 | `/buyer/awards` | `buyer.awards` | `award.recommend` or `award.approve` or `notice.issue` or `event.closeout` or `audit.view` | — |
 | buyer | award | 20 | `/buyer/award-cases` | `buyer.award-cases` | `complaint.manage` or `debrief.manage` or `audit.view` | — |
 | buyer | award | 30 | `/buyer/closeout` | `buyer.closeout` | `event.closeout` or `award.recommend` or `audit.view` | — |
@@ -738,10 +738,10 @@ The sidebar shows the items of the active organization's area plus the `common` 
 | supplier | sourcing | 30 | `/supplier/pursuits` | `supplier.pursuits` | `supplier.pursuit.manage` or `supplier.opportunities.view` | — |
 | supplier | sourcing | 40 | `/supplier/clarifications` | `supplier.clarifications` | `supplier.opportunities.view` | feature count |
 | supplier | sourcing | 45 | `/supplier/briefings` | `supplier.briefings` | `supplier.opportunities.view` | — |
-| supplier | sourcing | 50 | `/supplier/responses` | `supplier.responses` | `supplier.response.edit` or `supplier.pricing.edit` or `supplier.response.approve` or `supplier.response.submit` | — |
-| supplier | sourcing | 55 | `/supplier/receipts` | `supplier.receipts` | `supplier.response.edit` or `supplier.pricing.edit` or `supplier.response.approve` or `supplier.response.submit` or `supplier.outcomes.view` | — |
-| supplier | sourcing | 60 | `/supplier/assessment-requests` | `supplier.assessmentRequests` | `supplier.response.edit` or `supplier.response.approve` or `supplier.response.submit` or `supplier.outcomes.view` | — |
-| supplier | sourcing | 70 | `/supplier/assessment-invites` | `supplier.selection.invites` | `supplier.opportunities.view` | — |
+| supplier | responding | 50 | `/supplier/responses` | `supplier.responses` | `supplier.response.edit` or `supplier.pricing.edit` or `supplier.response.approve` or `supplier.response.submit` | — |
+| supplier | responding | 55 | `/supplier/receipts` | `supplier.receipts` | `supplier.response.edit` or `supplier.pricing.edit` or `supplier.response.approve` or `supplier.response.submit` or `supplier.outcomes.view` | — |
+| supplier | responding | 60 | `/supplier/assessment-requests` | `supplier.assessmentRequests` | `supplier.response.edit` or `supplier.response.approve` or `supplier.response.submit` or `supplier.outcomes.view` | — |
+| supplier | responding | 70 | `/supplier/assessment-invites` | `supplier.selection.invites` | `supplier.opportunities.view` | — |
 | supplier | award | 10 | `/supplier/outcomes` | `supplier.outcomes` | `supplier.outcomes.view` | — |
 | supplier | award | 20 | `/supplier/negotiations` | `supplier.selection.negotiations` | `supplier.outcomes.view` or `supplier.pricing.edit` | — |
 | supplier | award | 30 | `/supplier/complaints` | `supplier.complaints` | `supplier.complaint.submit` or `supplier.outcomes.view` | — |
@@ -763,12 +763,9 @@ The sidebar shows the items of the active organization's area plus the `common` 
 | ops | platform | 82 | `/ops/supplier-identity-changes` | `ops.supplierIdentityChanges` | `ops.customers.manage` | — |
 | common | work | 10 | `/me/tasks` | `me.tasks` | — | open tasks |
 | common | work | 20 | `/me/approvals` | `me.approvals` | — (buyer memberships only) | — |
-| common | work | 30 | `/me/notifications` | `me.notifications` | — | unread notifications |
 | common | work | 40 | `/me/documents` | `me.documents` | — | — |
-| common | work | 90 | `/me/search` | `me.search` | — | — |
 | common | admin | 90 | `/me/memberships` | `me.memberships` | — | — |
 | common | admin | 92 | `/me/membership-requests` | `me.supplierMembershipRequests` | — (supplier memberships only) | — |
-| common | admin | 95 | `/me/help` | `me.help` | — | — |
 
 ## 9. State management
 
@@ -1013,5 +1010,5 @@ Formatting uses the platform `Intl` API in `lib/format`; no date library is appr
 - [12-traceability.md](12-traceability.md): screens to FR, BR and AC.
 - [13-delivery-and-resilience.md](13-delivery-and-resilience.md): Stage A, approval gate, Stage B.
 - [adr/0006-contracts-first-ui-prototype-stage.md](adr/0006-contracts-first-ui-prototype-stage.md), [adr/0010-no-icon-or-pdf-dependencies.md](adr/0010-no-icon-or-pdf-dependencies.md), [adr/0005-decimal-strings-for-money-and-scores.md](adr/0005-decimal-strings-for-money-and-scores.md), [adr/0001-tenancy-equals-organization.md](adr/0001-tenancy-equals-organization.md), [adr/0012-supplier-registration-via-provisioned-accounts.md](adr/0012-supplier-registration-via-provisioned-accounts.md).
-- [../plan/design-decisions.md](../plan/design-decisions.md): the decision log (DD-01 … DD-47); DD-32 to DD-37, DD-43 and DD-46 shape this document, and DD-38 is withdrawn.
+- [../plan/design-decisions.md](../plan/design-decisions.md): the decision log (DD-01 … DD-48); DD-32 to DD-37, DD-43 and DD-46 shape this document, and DD-38 is withdrawn.
 - [glossary.md](glossary.md).

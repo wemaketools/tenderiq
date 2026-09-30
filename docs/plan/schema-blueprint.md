@@ -1,6 +1,6 @@
 # TenderIQ — Supabase / PostgreSQL 17 Schema Blueprint
 
-Status: APPROVED 2026-09-29 (amended by `design-decisions.md` DD-01 … DD-47 (DD-38 withdrawn, superseded by DD-43)). This is the contract the Stage B schema agents turn into SQL; the Stage A contracts mirror its field names and enumerations. Wave 3 domain agents code against the generated types. Additive changes during Wave 3 go in reserved migration slots (see architecture-plan §5).
+Status: APPROVED 2026-09-29 (amended by `design-decisions.md` DD-01 … DD-48 (DD-38 withdrawn, superseded by DD-43)). This is the contract the Stage B schema agents turn into SQL; the Stage A contracts mirror its field names and enumerations. Wave 3 domain agents code against the generated types. Additive changes during Wave 3 go in reserved migration slots (see architecture-plan §5).
 
 ## 0. Conventions (apply to every table unless stated)
 
@@ -10,7 +10,7 @@ Status: APPROVED 2026-09-29 (amended by `design-decisions.md` DD-01 … DD-47 (D
 - **Forward FKs (DD-01):** a column that references a table created in a later migration stays a plain bigint. The later migration adds the FK with ALTER TABLE. Same-migration cycles are added at the end of that migration as DEFERRABLE INITIALLY DEFERRED. There are no FKs from partitioned `audit_log`.
 - **Nullable unique keys (DD-02):** every unique constraint that includes a nullable column uses `UNIQUE NULLS NOT DISTINCT`.
 - **Additional unique keys (DD-07):** qualification_program_versions (program_id, version_no); participant_lot_selections (participant_id, lot_id); addendum_lots (addendum_id, lot_id); session_registrations (session_id, supplier_tenant_id) WHERE status <> 'cancelled'; scale_anchors (plan_id, value); tie_break_rules (plan_id, sequence); release_checks (tender_id, check_area, draft_revision); publications (tender_id, version_no, channel); change_requests (contract_id, number).
-- **Design decision log:** `docs/plan/design-decisions.md` (DD-01 … DD-47 (DD-38 withdrawn, superseded by DD-43)) amends this blueprint. Where the two disagree, the log wins.
+- **Design decision log:** `docs/plan/design-decisions.md` (DD-01 … DD-48 (DD-38 withdrawn, superseded by DD-43)) amends this blueprint. Where the two disagree, the log wins.
 - Standard columns ("std"): `id bigint generated always as identity primary key`, `created_at timestamptz not null default now()`, `created_by bigint references users(id)` (nullable = system). "mut" adds `updated_at timestamptz not null default now()` (maintained by the `set_updated_at()` trigger).
 - Enumerations are `text` + a named `CHECK (col in (...))` constraint (forward-only migrations can widen a CHECK). PG enum types are not used.
 - Money is `numeric(18,2)`. Quantities are `numeric(18,4)`. Scores, rates, and weights are `numeric(12,6)`. Currency is `char(3)` with CHECK `~ '^[A-Z]{3}$'`.

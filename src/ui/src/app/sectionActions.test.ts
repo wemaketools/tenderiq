@@ -112,7 +112,6 @@ const EXPECTED: readonly Expected[] = [
     to: '/select-organization',
     requires: null,
   },
-  { kind: 'buyer', nav: 'me.help', label: 'Open a case', to: '/me/help?new=1', requires: null },
   {
     kind: 'supplier',
     nav: 'supplier.invitations',

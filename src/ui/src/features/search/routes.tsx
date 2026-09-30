@@ -16,16 +16,6 @@ export const features: FeatureModule[] = [
         title: 'search.title',
       },
     ],
-    nav: [
-      {
-        id: 'me.search',
-        label: 'search.nav.search',
-        path: 'search',
-        section: 'work',
-        order: 90,
-        icon: 'search',
-        end: true,
-      },
-    ],
+    // No sidebar entry: the top bar search box leads here (DD-48).
   },
 ];

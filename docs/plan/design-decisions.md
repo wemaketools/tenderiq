@@ -110,6 +110,23 @@ Owner review of BUY-12 ("set a coherent schedule"). It completes the timetable r
 - **Lots.** A lot's timetable is the tender's dates with the lot's own dates in their place, so a lot's opening is checked against the lot's own submission deadline, or the tender's when the lot has none.
 - **One rule.** One issue code, `MILESTONE_ORDER` (blocking), replaces the pairwise codes (`QUESTIONS_AFTER_SUBMISSION`, `SITE_VISIT_AFTER_SUBMISSION`, `OPENING_BEFORE_SUBMISSION`, `AWARD_BEFORE_OPENING`, `CONTRACT_START_BEFORE_AWARD`, `RELEASE_AFTER_QUESTIONS_DEADLINE`). Its message names the milestone and the latest one it must follow. The same function (`milestoneOrderViolations`) backs the 422 validation and the live coherence checks.
 
+### DD-48 — Sidebar sections with collapsible headings; no sidebar entries for the top bar's destinations (2026-09-30)
+
+Owner review: a membership with many permissions had about 37 sidebar links in one unlabelled list. It amends architecture-plan §7 and docs/technical/09-frontend.md §5 and §8.2 (the reference sidebar had no headings).
+- **Headings.** Each sidebar section with more than one destination has a heading button that opens and closes it: My work, Requests and planning, Sourcing, Responses and assessment, Opening and evaluation, Selection and award, Suppliers, Reports and records, Platform operations and Administration. A section with a single destination (Overview, Contracts) shows only its link.
+- **Open and closed.**
+  - The section of the current page is always open; closing it lasts until the next page.
+  - "My work" starts open; the other sections start closed.
+  - The user's choices are remembered in local storage (`tiq.nav.sections`, a per-viewer convenience).
+  - A closed heading shows the total of its badges and announces it ("Sourcing, 7 waiting").
+  - The icon rail (1280px down to 768px) has no room for headings and shows every destination.
+- **Regrouping.**
+  - Selection moves from the evaluation section into "Selection and award".
+  - The evaluation section is named "Opening and evaluation".
+  - The supplier's Responses, Receipts, Assessment requests and Assessment appointments form a new section, "Responses and assessment" (`responding`), leaving Sourcing with finding and preparing for opportunities.
+- **Duplicates removed.** Search, Notifications and Help have no sidebar entry; the top bar's search box, bell (with the unread count) and help icon reach them. Tasks stays in "My work". The Help centre's "Open a case" becomes the page's primary action, because Help no longer has a section action.
+- Tests: `shell.test.tsx` (sections), `navCoherence.test.ts`, Playwright `shell.spec.ts`. The accessibility sweep opens every section and adds the three top bar destinations.
+
 ## E. Owner decisions
 
 Status after the owner review of 2026-09-29 (details in architecture-plan §11):

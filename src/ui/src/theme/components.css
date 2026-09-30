@@ -493,6 +493,50 @@ button:disabled {
   background: var(--tiq-on-solid);
   color: var(--tiq-accent-fill);
 }
+/* Collapsible section headings (DD-48): small uppercase labels, quieter than the destinations below them. */
+.tiq-nav-group {
+  display: flex;
+  flex-direction: column;
+}
+.tiq-nav-heading {
+  display: flex;
+  align-items: center;
+  gap: var(--tiq-space-2);
+  margin: var(--tiq-space-2) var(--tiq-space-2) var(--tiq-space-0-5);
+  padding: var(--tiq-space-1-5) var(--tiq-space-3);
+  border: none;
+  border-radius: var(--tiq-radius-control);
+  background: transparent;
+  color: var(--tiq-text-on-sidebar);
+  font: inherit;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: left;
+  cursor: pointer;
+}
+.tiq-nav-heading:hover {
+  background: var(--tiq-sidebar-hover);
+  color: var(--tiq-sidebar-text-strong);
+}
+.tiq-nav-heading-label {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tiq-nav-heading .tiq-icon {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+.tiq-nav-heading .tiq-nav-badge {
+  margin-left: 0;
+  font-size: 10.5px;
+  letter-spacing: 0;
+}
 .tiq-sidebar-sep {
   border: none;
   border-top: 1px solid var(--tiq-sidebar-separator);

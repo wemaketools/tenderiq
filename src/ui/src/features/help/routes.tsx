@@ -22,21 +22,7 @@ export const features: FeatureModule[] = [
         title: 'help.case.title',
       },
     ],
-    nav: [
-      {
-        id: 'me.help',
-        label: 'help.nav.help',
-        path: 'help',
-        section: 'admin',
-        order: 95,
-        icon: 'help',
-        sectionAction: {
-          label: 'help.cases.open.open',
-          path: 'help?new=1',
-          icon: 'lifeBuoy',
-        },
-      },
-    ],
+    // No sidebar entry: the top bar help icon leads here (DD-48).
   },
   {
     id: 'help-public',
