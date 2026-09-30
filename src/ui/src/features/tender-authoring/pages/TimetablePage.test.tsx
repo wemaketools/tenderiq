@@ -99,4 +99,56 @@ describe('TimetablePage (BUY-12)', () => {
     expect(within(editor).getByRole('list', { name: 'Coherence checks' })).toBeInTheDocument();
     expect(within(editor).getAllByText(/next working day/).length).toBeGreaterThan(0);
   });
+
+  it('offers each milestone once per scope, in the order milestones occur', async () => {
+    installFetch(routes());
+    renderPage(<TimetablePage />, { route: ROUTE, path: PATH });
+    await userEvent.click(await screen.findByRole('button', { name: 'Edit timetable' }));
+    const editor = screen.getByTestId('timetable-editor');
+    expect(
+      within(editor).getByText(/^Dates must follow the order of the tender/),
+    ).toBeInTheDocument();
+
+    await userEvent.click(within(editor).getByRole('button', { name: 'Add milestone' }));
+    const added = within(editor).getByRole('group', { name: 'Milestone 6' });
+    const offered = within(within(added).getByLabelText(/^Milestone/))
+      .getAllByRole('option')
+      .map((option) => option.textContent)
+      .slice(1);
+
+    // Briefing, questions deadline, submission deadline and opening are already set for the whole tender.
+    expect(offered).toEqual([
+      'Site visit',
+      'Clarification deadline',
+      'Expected award',
+      'Standstill end',
+      'Contract start',
+    ]);
+  });
+
+  it('flags a duplicate milestone at once and hides the lots that already have it', async () => {
+    installFetch(routes());
+    renderPage(<TimetablePage />, { route: ROUTE, path: PATH });
+    await userEvent.click(await screen.findByRole('button', { name: 'Edit timetable' }));
+    const editor = screen.getByTestId('timetable-editor');
+    const [tenderClose, lotClose] = within(editor).getAllByRole('group', {
+      name: 'Submission deadline',
+    });
+    const lotSelect = within(lotClose as HTMLElement).getByLabelText(/^Lot/);
+    const lotWithOwnDeadline = (lotSelect as HTMLSelectElement).value;
+    expect(lotWithOwnDeadline).not.toBe('');
+
+    // The whole-tender deadline cannot move to the lot that already has its own deadline.
+    const tenderLots = within(within(tenderClose as HTMLElement).getByLabelText(/^Lot/))
+      .getAllByRole('option')
+      .map((option) => option.getAttribute('value'));
+    expect(tenderLots).not.toContain(lotWithOwnDeadline);
+
+    await userEvent.selectOptions(lotSelect, '');
+    expect(
+      within(lotClose as HTMLElement).getByText(
+        'This milestone is already set for the whole tender. Change the other entry instead.',
+      ),
+    ).toBeInTheDocument();
+  });
 });

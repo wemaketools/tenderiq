@@ -222,16 +222,11 @@ export const TENDER_ISSUE_CODES = [
   'PLAN_NOT_APPROVED',
   // timetable (BUY-12, BR-11, BR-12)
   'SUBMISSION_DEADLINE_MISSING',
-  'QUESTIONS_AFTER_SUBMISSION',
+  'MILESTONE_ORDER',
   'QUESTION_WINDOW_TOO_SHORT',
   'BRIEFING_AFTER_QUESTIONS_DEADLINE',
-  'SITE_VISIT_AFTER_SUBMISSION',
-  'OPENING_BEFORE_SUBMISSION',
-  'AWARD_BEFORE_OPENING',
-  'CONTRACT_START_BEFORE_AWARD',
   'RESPONSE_PERIOD_TOO_SHORT',
   'NON_WORKING_DAY',
-  'RELEASE_AFTER_QUESTIONS_DEADLINE',
   'CALENDAR_MISSING',
   'STAGED_OPENING_ENVELOPES',
   // participation and documents (BUY-12, BUY-13)
@@ -1749,14 +1744,117 @@ const MilestoneInput = z.object({
 });
 export type MilestoneInput = z.input<typeof MilestoneInput>;
 
-/** Hard ordering rules of a timetable (each pair must be strictly increasing when both exist on the same lot scope). */
-export const TIMETABLE_ORDER_RULES = [
-  { before: 'questions_deadline', after: 'submission_deadline', code: 'QUESTIONS_AFTER_SUBMISSION', message: 'The questions deadline must fall before the submission deadline.' },
-  { before: 'site_visit', after: 'submission_deadline', code: 'SITE_VISIT_AFTER_SUBMISSION', message: 'The site visit must take place before the submission deadline.' },
-  { before: 'submission_deadline', after: 'opening', code: 'OPENING_BEFORE_SUBMISSION', message: 'Opening cannot precede the submission deadline.' },
-  { before: 'opening', after: 'expected_award', code: 'AWARD_BEFORE_OPENING', message: 'The expected award must follow the opening.' },
-  { before: 'expected_award', after: 'contract_start', code: 'CONTRACT_START_BEFORE_AWARD', message: 'The contract cannot start before the expected award.' },
-] as const;
+/** The order in which milestones occur (BUY-12): the editor lists its options in this order. */
+export const MILESTONE_SEQUENCE = [
+  'briefing',
+  'site_visit',
+  'questions_deadline',
+  'clarification_deadline',
+  'submission_deadline',
+  'opening',
+  'expected_award',
+  'standstill_end',
+  'contract_start',
+] as const satisfies readonly TenderMilestonesMilestone[];
+
+/**
+ * What each milestone must strictly follow when both exist in the same scope (BUY-12, "a coherent schedule"). The
+ * questions deadline closes supplier questions; the clarification deadline is the last day the buyer issues answers
+ * and addenda, so it falls between the questions deadline and the submission deadline. Briefings and site visits
+ * precede the submission deadline; a briefing after the questions deadline is only a warning (`timetableIssues`).
+ * After closing come the opening, the expected award, the end of the standstill period and the contract start.
+ * Every milestone also follows the planned release of the package.
+ */
+export const MILESTONE_PREDECESSORS: Readonly<Record<TenderMilestonesMilestone, readonly TenderMilestonesMilestone[]>> = {
+  briefing: [],
+  site_visit: [],
+  questions_deadline: [],
+  clarification_deadline: ['questions_deadline'],
+  submission_deadline: ['briefing', 'site_visit', 'questions_deadline', 'clarification_deadline'],
+  opening: ['submission_deadline'],
+  expected_award: ['submission_deadline', 'opening'],
+  standstill_end: ['submission_deadline', 'opening', 'expected_award'],
+  contract_start: ['submission_deadline', 'opening', 'expected_award', 'standstill_end'],
+};
+
+/** How contract messages name a milestone ("The opening must fall after the submission deadline."). */
+export const MILESTONE_NAMES: Readonly<Record<TenderMilestonesMilestone | 'release', string>> = {
+  release: 'planned release',
+  briefing: 'briefing',
+  site_visit: 'site visit',
+  questions_deadline: 'questions deadline',
+  clarification_deadline: 'clarification deadline',
+  submission_deadline: 'submission deadline',
+  opening: 'opening',
+  expected_award: 'expected award',
+  standstill_end: 'end of the standstill period',
+  contract_start: 'contract start',
+};
+
+export interface OrderedMilestone {
+  readonly milestone: TenderMilestonesMilestone;
+  readonly lotId: number | null;
+  readonly at: string;
+}
+
+export interface MilestoneOrderViolation {
+  /** Index of the out-of-order row in the input. */
+  readonly index: number;
+  readonly milestone: TenderMilestonesMilestone;
+  readonly predecessor: TenderMilestonesMilestone | 'release';
+  readonly message: string;
+}
+
+/**
+ * Rows that do not fall strictly after every milestone they must follow (`MILESTONE_PREDECESSORS`) or after the
+ * release. A lot's timetable is the tender's dates with the lot's own dates in their place, so a lot date is checked
+ * against the tender dates it does not override. One violation per row, naming its latest predecessor. `lotName`
+ * names a lot in messages ("Lot 2"); without it a lot is "its lot".
+ */
+export function milestoneOrderViolations(
+  rows: readonly OrderedMilestone[],
+  releaseAt: string | null,
+  lotName: (lotId: number) => string = () => 'its lot',
+): MilestoneOrderViolation[] {
+  const violations: MilestoneOrderViolation[] = [];
+  const reported = new Set<number>();
+  const scopes = [null, ...new Set(rows.flatMap((row) => (row.lotId === null ? [] : [row.lotId])))];
+  for (const scope of scopes) {
+    const effective = new Map<TenderMilestonesMilestone, { row: OrderedMilestone; index: number }>();
+    rows.forEach((row, index) => {
+      if (row.lotId === null && !effective.has(row.milestone)) effective.set(row.milestone, { row, index });
+    });
+    if (scope !== null) {
+      rows.forEach((row, index) => {
+        if (row.lotId === scope) effective.set(row.milestone, { row, index });
+      });
+    }
+    for (const { row, index } of effective.values()) {
+      if (reported.has(index)) continue;
+      let latest: { name: TenderMilestonesMilestone | 'release'; at: string; lotId: number | null } | null =
+        releaseAt === null ? null : { name: 'release', at: releaseAt, lotId: null };
+      for (const name of MILESTONE_PREDECESSORS[row.milestone]) {
+        const before = effective.get(name);
+        if (before !== undefined && (latest === null || Date.parse(before.row.at) > Date.parse(latest.at))) {
+          latest = { name, at: before.row.at, lotId: before.row.lotId };
+        }
+      }
+      if (latest === null || Date.parse(row.at) > Date.parse(latest.at)) continue;
+      // Two tender-level dates were already compared in the tender scope.
+      if (scope !== null && row.lotId === null && latest.lotId === null) continue;
+      reported.add(index);
+      const own = row.lotId === null ? '' : ` for ${lotName(row.lotId)}`;
+      const other = latest.lotId === null || latest.lotId === row.lotId ? '' : ` for ${lotName(latest.lotId)}`;
+      violations.push({
+        index,
+        milestone: row.milestone,
+        predecessor: latest.name,
+        message: `The ${MILESTONE_NAMES[row.milestone]}${own} must fall after the ${MILESTONE_NAMES[latest.name]}${other}.`,
+      });
+    }
+  }
+  return violations;
+}
 
 export const UpdateTimetableBody = z
   .object({
@@ -1784,25 +1882,9 @@ export const UpdateTimetableBody = z
         message: issue('SUBMISSION_DEADLINE_REQUIRED', 'Set the tender submission deadline.'),
       });
     }
-    const tenderLevel = new Map(
-      body.milestones.filter((row) => (row.lotId ?? null) === null).map((row) => [row.milestone, row.at] as const),
-    );
-    for (const rule of TIMETABLE_ORDER_RULES) {
-      const before = tenderLevel.get(rule.before);
-      const after = tenderLevel.get(rule.after);
-      if (before !== undefined && after !== undefined && Date.parse(before) >= Date.parse(after)) {
-        const index = body.milestones.findIndex((row) => row.milestone === rule.after && (row.lotId ?? null) === null);
-        ctx.addIssue({ code: 'custom', path: ['milestones', index, 'at'], message: issue(rule.code, rule.message) });
-      }
-    }
-    const release = body.scheduledReleaseAt;
-    const questions = tenderLevel.get('questions_deadline');
-    if (release !== undefined && release !== null && questions !== undefined && Date.parse(release) >= Date.parse(questions)) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['scheduledReleaseAt'],
-        message: issue('RELEASE_AFTER_QUESTIONS_DEADLINE', 'The release must come before the questions deadline.'),
-      });
+    const ordered = body.milestones.map((row) => ({ milestone: row.milestone, lotId: row.lotId ?? null, at: row.at }));
+    for (const violation of milestoneOrderViolations(ordered, body.scheduledReleaseAt ?? null)) {
+      ctx.addIssue({ code: 'custom', path: ['milestones', violation.index, 'at'], message: issue('MILESTONE_ORDER', violation.message) });
     }
   });
 export type UpdateTimetableBody = z.input<typeof UpdateTimetableBody>;

@@ -21,7 +21,7 @@ import type {
   TenderMilestonesMilestone,
   TendersOpeningMode,
 } from '../enums.js';
-import { TIMETABLE_ORDER_RULES } from './schemas.js';
+import { milestoneOrderViolations } from './schemas.js';
 import type { Holiday, TenderIssue, TenderIssueCode, WorkingDayHint } from './schemas.js';
 
 function issueOf(
@@ -367,12 +367,14 @@ export function timetableIssues(facts: TimetableFacts): TenderIssue[] {
   if (facts.calendarId === null) {
     issues.push(issueOf('CALENDAR_MISSING', 'blocking', 'Choose the working-day calendar of the event.', 'calendarId'));
   }
-  for (const rule of TIMETABLE_ORDER_RULES) {
-    const before = tenderLevel.get(rule.before);
-    const after = tenderLevel.get(rule.after);
-    if (before !== undefined && after !== undefined && Date.parse(before.at) >= Date.parse(after.at)) {
-      issues.push(issueOf(rule.code, 'blocking', rule.message, `milestones.${rule.after}`, after.id));
-    }
+  const lotNos = new Map(facts.milestones.map((row) => [row.lotId, row.lotNo ?? null] as const));
+  const lotName = (lotId: number): string => {
+    const lotNo = lotNos.get(lotId);
+    return lotNo === null || lotNo === undefined ? 'its lot' : `Lot ${lotNo}`;
+  };
+  for (const violation of milestoneOrderViolations(facts.milestones, facts.releaseAt, lotName)) {
+    const row = facts.milestones[violation.index];
+    issues.push(issueOf('MILESTONE_ORDER', 'blocking', violation.message, `milestones.${violation.milestone}`, row?.id ?? null));
   }
   const briefing = tenderLevel.get('briefing');
   const questions = tenderLevel.get('questions_deadline');
@@ -385,11 +387,6 @@ export function timetableIssues(facts: TimetableFacts): TenderIssue[] {
         'milestones.briefing',
         briefing.id,
       ),
-    );
-  }
-  if (facts.releaseAt !== null && questions !== undefined && Date.parse(facts.releaseAt) >= Date.parse(questions.at)) {
-    issues.push(
-      issueOf('RELEASE_AFTER_QUESTIONS_DEADLINE', 'blocking', 'The planned release is after the questions deadline.', 'scheduledReleaseAt'),
     );
   }
   if (facts.releaseAt !== null && submission !== undefined && facts.policy?.minResponseDays != null) {

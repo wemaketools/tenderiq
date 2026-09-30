@@ -97,6 +97,19 @@ Owner decision during the prototype review. It amends architecture-plan §7 ("on
 - **Page head layout.** The first row of the page head holds the back link and subtitle on the left and the page actions on the right, and is at least one button tall. The record meta (reference, status, dates, next action) runs full width below it, so a long meta line never pushes the buttons down and the number of buttons never changes the head's height. The tabs of a record therefore start at the same place on every tab. An inline official deadline always shows its label ("Submission deadline: …").
 - The section actions are listed and tested in `src/ui/src/app/sectionActions.test.ts`. The Playwright `layout.spec.ts` checks that the search box and icons keep their position across pages.
 
+### DD-47 — Timetable milestones: once per scope, in a fixed order (2026-09-30)
+
+Owner review of BUY-12 ("set a coherent schedule"). It completes the timetable rules of the contracts.
+- **Once per scope.** A milestone exists once for the whole tender and once per lot (`tender_milestones` unique (tender_id, lot_id, milestone)). The editor offers a row only the milestones and lots that no other row uses, and flags a duplicate at once. The API rejects one with `MILESTONE_DUPLICATE`.
+- **Order.** Every milestone falls strictly after the planned (or actual) release. After that, `MILESTONE_PREDECESSORS` in `src/contracts/tenders/schemas.ts` applies:
+  - The clarification deadline follows the questions deadline.
+  - The submission deadline follows briefings, site visits, the questions deadline and the clarification deadline.
+  - Then come, in order, the opening, the expected award, the end of the standstill period and the contract start.
+  - A briefing after the questions deadline stays a warning (`BRIEFING_AFTER_QUESTIONS_DEADLINE`), because suppliers could not ask about it but the timetable is still valid.
+- **Clarification deadline** means the last day the buyer issues answers and addenda, so it sits between the questions deadline and the submission deadline. The blueprint did not define it.
+- **Lots.** A lot's timetable is the tender's dates with the lot's own dates in their place, so a lot's opening is checked against the lot's own submission deadline, or the tender's when the lot has none.
+- **One rule.** One issue code, `MILESTONE_ORDER` (blocking), replaces the pairwise codes (`QUESTIONS_AFTER_SUBMISSION`, `SITE_VISIT_AFTER_SUBMISSION`, `OPENING_BEFORE_SUBMISSION`, `AWARD_BEFORE_OPENING`, `CONTRACT_START_BEFORE_AWARD`, `RELEASE_AFTER_QUESTIONS_DEADLINE`). Its message names the milestone and the latest one it must follow. The same function (`milestoneOrderViolations`) backs the 422 validation and the live coherence checks.
+
 ## E. Owner decisions
 
 Status after the owner review of 2026-09-29 (details in architecture-plan §11):

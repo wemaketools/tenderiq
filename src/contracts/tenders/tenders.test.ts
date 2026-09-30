@@ -6,8 +6,10 @@
 import { describe, expect, it } from 'vitest';
 
 import { splitIssueMessage } from '../common.js';
+import { TENDER_MILESTONES_MILESTONE } from '../enums.js';
 import {
   CreatePricingItemBody,
+  MILESTONE_SEQUENCE,
   CreatePricingScheduleBody,
   PRICE_ENTRY_TYPES,
   UpdatePricingScheduleBody,
@@ -24,6 +26,7 @@ import {
   requirementIssues,
   tenderEndpoints,
   tenderSectionPath,
+  milestoneOrderViolations,
   timetableIssues,
   workingDayHint,
   workingDaysBetween,
@@ -150,7 +153,7 @@ describe('request validation', () => {
       ],
     });
     const missing = UpdateTimetableBody.safeParse({ expectedDraftRevision: 1, milestones: [{ milestone: 'opening', at: '2026-11-18T09:00:00Z' }] });
-    expect(codesOf(incoherent)).toContain('OPENING_BEFORE_SUBMISSION');
+    expect(codesOf(incoherent)).toContain('MILESTONE_ORDER');
     expect(codesOf(missing)).toContain('SUBMISSION_DEADLINE_REQUIRED');
   });
 
@@ -396,5 +399,101 @@ describe('non-working day messages (BUY-12)', () => {
       'The opening falls on a public holiday (Boxing Day holiday), 28 Dec 2026; the next working day is 29 Dec 2026.',
     ]);
     expect(messages.join(' ')).not.toMatch(/\d{4}-\d{2}-\d{2}/);
+  });
+});
+
+describe('timetable order (BUY-12)', () => {
+  const at = (day: number, hour = 10): string => `2026-11-${String(day).padStart(2, '0')}T${String(hour).padStart(2, '0')}:00:00Z`;
+  const coherent = [
+    { milestone: 'briefing', lotId: null, at: at(2) },
+    { milestone: 'site_visit', lotId: null, at: at(3) },
+    { milestone: 'questions_deadline', lotId: null, at: at(4) },
+    { milestone: 'clarification_deadline', lotId: null, at: at(9) },
+    { milestone: 'submission_deadline', lotId: null, at: at(18) },
+    { milestone: 'opening', lotId: null, at: at(18, 11) },
+    { milestone: 'expected_award', lotId: null, at: at(25) },
+    { milestone: 'standstill_end', lotId: null, at: at(27) },
+    { milestone: 'contract_start', lotId: null, at: at(30) },
+  ] as const;
+
+  it('lists every milestone once in the order they occur', () => {
+    expect([...MILESTONE_SEQUENCE].sort()).toEqual([...TENDER_MILESTONES_MILESTONE].sort());
+    expect(coherent.map((row) => row.milestone)).toEqual([...MILESTONE_SEQUENCE]);
+  });
+
+  it('accepts a timetable in order after the release', () => {
+    expect(milestoneOrderViolations(coherent, at(1))).toEqual([]);
+  });
+
+  it('names the latest milestone an out-of-order date must follow, once per row', () => {
+    const rows = coherent.map((row) => (row.milestone === 'contract_start' ? { ...row, at: at(26) } : row));
+    expect(milestoneOrderViolations(rows, at(1)).map((violation) => violation.message)).toEqual([
+      'The contract start must fall after the end of the standstill period.',
+    ]);
+  });
+
+  it('keeps the clarification deadline between the questions deadline and closing', () => {
+    const early = coherent.map((row) => (row.milestone === 'clarification_deadline' ? { ...row, at: at(3) } : row));
+    const late = coherent.map((row) => (row.milestone === 'clarification_deadline' ? { ...row, at: at(19) } : row));
+    expect(milestoneOrderViolations(early, at(1)).map((violation) => violation.milestone)).toEqual(['clarification_deadline']);
+    expect(milestoneOrderViolations(late, at(1)).map((violation) => violation.milestone)).toEqual(['submission_deadline']);
+  });
+
+  it('requires every milestone to follow the planned release', () => {
+    expect(milestoneOrderViolations(coherent, at(3)).map((violation) => violation.message)).toEqual([
+      'The briefing must fall after the planned release.',
+      'The site visit must fall after the planned release.',
+    ]);
+  });
+
+  it('checks a lot date against the tender dates it does not override, and names the lot', () => {
+    const rows = [...coherent, { milestone: 'opening' as const, lotId: 7, at: at(17) }];
+    expect(milestoneOrderViolations(rows, at(1), () => 'Lot 3').map((violation) => violation.message)).toEqual([
+      'The opening for Lot 3 must fall after the submission deadline.',
+    ]);
+    const lotClose = [...coherent, { milestone: 'submission_deadline' as const, lotId: 7, at: at(26) }];
+    expect(milestoneOrderViolations(lotClose, at(1), () => 'Lot 3').map((violation) => violation.message)).toEqual([
+      'The opening must fall after the submission deadline for Lot 3.',
+      'The expected award must fall after the submission deadline for Lot 3.',
+    ]);
+  });
+
+  it('rejects a save with an out-of-order date on that row, and a duplicate milestone of the same scope', () => {
+    const result = UpdateTimetableBody.safeParse({
+      expectedDraftRevision: 1,
+      scheduledReleaseAt: at(1),
+      milestones: [
+        { milestone: 'submission_deadline', at: at(18) },
+        { milestone: 'clarification_deadline', at: at(20) },
+        { milestone: 'questions_deadline', at: at(4) },
+        { milestone: 'questions_deadline', at: at(5) },
+        { milestone: 'questions_deadline', lotId: 7, at: at(6) },
+      ],
+    });
+    expect(result.success).toBe(false);
+    const issues = result.success ? [] : result.error.issues;
+    expect(issues.map((issue) => [issue.path.join('.'), splitIssueMessage(issue.message).code])).toEqual([
+      ['milestones.3.milestone', 'MILESTONE_DUPLICATE'],
+      ['milestones.0.at', 'MILESTONE_ORDER'],
+    ]);
+  });
+
+  it('reports order issues in the live coherence check with the lot number', () => {
+    const issues = timetableIssues({
+      timeZone: 'Africa/Gaborone',
+      holidays: [],
+      calendarId: 1,
+      releaseAt: at(1),
+      milestones: [
+        { id: 1, milestone: 'submission_deadline', lotId: null, at: at(18) },
+        { id: 2, milestone: 'opening', lotId: 7, lotNo: 2, at: at(17) },
+      ],
+      policy: null,
+      openingMode: 'single_stage',
+      envelopeCount: 3,
+    });
+    expect(issues.filter((issue) => issue.code === 'MILESTONE_ORDER').map((issue) => [issue.message, issue.severity, issue.relatedId])).toEqual([
+      ['The opening for Lot 2 must fall after the submission deadline.', 'blocking', 2],
+    ]);
   });
 });

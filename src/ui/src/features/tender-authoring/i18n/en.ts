@@ -748,6 +748,11 @@ export default {
     weekend: 'Weekend; next working day {next}',
     holiday: '{name}; next working day {next}',
     addMilestone: 'Add milestone',
+    allMilestonesUsed: 'Every milestone is already set for the whole tender and each lot.',
+    duplicate: 'This milestone is already set for {scope}. Change the other entry instead.',
+    wholeTenderScope: 'the whole tender',
+    orderHint:
+      'Dates must follow the order of the tender: the planned release; briefings and site visits; the questions deadline; the clarification deadline; the submission deadline; the opening; the expected award; the end of the standstill period; the contract start. A lot date follows the tender dates it does not override.',
     removeMilestone: 'Remove milestone {n}',
     release: 'Planned release',
     releaseHint: 'When the package is published once approved.',

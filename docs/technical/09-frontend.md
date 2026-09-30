@@ -1013,5 +1013,5 @@ Formatting uses the platform `Intl` API in `lib/format`; no date library is appr
 - [12-traceability.md](12-traceability.md): screens to FR, BR and AC.
 - [13-delivery-and-resilience.md](13-delivery-and-resilience.md): Stage A, approval gate, Stage B.
 - [adr/0006-contracts-first-ui-prototype-stage.md](adr/0006-contracts-first-ui-prototype-stage.md), [adr/0010-no-icon-or-pdf-dependencies.md](adr/0010-no-icon-or-pdf-dependencies.md), [adr/0005-decimal-strings-for-money-and-scores.md](adr/0005-decimal-strings-for-money-and-scores.md), [adr/0001-tenancy-equals-organization.md](adr/0001-tenancy-equals-organization.md), [adr/0012-supplier-registration-via-provisioned-accounts.md](adr/0012-supplier-registration-via-provisioned-accounts.md).
-- [../plan/design-decisions.md](../plan/design-decisions.md): the decision log (DD-01 … DD-46); DD-32 to DD-37, DD-43 and DD-46 shape this document, and DD-38 is withdrawn.
+- [../plan/design-decisions.md](../plan/design-decisions.md): the decision log (DD-01 … DD-47); DD-32 to DD-37, DD-43 and DD-46 shape this document, and DD-38 is withdrawn.
 - [glossary.md](glossary.md).

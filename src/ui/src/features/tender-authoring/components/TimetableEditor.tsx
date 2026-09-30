@@ -1,16 +1,18 @@
 /**
  * The timetable editor (BUY-12): milestones entered in the tender's OFFICIAL time zone, with the working-day hint of
  * each date (weekend or public holiday of the tender's calendar, and the next working day) and the coherence checks
- * computed live by the contract's pure rules (ordering, response period against the policy minimum, questions
- * window). Hard ordering errors come back from the API as 422 field errors on the same rows.
+ * computed live by the contract's pure rules (the milestone order of MILESTONE_PREDECESSORS, response period against
+ * the policy minimum, questions window). Hard ordering errors come back from the API as 422 field errors on the same
+ * rows. Each milestone exists once per scope (the whole tender, or one lot): a row offers only the milestones and lots
+ * no other row uses, in the order milestones occur, and a duplicate is flagged at once.
  */
 import { useState } from 'react';
 
 import type { FieldError } from '@contracts/common';
 import { splitIssueMessage } from '@contracts/common';
-import { TENDER_MILESTONES_MILESTONE } from '@contracts/enums';
 import type { TenderMilestonesMilestone } from '@contracts/enums';
 import {
+  MILESTONE_SEQUENCE,
   UpdateTimetableBody,
   timetableIssues,
   updateTimetable,
@@ -166,6 +168,30 @@ export function TimetableEditor({
     envelopeCount: timetable.envelopes.length,
   });
 
+  // One milestone per scope: what the other rows already use.
+  const usedBy = (row: Row, milestone: string, lot: string): boolean =>
+    rows.some(
+      (other) => other.key !== row.key && other.milestone === milestone && other.lot === lot,
+    );
+  const milestoneOptions = (row: Row) =>
+    MILESTONE_SEQUENCE.filter(
+      (value) => value === row.milestone || !usedBy(row, value, row.lot),
+    ).map((value) => ({ value, label: tEnum('tender_milestones.milestone', value) }));
+  const lotOptions = (row: Row) =>
+    lots
+      .filter((lot) => String(lot.id) === row.lot || !usedBy(row, row.milestone, String(lot.id)))
+      .map((lot) => ({ value: String(lot.id), label: lotLabel(lot) }));
+  const duplicateError = (row: Row): string | undefined => {
+    if (row.milestone === '' || !usedBy(row, row.milestone, row.lot)) return undefined;
+    const lot = lots.find((candidate) => String(candidate.id) === row.lot);
+    return t('tender-authoring.timetable.duplicate', {
+      scope: lot === undefined ? t('tender-authoring.timetable.wholeTenderScope') : lotLabel(lot),
+    });
+  };
+  const allUsed =
+    rows.filter((row) => row.milestone !== '').length >=
+    MILESTONE_SEQUENCE.length * (lots.length + 1);
+
   const update = (key: string, patch: Partial<Row>): void =>
     setRows((current) => current.map((row) => (row.key === key ? { ...row, ...patch } : row)));
 
@@ -209,12 +235,10 @@ export function TimetableEditor({
                 required
                 placeholder={t('tender-authoring.common.select')}
                 value={row.milestone}
-                options={TENDER_MILESTONES_MILESTONE.map((value) => ({
-                  value,
-                  label: tEnum('tender_milestones.milestone', value),
-                }))}
+                options={milestoneOptions(row)}
                 onChange={(milestone) => update(row.key, { milestone })}
                 error={
+                  duplicateError(row) ??
                   rowError(row, 'milestone') ??
                   (submitted && row.milestone === ''
                     ? t('tender-authoring.create.required')
@@ -225,7 +249,7 @@ export function TimetableEditor({
                 label={t('tender-authoring.requirements.col.lot')}
                 placeholder={t('tender-authoring.common.wholeTender')}
                 value={row.lot}
-                options={lots.map((lot) => ({ value: String(lot.id), label: lotLabel(lot) }))}
+                options={lotOptions(row)}
                 onChange={(lot) => update(row.key, { lot })}
                 error={rowError(row, 'lotId')}
               />
@@ -263,10 +287,12 @@ export function TimetableEditor({
             />
           </fieldset>
         ))}
-        <span>
+        <p className="tiq-field-hint">{t('tender-authoring.timetable.orderHint')}</p>
+        <span className="tiq-inline">
           <Button
             size="sm"
             icon="plus"
+            disabled={allUsed}
             onClick={() =>
               setRows((current) => [
                 ...current,
@@ -276,6 +302,11 @@ export function TimetableEditor({
           >
             {t('tender-authoring.timetable.addMilestone')}
           </Button>
+          {allUsed && (
+            <span className="tiq-text-muted">
+              {t('tender-authoring.timetable.allMilestonesUsed')}
+            </span>
+          )}
         </span>
         <IssueList issues={liveIssues} label={t('tender-authoring.timetable.liveIssues')} />
         {unmatched.length > 0 && (

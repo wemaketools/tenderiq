@@ -831,7 +831,7 @@ After the owner review of 2026-09-29, every architecture-plan §11 item is accep
 
 ### 10.4 Design decision log entries applied here
 
-`docs/plan/design-decisions.md` (DD-01 … DD-46; DD-38 is withdrawn) amends the plan and the blueprint and wins on conflict. The entries that shape this document:
+`docs/plan/design-decisions.md` (DD-01 … DD-47; DD-38 is withdrawn) amends the plan and the blueprint and wins on conflict. The entries that shape this document:
 
 | Entry | Decision in one line | Where it applies |
 |---|---|---|
