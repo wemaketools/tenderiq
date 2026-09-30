@@ -1,6 +1,6 @@
 # Frontend (SPA)
 
-Status: As-designed (pre-build). Updated to as-built at the end of Stage A and Stage B.
+Status: As-built (Stage A prototype); backend sections as-designed
 
 Sources:
 - `docs/plan/design-decisions.md`: DD-09 (reference formats), DD-15 (deadline authority), DD-21 (`/me` personal inbox), DD-22 (buyer slug in public URLs), DD-23 (dashboard permissions), DD-27 (invitation acceptance and registration), DD-28 (public write rate limiting), DD-29 (MFA deferred), DD-30 (CSP meta tag), DD-32 (browser decimals), DD-33 (zone display), DD-34 (CSS port), DD-35 (self-hosted fonts), DD-36 (shell behaviour), DD-37 (language and i18n catalogs), DD-38 (**withdrawn** by the owner decision of 2026-09-29, superseded by DD-43), DD-39 (idempotency and in-flight submit buttons), DD-40 (`framework_calloff`), DD-41 (pursuit vs bid intent), DD-42 (acknowledgment authority), DD-43 (real Supabase Auth in local Docker from Stage A, supabase-js only, dev-only demo accounts, prototype banner from `environment.mode`), DD-44 (email notices; `nodemailer` is server-only), DD-45 (Node 24), and §E (owner decisions of 2026-09-29).
@@ -13,6 +13,7 @@ Sources:
 - `docs/PRD.md`: §4.3 audience matrix, §10 BR-11, BR-18, BR-41, BR-43, §11 to §13 screen catalogs (COM-02 context confirmation), §14.1 documents, §15.2 metric safeguards, §19 service expectations and accessibility, §23 acceptance scenarios.
 - `docs/plan/schema-blueprint.md`: `users.theme`, `users.display_time_zone`, `saved_views`, `custom_fields`, `evaluation_plans.decimal_places_display`, `evaluation_results.total_score_display`, `tenders.official_time_zone`, `lots.submission_deadline`.
 - `docs/plan/demo-storyline.md`: personas and tenants for the demo-accounts quick-pick (real local Supabase Auth accounts, password `test1234`).
+- As built (Stage A): `src/ui/src/**` (in particular `app/featureTypes.ts`, `app/featureRegistry.ts`, `app/router.tsx`, `app/RouteGuard.tsx`, `app/slices/*`, `api/client.ts`, `api/hooks.ts`, `auth/*`, `components/**`, `lib/*`) and every `features/*/routes.tsx`. The route, navigation and feature tables below are generated from the registered feature modules on 2026-09-30.
 
 Contents:
 1. [Scope and stack](#1-scope-and-stack)
@@ -70,16 +71,18 @@ The SPA adds no runtime dependency beyond react, react-dom, @reduxjs/toolkit, re
 
 | Path (`src/ui/src/`) | Contents | Owner |
 |---|---|---|
-| `app/` | `store.ts`, `hooks.ts` (typed hooks), `router.tsx`, `RouteGuard.tsx`, `featureRegistry.ts`, `slices/` | A1 `ui-shell` |
+| `app/` | `store.ts`, `hooks.ts` (typed hooks), `router.tsx`, `RouteGuard.tsx`, `featureRegistry.ts` and `featureTypes.ts`, `RootLayout.tsx`, `AppProviders.tsx`, `sessionActions.ts` (context loading, organization switching), `sessionSelectors.ts`, `slices/` | A1 `ui-shell` |
 | `api/client.ts` | `call(endpoint, { params, query, body })` and the transport rules | A1 `ui-shell` |
-| `api/<domain>.ts` | thin domain client wrappers over `call` | A2 domain pipeline |
+| `api/hooks.ts` | `useApiQuery`, `useApiMutation`, `invalidateApiQueries` (§9) | A1 `ui-shell` |
+| `api/<domain>.ts` | thin domain client wrappers over `call` and the hooks (26 modules, one per contract module) | A2 domain pipeline |
 | `auth/` | `supabase.ts` (the one browser Supabase client, authentication only, brief §10), `AuthProvider`, sign-in, forgot-password and reset-password pages, `DemoAccounts` (local development builds only, DD-43), `permissions.ts` | A1 `ui-shell` |
 | `components/` | `shell/`, `ui/`, `charts/`, and the shared widgets `approvals/`, `documents/`, `audit/` | A1 `ui-shell` |
 | `features/<feature>/` | `routes.tsx`, `pages/`, `components/`, `i18n/en.ts` (the feature's string catalog, DD-37), colocated `*.test.tsx` | A2 domain pipeline |
-| `pages/` | shell-level pages | A1 `ui-shell` |
+| `pages/` | shell-level pages: `AreaHomePage`, `ContextRequiredPage`, `ForbiddenPage`, `NotFoundPage`, `RouteErrorPage` (with chunk-load recovery), `LoadingScreen` | A1 `ui-shell` |
 | `theme/` | `tokens.css`, `components.css`, `index.css` (`--tiq-` prefix), `@font-face` rules for the self-hosted fonts | A1 `ui-shell` |
-| `lib/` | `format`, `download`, `i18n` (`t()`, prototype workflow) | A1 `ui-shell` |
-| `test/` | Vitest setup (`setup.ts`) | A1 `ui-shell` |
+| `lib/` | `format` (money, numbers, dates), `zonedTime` (official-zone rendering, DD-33), `clock` and `useNow` (the server-synchronized application clock), `download`, `i18n` (`t()`), `storage` (guarded `localStorage` for conveniences, DD-36), `hash`, `useMediaQuery` | A1 `ui-shell` |
+| `i18n/en.ts` | the shell catalog: namespaces `shell`, `common`, `auth`, `ui`, `format`, `enum`, `charts`, `approvalWidget`, `documentWidget`, `audit`, `pages` (DD-37) | A1 `ui-shell` |
+| `test/` | Vitest setup (`setup.ts`), `render.tsx` (render with store, router and providers), `fetchMock.ts`, `fixtures.ts` (session fixtures for tests), `readSourceFile.ts` (source guards) | A1 `ui-shell` |
 
 Outside `src/ui/src/`, `src/ui/public/fonts/` holds the Inter and JetBrains Mono woff2 files (DD-35), and `src/ui/index.html` carries the CSP meta tag (DD-30); both belong to A1 `ui-shell`, which owns `src/ui/**` except the features and domain client files. The decimal helper is not an SPA file: it is `src/contracts/decimal.ts`, written by A1 `contracts-core` (DD-32).
 
@@ -137,7 +140,7 @@ The source also defines QuoteIQ-specific tokens (`series-motor`, `series-propert
 
 ## 4. Component inventory
 
-Names in the first column are the ones the plan and the prototype workflow use (`PageHeader`, `FilterBar`, `StatusChip`, `DemoAccounts`, `PrototypeBanner`, `AuthProvider`, `RouteGuard`) or, where the plan names none, the component family defined by `docs/css/theme/components.css`. The React component names of the families are fixed in Stage A.
+Names in the first column are the ones the plan and the prototype workflow use (`PageHeader`, `FilterBar`, `StatusChip`, `DemoAccounts`, `PrototypeBanner`, `AuthProvider`, `RouteGuard`) or, where the plan names none, the component family defined by `docs/css/theme/components.css`. The as-built React components are listed after the table.
 
 | Component or family | Location | Source | Rules |
 |---|---|---|---|
@@ -169,6 +172,18 @@ Names in the first column are the ones the plan and the prototype workflow use (
 | Audit widgets | `components/audit` | plan §5 | Record history panels |
 | Icons | `components/ui` | plan §7 | Hand-rolled inline-SVG line icons |
 | Footer bar | — | `.qiq-footer`; screenshots | Kept for dashboards and reports: currency basis of the amounts, "data as of" time and refresh (DD-34, PRD §15.2 freshness) |
+
+**As-built shared components (Stage A).** Every family above exists under these names; features import them from the folder's `index.ts`.
+
+| Folder | Components |
+|---|---|
+| `components/shell` | `AppShell` (sidebar, top bar, banner and page outlet; icon rail and drawer, DD-36), `Sidebar`, `Topbar`, `UserCard` (switch organization, profile, theme, sign out), `PrototypeBanner`, `PublicShell` (public portal header and footer), `SelectOrganizationPage` (COM-02), `useMeBadges` (bell and task counts) |
+| `components/ui` | `Button`, `Card`, `PageHeader`, `FilterBar`, `KpiCard`, `DataTable` (sortable headers, row actions, horizontal scroll), `Pagination`, `StatusChip` (a tone for every enum state), `DetailList`, `FormFields` (`TextField`, `TextArea`, `Select`, `MultiSelect`, `Checkbox`, `RadioGroup`, `DateInput`, `DateTimeInput`, `NumberInput`, `MoneyInput`, `FormErrorSummary`), `FileUpload`, `Dialog`, `ConfirmActionDialog` (COM-02 confirmation), `Menu`, `Tabs`, `LinkTabs` and `VerticalTabs`, `Banner`, `ToastProvider`, `Skeleton` and `SkeletonBlock`, `EmptyState` and `RestrictedState`, `QueryView` (loading, error, restricted, empty and data states of one query), `OfficialDeadline` (DD-33), `Values` (`Reference`, `MoneyText`, `OrDash`), `Stepper`, `Timeline`, `ReadinessChecklist`, `UnsavedChangesGuard`, `FooterBar`, `Icon` (inline-SVG set) |
+| `components/charts` | `ChartFrame`, `TrendChart`, `StackedBarChart`, `DonutChart`, `BarList`, with colours from tokens (`chartTheme.ts`) |
+| `components/approvals` | `ApprovalStatusPanel`, `RequestApprovalDialog` |
+| `components/documents` | `DocumentList`, `DocumentUploader` (upload envelope: create, transfer, confirm), `DocumentVersionHistory`, `DownloadVersionButton`, `ClassificationBadge` |
+| `components/audit` | `HistoryTimeline` |
+| `auth/` | `AuthProvider`, `SignInPage`, `ForgotPasswordPage`, `ResetPasswordPage`, `AuthLayout`, `DemoAccounts` (development builds only) |
 
 ## 5. App shell anatomy
 
@@ -211,7 +226,7 @@ flowchart LR
   SIDEBAR --- MAIN
 ```
 
-Public routes and auth routes render **outside** this shell. Auth pages use the centred auth card. The public portal layout is defined in Stage A.
+Public routes and auth routes render **outside** this shell. Auth pages use the centred auth card (`AuthLayout`). Public routes render inside `PublicShell`: a header with the wordmark, Opportunities, Awards, Plans and Guidance, Sign in (or a link to the workspace when signed in) and Register, the prototype banner when it applies, the page, and a footer.
 
 PRD §19 requires navigation to show the current organization, event or contract, stage, deadline and next required action. The shell supplies the organization (tenant label and user card). Record workspaces (tender, contract, bid, qualification application) supply the record reference, stage chip, official deadline and next required action in their header.
 
@@ -270,33 +285,50 @@ flowchart LR
 
 The sidebar shows a nav item only when its module's area matches the active tenant's kind (`common` items always qualify) and the user holds the item's `permission`. Hiding is a convenience: the API enforces every permission (brief §5.8).
 
-Feature directories by domain (architecture-plan §6). The split of a domain's screens across its feature directories is indicative; the plan fixes the domain-level mapping.
+As built (Stage A), 50 feature modules live in 34 feature directories. A directory may register several modules, one per area (for example `clarifications`, `clarifications-supplier` and `clarifications-public`). The table maps each domain (architecture-plan §6) to its directories, module ids, route count and the screens their pages implement. Each directory's API wrapper is `src/ui/src/api/<contract module>.ts`.
 
-| Domain | Feature directories | Areas | Screens |
-|---|---|---|---|
-| 00 workspace | `tasks`, `approvals`, `notifications`, `documents`, `calendars` | common, buyer | COM-04, COM-05, COM-06, COM-07, ADM-10, ADM-12 |
-| 01 identity and org-admin | `account`, `admin-org`, `admin-access` | common, buyer, supplier | COM-01 to COM-03, ADM-01 to ADM-05, SUP-04 |
-| 02 policy | `admin-policy` | buyer | ADM-06, ADM-07, ADM-08, ADM-11 |
-| 03 suppliers | `supplier-org`, `supplier-directory` | supplier, buyer | SUP-02, SUP-03, SUP-05, BUY-31, BUY-32 |
-| 04 qualification | `qualification` | buyer, supplier | ADM-09, SUP-20, SUP-24, BUY-33 to BUY-35 |
-| 05 requests | `requests`, `planning` | buyer, public | BUY-02 to BUY-06, PUB-06 |
-| 06 tenders | `tender-authoring` | buyer | BUY-07 to BUY-13 |
-| 07 publication | `publication`, `public-portal`, `opportunities` | buyer, public, supplier | BUY-14, BUY-15, PUB-01 to PUB-03, PUB-07, SUP-06 to SUP-09 |
-| 08 clarifications | `clarifications` | buyer, supplier, public | BUY-16 to BUY-18, SUP-10, SUP-11, PUB-04 |
-| 09 bids | `responses`, `submission-monitoring` | supplier, buyer | SUP-12 to SUP-17, BUY-19 |
-| 10 opening | `opening` | buyer, supplier | BUY-20, BUY-21, SUP-18, EVA-03 |
-| 11 evaluation | `evaluation` | buyer | EVA-01, EVA-02, EVA-04, EVA-05, EVA-06 |
-| 12 selection | `selection` | buyer, supplier | BUY-22 to BUY-25, BUY-27, SUP-19 |
-| 13 awards | `awards`, `outcomes` | buyer, supplier, public | BUY-26, BUY-28 to BUY-30, SUP-21, SUP-22, PUB-05 |
-| 14 contracts | `contracts` | buyer, supplier | CON-01 to CON-11, SUP-23 |
-| 15 reporting and records | `dashboard`, `reports`, `records`, `search` | buyer, supplier, common | BUY-01, SUP-01, REP-01, REP-02, ADM-13, ADM-14, COM-08 |
-| 16 operations | `ops`, `help`, `admin-integrations` | ops, public, common, buyer | OPS-01 to OPS-07, ADM-15 to ADM-17, COM-09 |
+| Domain | Feature directory | Modules (area) | Routes | Screens |
+|---|---|---|---|---|
+| 00 workspace | `tasks` | `tasks` (common) | 1 | COM-04 |
+| 00 workspace | `approvals` | `approvals` (common) | 2 | COM-04, COM-05 |
+| 00 workspace | `notifications` | `notifications` (common), `notification-rules` (buyer) | 4 | COM-06, ADM-12 |
+| 00 workspace | `documents` | `documents` (common) | 2 | COM-07 |
+| 00 workspace | `calendars` | `calendars` (buyer) | 3 | ADM-10 |
+| 01 identity and org-admin | `account` | `account` (common), `account-public` (public) | 3 | COM-01, COM-02, COM-03 |
+| 01 identity and org-admin | `admin-org` | `admin-org` (buyer) | 5 | ADM-01, ADM-02, ADM-05 |
+| 01 identity and org-admin | `admin-access` | `admin-access` (buyer), `admin-access-supplier` (supplier) | 19 | ADM-03, ADM-04, SUP-04 |
+| 02 policy | `admin-policy` | `admin-policy` (buyer) | 12 | ADM-06, ADM-07, ADM-08, ADM-11 |
+| 03 suppliers | `supplier-org` | `supplier-org` (supplier), `supplier-org.me` (common), `supplier-org.public` (public) | 10 | SUP-02, SUP-03, SUP-05 |
+| 03 suppliers | `supplier-directory` | `supplier-directory` (buyer), `supplier-directory.ops` (ops) | 7 | BUY-31, BUY-32, SUP-02 (operator registration review) |
+| 04 qualification | `qualification` | `qualification` (buyer), `qualification-supplier` (supplier) | 14 | ADM-09, BUY-33, BUY-34, BUY-35, SUP-20, SUP-24 |
+| 05 requests | `requests` | `requests` (buyer) | 9 | BUY-02, BUY-03, BUY-04, BUY-06 |
+| 05 requests | `planning` | `planning` (buyer), `planning-public` (public) | 8 | BUY-05, PUB-06 |
+| 06 tenders | `tender-authoring` | `tender-authoring` (buyer) | 8 | BUY-07 to BUY-13 |
+| 07 publication | `publication` | `publication` (buyer) | 4 | BUY-14, BUY-15 |
+| 07 publication | `public-portal` | `public-portal` (public) | 6 | PUB-01, PUB-02, PUB-03, PUB-07 |
+| 07 publication | `opportunities` | `opportunities` (supplier) | 8 | SUP-06 to SUP-09, PUB-03 (supplier view) |
+| 08 clarifications | `clarifications` | `clarifications` (buyer), `clarifications-supplier` (supplier), `clarifications-public` (public) | 18 | BUY-16, BUY-17, BUY-18, SUP-10, SUP-11, PUB-04 |
+| 09 bids | `responses` | `responses` (supplier) | 11 | SUP-12 to SUP-17 |
+| 09 bids | `submission-monitoring` | `submission-monitoring` (buyer) | 2 | BUY-19 |
+| 10 opening | `opening` | `opening` (buyer), `opening.supplier` (supplier) | 11 | BUY-20, BUY-21, EVA-03, SUP-18 |
+| 11 evaluation | `evaluation` | `evaluation` (buyer) | 8 | EVA-01, EVA-02, EVA-04, EVA-05, EVA-06 |
+| 12 selection | `selection` | `selection` (buyer), `selection-supplier` (supplier) | 24 | BUY-22 to BUY-25, BUY-27, SUP-18 (assessment invitations), SUP-19 |
+| 13 awards | `awards` | `awards` (buyer) | 11 | BUY-26, BUY-28, BUY-29, BUY-30 |
+| 13 awards | `outcomes` | `outcomes` (supplier), `outcomes-public` (public) | 7 | SUP-21, SUP-22, PUB-05 |
+| 14 contracts | `contracts` | `contracts` (buyer), `contracts-supplier` (supplier) | 15 | CON-01 to CON-11, SUP-23 |
+| 15 reporting and records | `dashboard` | `dashboard-buyer` (buyer), `dashboard-supplier` (supplier) | 2 | BUY-01, SUP-01 |
+| 15 reporting and records | `reports` | `reports` (buyer) | 7 | REP-01, REP-02, ADM-13, ADM-14 (report exports) |
+| 15 reporting and records | `records` | `records` (buyer) | 8 | ADM-14 |
+| 15 reporting and records | `search` | `search` (common) | 1 | COM-08 |
+| 16 operations | `ops` | `ops` (ops) | 20 | OPS-01 to OPS-07, ADM-17 (subscriptions) |
+| 16 operations | `help` | `help` (common), `help-public` (public) | 4 | COM-09 |
+| 16 operations | `admin-integrations` | `admin-integrations` (buyer) | 10 | ADM-15, ADM-16, ADM-17, OPS-04 (support-access authorization) |
 
 Each domain also owns its client wrapper `src/ui/src/api/<domain>.ts` and the tests for its features.
 
 ## 8. Routing and URL map
 
-Top-level URL map (architecture-plan §4). Routes below an area prefix are declared by the features' `routes.tsx`; exact deep paths are fixed in Stage A. References are unique per buyer, so public record URLs carry the buyer slug (DD-22).
+Top-level URL map (architecture-plan §4), as built in `app/router.tsx`. Routes below an area prefix are declared by the features' `routes.tsx`; the complete as-built list follows in §8.1, and the sidebar in §8.2. References are unique per buyer, so public record URLs carry the buyer slug (DD-22).
 
 | URL | Screens | Access |
 |---|---|---|
@@ -305,26 +337,28 @@ Top-level URL map (architecture-plan §4). Routes below an area prefix are decla
 | `/opportunities`, `/opportunities/:buyerSlug/:ref` | PUB-02, PUB-03 | public |
 | `/clarifications/:buyerSlug/:ref` | PUB-04 | public |
 | `/awards`, `/awards/:buyerSlug/:ref` | PUB-05 | public |
-| `/plans` | PUB-06 | public |
-| `/guidance/*` | PUB-07, COM-09 (public help) | public |
+| `/plans`, `/plans/:buyerSlug/:noticeId` | PUB-06 | public |
+| `/guidance`, `/guidance/:articleSlug`, `/service-status` | PUB-07, COM-09 (public help and service status) | public |
 | `/signin`, `/forgot-password`, `/reset-password` | COM-01 | auth pages |
-| `/invite/:token` | COM-01 (invitation acceptance through `POST /api/v1/me/invitations/:token/accept`, the one API route open to an `invited` user, DD-27) | auth pages |
-| `/register` | SUP-02 (supplier registration; a rate-limited public POST, DD-28) | auth pages |
+| `/invite/:token` | COM-01 (invitation acceptance, rendered inside `PublicShell`, through `POST /api/v1/me/invitations/:token/accept`, the one API route open to an `invited` user, DD-27) | public (inside `PublicShell`) |
+| `/register`, `/register/claim/:token` | SUP-02 (supplier registration and claiming an existing supplier record; a rate-limited public POST, DD-28) | public (inside `PublicShell`) |
 | `/select-organization` | COM-02 | signed in |
 | `/buyer/*` | BUY, EVA, CON, ADM, REP | signed in, active tenant kind `buyer` |
 | `/supplier/*` | SUP | signed in, active tenant kind `supplier` |
 | `/ops/*` | OPS | signed in, active tenant kind `operator` |
 | `/me/profile` | COM-03 | signed in |
 | `/me/tasks` | COM-04 | signed in |
-| `/me/approvals/:id` | COM-05 | signed in |
+| `/me/approvals`, `/me/approvals/:approvalId` | COM-04 (approval inbox), COM-05 | signed in (the nav item shows for buyer memberships) |
 | `/me/notifications` | COM-06 | signed in |
-| `/me/documents/:id` | COM-07 | signed in |
+| `/me/documents`, `/me/documents/:documentId` | COM-07 | signed in |
 | `/me/search` | COM-08 | signed in |
-| `/me/help` | COM-09 | signed in |
+| `/me/help`, `/me/help/articles/:articleSlug`, `/me/help/cases/:caseId` | COM-09 | signed in |
+| `/me/memberships`, `/me/membership-requests` | COM-02, SUP-02 | signed in |
+| any other path | Not found page (inside the shell under an area prefix) | — |
 
 **Personal `/me` pages (DD-21).** `/me/tasks`, `/me/notifications`, `/me/approvals/:id`, `/me/documents/:id` and `/me/search` show the user's **own** rows across all active memberships, each labelled with its organization. Acting on a row requires the row's tenant to be active: the action request carries `X-Tenant-Id` equal to that row's tenant (§10).
 
-`RouteGuard.tsx` gates authentication and permissions (brief §10). After sign-in, the active tenant remembered for this user in `localStorage` is restored when `/me/context` confirms it; the remembered value is a convenience only (DD-36). An authenticated user with several memberships and no confirmed remembered tenant, or with no active tenant yet, goes to `/select-organization` (COM-02). Area routes additionally require the active tenant's kind to match the area, mirroring the API's audience prefixes ([07-api.md](07-api.md#22-audience-prefixes)).
+`RouteGuard.tsx` gates authentication and permissions (brief §10). As built it shows a loading screen while the session is established, sends a signed-out user to `/signin` (remembering the requested URL), sends a user without an active organization to `/select-organization`, renders `ContextRequiredPage` when the area does not match the active organization's kind (when the user has a matching membership it offers "Switch organization", which opens `/select-organization`), and renders `ForbiddenPage` when the route's permission is not held. An area without its own index route shows `AreaHomePage`, which forwards to the first sidebar destination. A route that fails to load renders `RouteErrorPage`, inside the shell for area routes. After sign-in, the active tenant remembered for this user in `localStorage` is restored when `/me/context` confirms it; the remembered value is a convenience only (DD-36). An authenticated user with several memberships and no confirmed remembered tenant, or with no active tenant yet, goes to `/select-organization` (COM-02). Area routes additionally require the active tenant's kind to match the area, mirroring the API's audience prefixes ([07-api.md](07-api.md#22-audience-prefixes)).
 
 ```mermaid
 flowchart TB
@@ -335,25 +369,413 @@ flowchart TB
   SIGNED -- yes --> TENANT{"Active tenant selected, or remembered and confirmed by /me/context?"}
   TENANT -- no --> SELECT["Redirect to /select-organization"]
   TENANT -- yes --> AREA{"Route area matches the active tenant kind - me routes always match"}
-  AREA -- no --> DENY["Restricted-access state - behaviour fixed in Stage A"]
+  AREA -- no --> CTX["ContextRequiredPage - offers to switch organization"]
   AREA -- yes --> PERM{"Route permission held?"}
-  PERM -- no --> DENY
+  PERM -- no --> DENY["ForbiddenPage - restricted-access explanation"]
   PERM -- yes --> SHELL["Render inside the app shell"]
 ```
 
 The guard is a usability layer. A user who bypasses it still meets the API's 401, identical 403 and permission checks.
 
+### 8.1 As-built route list
+
+The SPA registers **284 feature routes** in 50 feature modules (34 feature directories), plus the shell routes `/signin`, `/forgot-password`, `/reset-password` and `/select-organization`. Paths are absolute. "Page" is relative to `src/ui/src/features/`. "Screens" are the PRD screen ids named in the page's doc comment; a page that states its COM-02 confirmation also lists COM-02. A dash in the permission column means the route has no permission of its own (public routes, personal `/me` routes, and pages that gate each action instead); the API still enforces every endpoint's permission. Two entries are redirects (`/ops/content` to `/ops/content/announcements`, and `/supplier/responses/:bidId` to its `answers` tab).
+
+**Public (`PublicShell`, no sign-in)**: 15 routes.
+
+| Route | Feature module | Page | Screens (page doc comment) | Route permission (any of) |
+|---|---|---|---|---|
+| `/invite/:token` | `account-public` | `account/pages/InvitationPage` | COM-01, COM-02 | - |
+| `/clarifications/:buyerSlug/:ref` | `clarifications-public` | `clarifications/pages/public/PublicClarificationsPage` | PUB-04 | - |
+| `/service-status` | `help-public` | `help/pages/PublicServicePage` | COM-09 | - |
+| `/awards` | `outcomes-public` | `outcomes/pages/PublicAwardsPage` | PUB-05 | - |
+| `/awards/:buyerSlug/:reference` | `outcomes-public` | `outcomes/pages/PublicAwardPage` | PUB-05 | - |
+| `/plans` | `planning-public` | `planning/pages/public/PublicPlansPage` | PUB-06 | - |
+| `/plans/:buyerSlug/:noticeId` | `planning-public` | `planning/pages/public/PublicNoticePage` | PUB-06 | - |
+| `/` | `public-portal` | `public-portal/pages/PortalHomePage` | PUB-01 | - |
+| `/b/:buyerSlug` | `public-portal` | `public-portal/pages/BuyerPortalPage` | PUB-01 | - |
+| `/opportunities` | `public-portal` | `public-portal/pages/OpportunitySearchPage` | PUB-02 | - |
+| `/opportunities/:buyerSlug/:ref` | `public-portal` | `public-portal/pages/NoticePage` | PUB-03 | - |
+| `/guidance` | `public-portal` | `public-portal/pages/GuidancePage` | PUB-07 | - |
+| `/guidance/:articleSlug` | `public-portal` | `public-portal/pages/GuidanceArticlePage` | PUB-07 | - |
+| `/register` | `supplier-org.public` | `supplier-org/pages/RegisterPage` | SUP-02 | - |
+| `/register/claim/:token` | `supplier-org.public` | `supplier-org/pages/ClaimOrganizationPage` | COM-02, SUP-02 | - |
+
+**Personal `/me` (any organization kind)**: 13 routes.
+
+| Route | Feature module | Page | Screens (page doc comment) | Route permission (any of) |
+|---|---|---|---|---|
+| `/me/profile` | `account` | `account/pages/ProfilePage` | COM-03 | - |
+| `/me/memberships` | `account` | `account/pages/MembershipsPage` | COM-02 | - |
+| `/me/approvals` | `approvals` | `approvals/pages/ApprovalInboxPage` | COM-04 | - |
+| `/me/approvals/:approvalId` | `approvals` | `approvals/pages/ApprovalDecisionPage` | COM-05 | - |
+| `/me/documents` | `documents` | `documents/pages/MyDocumentsPage` | COM-07 | - |
+| `/me/documents/:documentId` | `documents` | `documents/pages/DocumentViewerPage` | COM-07 | - |
+| `/me/help` | `help` | `help/pages/HelpCentrePage` | COM-09 | - |
+| `/me/help/articles/:articleSlug` | `help` | `help/pages/HelpArticlePage` | COM-09 | - |
+| `/me/help/cases/:caseId` | `help` | `help/pages/MyCasePage` | COM-09 | - |
+| `/me/notifications` | `notifications` | `notifications/pages/NotificationCenterPage` | COM-06 | - |
+| `/me/search` | `search` | `search/pages/SearchPage` | COM-08 | - |
+| `/me/membership-requests` | `supplier-org.me` | `supplier-org/pages/MyMembershipRequestsPage` | COM-02, SUP-02 | - |
+| `/me/tasks` | `tasks` | `tasks/pages/TaskInboxPage` | COM-04 | - |
+
+**Buyer `/buyer` (buyer organizations)**: 171 routes.
+
+| Route | Feature module | Page | Screens (page doc comment) | Route permission (any of) |
+|---|---|---|---|---|
+| `/buyer/admin/access` | `admin-access` | `admin-access/pages/AccessIndexPage` | - | `org.users.view` or `org.users.manage` or `org.roles.manage` or `org.access.review` or `evaluation.chair` |
+| `/buyer/admin/access/users` | `admin-access` | `admin-access/pages/UsersPage` | ADM-03, SUP-04 | `org.users.view` or `org.users.manage` |
+| `/buyer/admin/access/users/:userId` | `admin-access` | `admin-access/pages/UserDetailPage` | ADM-03, SUP-04 | `org.users.view` or `org.users.manage` |
+| `/buyer/admin/access/roles` | `admin-access` | `admin-access/pages/RolesPage` | ADM-04, SUP-04 | `org.roles.manage` or `org.access.review` or `org.users.manage` |
+| `/buyer/admin/access/roles/:roleId` | `admin-access` | `admin-access/pages/RoleDetailPage` | ADM-04, SUP-04 | `org.roles.manage` or `org.access.review` or `org.users.manage` |
+| `/buyer/admin/access/groups` | `admin-access` | `admin-access/pages/GroupsPage` | ADM-04, SUP-04 | `org.roles.manage` or `org.access.review` or `org.users.manage` |
+| `/buyer/admin/access/groups/:groupId` | `admin-access` | `admin-access/pages/GroupDetailPage` | ADM-04, SUP-04 | `org.roles.manage` or `org.access.review` or `org.users.manage` |
+| `/buyer/admin/access/review` | `admin-access` | `admin-access/pages/AccessReviewPage` | ADM-04 | `org.access.review` or `org.roles.manage` |
+| `/buyer/admin/access/conflicts` | `admin-access` | `admin-access/pages/ConflictsPage` | ADM-04 | `org.access.review` or `evaluation.chair` |
+| `/buyer/admin/access/conflicts/:declarationId` | `admin-access` | `admin-access/pages/ConflictDetailPage` | ADM-04 | `org.access.review` or `evaluation.chair` |
+| `/buyer/admin/service` | `admin-integrations` | `admin-integrations/pages/ServiceIndexPage` | - | `org.integrations.manage` or `tender.publish` or `org.imports.manage` or `org.subscription.view` or `org.support_access.authorize` |
+| `/buyer/admin/service/integrations` | `admin-integrations` | `admin-integrations/pages/IntegrationsPage` | ADM-15 | `org.integrations.manage` |
+| `/buyer/admin/service/integrations/:connectionId` | `admin-integrations` | `admin-integrations/pages/IntegrationPage` | ADM-15 | `org.integrations.manage` |
+| `/buyer/admin/service/exceptions` | `admin-integrations` | `admin-integrations/pages/ExceptionsPage` | ADM-15 | `org.integrations.manage` or `tender.publish` |
+| `/buyer/admin/service/exceptions/:exceptionId` | `admin-integrations` | `admin-integrations/pages/ExceptionPage` | ADM-15 | `org.integrations.manage` or `tender.publish` |
+| `/buyer/admin/service/imports` | `admin-integrations` | `admin-integrations/pages/ImportsPage` | ADM-16 | `org.imports.manage` |
+| `/buyer/admin/service/imports/:batchId` | `admin-integrations` | `admin-integrations/pages/ImportBatchPage` | ADM-16 | `org.imports.manage` |
+| `/buyer/admin/service/subscription` | `admin-integrations` | `admin-integrations/pages/SubscriptionPage` | ADM-17 | `org.subscription.view` |
+| `/buyer/admin/service/support-access` | `admin-integrations` | `admin-integrations/pages/SupportAccessPage` | OPS-04 | `org.support_access.authorize` |
+| `/buyer/admin/service/support-access/:grantId` | `admin-integrations` | `admin-integrations/pages/SupportGrantPage` | - | `org.support_access.authorize` |
+| `/buyer/admin/organization` | `admin-org` | `admin-org/pages/OrgIndexPage` | ADM-01, ADM-02, ADM-05 | `org.settings.manage` or `org.structure.manage` or `org.authority.manage` or `org.access.review` |
+| `/buyer/admin/organization/settings` | `admin-org` | `admin-org/pages/OrganizationPage` | ADM-01 | `org.settings.manage` or `org.structure.manage` |
+| `/buyer/admin/organization/structure` | `admin-org` | `admin-org/pages/StructurePage` | ADM-02 | `org.structure.manage` or `org.settings.manage` |
+| `/buyer/admin/organization/authority` | `admin-org` | `admin-org/pages/AuthorityPage` | ADM-05 | `org.authority.manage` or `org.access.review` or `org.structure.manage` |
+| `/buyer/admin/organization/committees/:committeeId` | `admin-org` | `admin-org/pages/CommitteePage` | ADM-05 | `org.authority.manage` or `org.structure.manage` |
+| `/buyer/admin/policy` | `admin-policy` | `admin-policy/pages/PolicyIndexPage` | ADM-06, ADM-07, ADM-08, ADM-11 | `org.policy.manage` or `org.policy.approve` or `audit.view` or `org.fields.manage` or `org.templates.manage` or `org.templates.approve` or `org.portal.manage` or `org.settings.manage` or `tender.publish` |
+| `/buyer/admin/policy/profiles` | `admin-policy` | `admin-policy/pages/PolicyProfilesPage` | ADM-06 | `org.policy.manage` or `org.policy.approve` or `audit.view` |
+| `/buyer/admin/policy/profiles/new` | `admin-policy` | `admin-policy/pages/PolicyProfileNewPage` | ADM-06 | `org.policy.manage` |
+| `/buyer/admin/policy/profiles/:profileId` | `admin-policy` | `admin-policy/pages/PolicyProfilePage` | ADM-06 | `org.policy.manage` or `org.policy.approve` or `audit.view` |
+| `/buyer/admin/policy/profiles/:profileId/versions/:versionId` | `admin-policy` | `admin-policy/pages/PolicyVersionPage` | ADM-06 | `org.policy.manage` or `org.policy.approve` or `audit.view` |
+| `/buyer/admin/policy/fields` | `admin-policy` | `admin-policy/pages/CustomFieldsPage` | ADM-07 | `org.fields.manage` or `audit.view` |
+| `/buyer/admin/policy/fields/new` | `admin-policy` | `admin-policy/pages/CustomFieldNewPage` | ADM-07 | `org.fields.manage` |
+| `/buyer/admin/policy/fields/:fieldId` | `admin-policy` | `admin-policy/pages/CustomFieldPage` | ADM-07 | `org.fields.manage` or `audit.view` |
+| `/buyer/admin/policy/templates` | `admin-policy` | `admin-policy/pages/TemplatesPage` | ADM-08 | `org.templates.manage` or `org.templates.approve` or `audit.view` |
+| `/buyer/admin/policy/templates/new` | `admin-policy` | `admin-policy/pages/TemplateNewPage` | ADM-08 | `org.templates.manage` |
+| `/buyer/admin/policy/templates/:templateId` | `admin-policy` | `admin-policy/pages/TemplatePage` | ADM-08 | `org.templates.manage` or `org.templates.approve` or `audit.view` |
+| `/buyer/admin/policy/portal` | `admin-policy` | `admin-policy/pages/PortalPolicyPage` | ADM-11 | `org.portal.manage` or `org.settings.manage` or `tender.publish` or `audit.view` |
+| `/buyer/awards` | `awards` | `awards/pages/AwardRegisterPage` | BUY-26 | `award.recommend` or `award.approve` or `notice.issue` or `event.closeout` or `audit.view` |
+| `/buyer/awards/:tenderId` | `awards` | `awards/pages/AwardOverviewPage` | BUY-26 | `award.recommend` or `award.approve` or `notice.issue` or `event.closeout` or `audit.view` |
+| `/buyer/awards/:tenderId/recommendations/:recommendationId` | `awards` | `awards/pages/RecommendationPage` | BUY-26 | `award.recommend` or `award.approve` or `notice.issue` or `event.closeout` or `audit.view` |
+| `/buyer/awards/:tenderId/notices` | `awards` | `awards/pages/NoticesPage` | BUY-28 | `notice.issue` or `award.recommend` or `award.approve` or `complaint.manage` or `audit.view` |
+| `/buyer/awards/:tenderId/notices/:noticeId` | `awards` | `awards/pages/NoticePage` | BUY-28 | `notice.issue` or `award.recommend` or `award.approve` or `complaint.manage` or `audit.view` |
+| `/buyer/awards/:tenderId/closeout` | `awards` | `awards/pages/CloseoutPage` | BUY-30 | `event.closeout` or `award.recommend` or `audit.view` |
+| `/buyer/closeout` | `awards` | `awards/pages/CloseoutRegisterPage` | BUY-30 | `event.closeout` or `award.recommend` or `audit.view` |
+| `/buyer/award-cases` | `awards` | `awards/pages/DebriefsPage` | BUY-29 | `complaint.manage` or `debrief.manage` or `audit.view` |
+| `/buyer/award-cases/debriefs/:debriefId` | `awards` | `awards/pages/DebriefPage` | BUY-29 | `complaint.manage` or `debrief.manage` or `audit.view` |
+| `/buyer/award-cases/complaints` | `awards` | `awards/pages/ComplaintsPage` | BUY-29 | `complaint.manage` or `debrief.manage` or `audit.view` |
+| `/buyer/award-cases/complaints/:complaintId` | `awards` | `awards/pages/ComplaintPage` | BUY-29 | `complaint.manage` or `debrief.manage` or `audit.view` |
+| `/buyer/admin/calendars` | `calendars` | `calendars/pages/CalendarsPage` | ADM-10 | `org.calendars.manage` or `tender.edit` or `tender.view` |
+| `/buyer/admin/calendars/new` | `calendars` | `calendars/pages/CalendarNewPage` | ADM-10 | `org.calendars.manage` |
+| `/buyer/admin/calendars/:calendarId` | `calendars` | `calendars/pages/CalendarPage` | ADM-10 | `org.calendars.manage` or `tender.edit` or `tender.view` |
+| `/buyer/clarifications` | `clarifications` | `clarifications/pages/BuyerClarificationsHome` | - | `tender.clarifications.manage` or `tender.addenda.approve` or `tender.sessions.manage` |
+| `/buyer/clarifications/questions` | `clarifications` | `clarifications/pages/buyer/QuestionsPage` | BUY-16 | `tender.clarifications.manage` |
+| `/buyer/clarifications/questions/:questionId` | `clarifications` | `clarifications/pages/buyer/QuestionPage` | BUY-16, COM-02 | `tender.clarifications.manage` |
+| `/buyer/clarifications/addenda` | `clarifications` | `clarifications/pages/buyer/AddendaPage` | BUY-17 | `tender.clarifications.manage` or `tender.addenda.approve` |
+| `/buyer/clarifications/addenda/new` | `clarifications` | `clarifications/pages/buyer/AddendumFormPage` | BUY-17 | `tender.clarifications.manage` |
+| `/buyer/clarifications/addenda/:addendumId` | `clarifications` | `clarifications/pages/buyer/AddendumPage` | BUY-17 | `tender.clarifications.manage` or `tender.addenda.approve` |
+| `/buyer/clarifications/addenda/:addendumId/edit` | `clarifications` | `clarifications/pages/buyer/AddendumFormPage` | BUY-17 | `tender.clarifications.manage` |
+| `/buyer/clarifications/sessions` | `clarifications` | `clarifications/pages/buyer/SessionsPage` | BUY-18 | `tender.sessions.manage` |
+| `/buyer/clarifications/sessions/new` | `clarifications` | `clarifications/pages/buyer/SessionFormPage` | BUY-18 | `tender.sessions.manage` |
+| `/buyer/clarifications/sessions/:sessionId` | `clarifications` | `clarifications/pages/buyer/SessionPage` | BUY-18 | `tender.sessions.manage` |
+| `/buyer/clarifications/sessions/:sessionId/edit` | `clarifications` | `clarifications/pages/buyer/SessionFormPage` | BUY-18 | `tender.sessions.manage` |
+| `/buyer/contracts` | `contracts` | `contracts/pages/ContractRegisterPage` | CON-01 | `contract.view` |
+| `/buyer/contracts/new` | `contracts` | `contracts/pages/NewContractPage` | CON-02 | `contract.prepare` |
+| `/buyer/contracts/:contractId` | `contracts` | `contracts/pages/ContractOverviewPage` | CON-05 | `contract.view` |
+| `/buyer/contracts/:contractId/preparation` | `contracts` | `contracts/pages/ContractPreparationPage` | CON-02 | `contract.view` |
+| `/buyer/contracts/:contractId/signature` | `contracts` | `contracts/pages/SignaturePage` | CON-03 | `contract.view` |
+| `/buyer/contracts/:contractId/handover` | `contracts` | `contracts/pages/HandoverPage` | CON-04 | `contract.view` |
+| `/buyer/contracts/:contractId/milestones` | `contracts` | `contracts/pages/MilestonesPage` | CON-06 | `contract.view` |
+| `/buyer/contracts/:contractId/obligations/:obligationId` | `contracts` | `contracts/pages/ObligationPage` | CON-06 | `contract.view` |
+| `/buyer/contracts/:contractId/performance` | `contracts` | `contracts/pages/PerformancePage` | CON-07 | `contract.view` |
+| `/buyer/contracts/:contractId/financials` | `contracts` | `contracts/pages/FinancialsPage` | CON-08 | `contract.financials.view` |
+| `/buyer/contracts/:contractId/changes` | `contracts` | `contracts/pages/ChangesPage` | CON-09 | `contract.view` |
+| `/buyer/contracts/:contractId/renewals` | `contracts` | `contracts/pages/RenewalsPage` | CON-10 | `contract.view` |
+| `/buyer/contracts/:contractId/closeout` | `contracts` | `contracts/pages/CloseoutPage` | CON-11 | `contract.view` |
+| `/buyer/dashboard` | `dashboard-buyer` | `dashboard/pages/BuyerDashboardPage` | BUY-01 | `dashboard.view` |
+| `/buyer/evaluation` | `evaluation` | `evaluation/pages/EvaluationsPage` | EVA-01, EVA-05, EVA-06 | `evaluation.chair` or `evaluation.score` or `evaluation.commercial` or `evaluation.moderate` or `evaluation.signoff` or `award.recommend` or `award.approve` |
+| `/buyer/evaluation/assignments` | `evaluation` | `evaluation/pages/AssignmentsPage` | EVA-01 | `evaluation.score` or `evaluation.commercial` or `evaluation.chair` |
+| `/buyer/evaluation/assignments/:assignmentId` | `evaluation` | `evaluation/pages/AssignmentPage` | EVA-01 | `evaluation.score` or `evaluation.commercial` or `evaluation.chair` |
+| `/buyer/evaluation/assignments/:assignmentId/assessment` | `evaluation` | `evaluation/pages/AssessmentPage` | EVA-02 | `evaluation.score` or `evaluation.chair` |
+| `/buyer/evaluation/tenders/:tenderId` | `evaluation` | `evaluation/pages/EvaluationOverviewPage` | EVA-01, EVA-04 | `evaluation.chair` or `evaluation.score` or `evaluation.commercial` or `evaluation.moderate` or `evaluation.signoff` or `award.recommend` or `award.approve` |
+| `/buyer/evaluation/tenders/:tenderId/commercial` | `evaluation` | `evaluation/pages/CommercialPage` | EVA-04 | `evaluation.commercial` or `evaluation.chair` |
+| `/buyer/evaluation/tenders/:tenderId/moderation` | `evaluation` | `evaluation/pages/ModerationPage` | EVA-05 | `evaluation.moderate` or `evaluation.chair` |
+| `/buyer/evaluation/tenders/:tenderId/results` | `evaluation` | `evaluation/pages/ResultsPage` | EVA-06 | `evaluation.chair` or `evaluation.signoff` or `award.recommend` or `award.approve` |
+| `/buyer/admin/notification-rules` | `notification-rules` | `notifications/pages/NotificationRulesPage` | ADM-12 | `org.notifications.manage` |
+| `/buyer/admin/notification-rules/new` | `notification-rules` | `notifications/pages/NotificationRuleNewPage` | ADM-12 | `org.notifications.manage` |
+| `/buyer/admin/notification-rules/:ruleId` | `notification-rules` | `notifications/pages/NotificationRulePage` | ADM-12 | `org.notifications.manage` |
+| `/buyer/opening` | `opening` | `opening/pages/OpeningPage` | BUY-20 | `bid.open` or `bid.witness` or `compliance.assess` or `evaluation.chair` or `exclusion.approve` |
+| `/buyer/opening/tenders/:tenderId` | `opening` | `opening/pages/TenderOpeningPage` | BUY-20 | `bid.open` or `bid.witness` or `compliance.assess` or `evaluation.chair` or `exclusion.approve` |
+| `/buyer/opening/sessions/:sessionId` | `opening` | `opening/pages/OpeningSessionPage` | BUY-20 | `bid.open` or `bid.witness` or `compliance.assess` or `evaluation.chair` or `exclusion.approve` |
+| `/buyer/compliance` | `opening` | `opening/pages/CompliancePage` | BUY-21 | `compliance.assess` or `exclusion.approve` or `evaluation.chair` |
+| `/buyer/compliance/tenders/:tenderId` | `opening` | `opening/pages/ComplianceRegisterPage` | BUY-21 | `compliance.assess` or `exclusion.approve` or `evaluation.chair` |
+| `/buyer/compliance/bids/:bidId` | `opening` | `opening/pages/BidCompliancePage` | BUY-21 | `compliance.assess` or `exclusion.approve` or `evaluation.chair` |
+| `/buyer/compliance/exclusions/:exclusionId` | `opening` | `opening/pages/ExclusionPage` | BUY-21 | `compliance.assess` or `exclusion.approve` |
+| `/buyer/bid-clarifications` | `opening` | `opening/pages/ClarificationsPage` | EVA-03 | `compliance.assess` or `evaluation.chair` or `exclusion.approve` or `evaluation.score` |
+| `/buyer/bid-clarifications/:clarificationId` | `opening` | `opening/pages/ClarificationPage` | BUY-21, EVA-03 | `compliance.assess` or `evaluation.chair` or `exclusion.approve` or `evaluation.score` |
+| `/buyer/planning` | `planning` | `planning/pages/PlanningPage` | BUY-05 | `plan.manage` or `request.view_all` |
+| `/buyer/planning/items/new` | `planning` | `planning/pages/PlanItemFormPage` | BUY-05 | `plan.manage` |
+| `/buyer/planning/items/:planItemId` | `planning` | `planning/pages/PlanItemPage` | BUY-05 | `plan.manage` or `request.view_all` |
+| `/buyer/planning/items/:planItemId/edit` | `planning` | `planning/pages/PlanItemFormPage` | BUY-05 | `plan.manage` |
+| `/buyer/planning/notices/new` | `planning` | `planning/pages/AdvanceNoticeFormPage` | BUY-05 | `plan.manage` |
+| `/buyer/planning/notices/:noticeId` | `planning` | `planning/pages/AdvanceNoticePage` | BUY-05, PUB-06 | `plan.manage` or `request.view_all` |
+| `/buyer/publications` | `publication` | `publication/pages/PublicationRegisterPage` | BUY-14 | `tender.view` or `tender.publish` |
+| `/buyer/tenders/:tenderId/publication` | `publication` | `publication/pages/TenderPublicationPage` | BUY-14 | `tender.view` or `tender.publish` |
+| `/buyer/tenders/:tenderId/participants` | `publication` | `publication/pages/ParticipantsPage` | BUY-15 | `tender.view` or `tender.participants.manage` |
+| `/buyer/tenders/:tenderId/participants/:participantId` | `publication` | `publication/pages/ParticipantPage` | BUY-15 | `tender.view` or `tender.participants.manage` |
+| `/buyer/qualification` | `qualification` | `qualification/pages/buyer/QueuePage` | BUY-33 | `qualification.review` or `qualification.financial_review` or `qualification.decide` |
+| `/buyer/qualification/applications/:applicationId` | `qualification` | `qualification/pages/buyer/AssessmentPage` | BUY-34, BUY-35 | `qualification.review` or `qualification.financial_review` or `qualification.decide` |
+| `/buyer/qualification/applications/:applicationId/decision` | `qualification` | `qualification/pages/buyer/DecidePage` | BUY-35 | `qualification.decide` |
+| `/buyer/qualification/monitoring` | `qualification` | `qualification/pages/buyer/MonitoringPage` | BUY-35 | `qualification.review` or `qualification.financial_review` or `qualification.decide` |
+| `/buyer/qualification/decisions/:decisionId` | `qualification` | `qualification/pages/buyer/DecisionPage` | BUY-35, SUP-24 | `qualification.review` or `qualification.financial_review` or `qualification.decide` |
+| `/buyer/qualification/triggers/:triggerId` | `qualification` | `qualification/pages/buyer/TriggerPage` | BUY-35 | `qualification.review` or `qualification.financial_review` or `qualification.decide` |
+| `/buyer/admin/qualification` | `qualification` | `qualification/pages/admin/ProgramsPage` | ADM-09 | `qualification.program.manage` or `qualification.review` or `qualification.financial_review` or `qualification.decide` |
+| `/buyer/admin/qualification/new` | `qualification` | `qualification/pages/admin/ProgramNewPage` | ADM-09 | `qualification.program.manage` |
+| `/buyer/admin/qualification/:programId` | `qualification` | `qualification/pages/admin/ProgramPage` | ADM-09 | `qualification.program.manage` or `qualification.review` or `qualification.financial_review` or `qualification.decide` |
+| `/buyer/admin/records` | `records` | `records/pages/RecordsOverviewPage` | ADM-14 | `audit.view` or `records.retention.manage` or `records.hold.manage` or `records.disposal.approve` or `export.create` |
+| `/buyer/admin/records/audit` | `records` | `records/pages/AuditEventsPage` | ADM-14 | `audit.view` |
+| `/buyer/admin/records/retention` | `records` | `records/pages/RetentionPage` | ADM-14 | `audit.view` or `records.retention.manage` or `records.hold.manage` or `records.disposal.approve` |
+| `/buyer/admin/records/holds` | `records` | `records/pages/HoldsPage` | ADM-14 | `audit.view` or `records.retention.manage` or `records.hold.manage` or `records.disposal.approve` |
+| `/buyer/admin/records/holds/:holdId` | `records` | `records/pages/HoldPage` | ADM-14 | `audit.view` or `records.retention.manage` or `records.hold.manage` or `records.disposal.approve` |
+| `/buyer/admin/records/disposals` | `records` | `records/pages/DisposalsPage` | ADM-14 | `audit.view` or `records.retention.manage` or `records.hold.manage` or `records.disposal.approve` |
+| `/buyer/admin/records/disposals/:disposalRequestId` | `records` | `records/pages/DisposalPage` | ADM-14 | `audit.view` or `records.retention.manage` or `records.hold.manage` or `records.disposal.approve` |
+| `/buyer/admin/records/evidence-packs` | `records` | `records/pages/EvidencePacksPage` | ADM-14 | `audit.view` or `export.create` |
+| `/buyer/reports` | `reports` | `reports/pages/ReportsPage` | REP-01 | `report.view` or `report.manage` |
+| `/buyer/reports/definitions/new` | `reports` | `reports/pages/DefinitionPage` | ADM-13, REP-02 | `report.manage` |
+| `/buyer/reports/definitions/:definitionId` | `reports` | `reports/pages/DefinitionPage` | ADM-13, REP-02 | `report.view` or `report.manage` |
+| `/buyer/reports/:family` | `reports` | `reports/pages/ReportPage` | REP-01 | `report.view` or `report.manage` |
+| `/buyer/admin/reports` | `reports` | `reports/pages/ReportDefinitionsPage` | ADM-13 | `report.view` or `report.manage` or `export.create` or `audit.view` |
+| `/buyer/admin/reports/exports` | `reports` | `reports/pages/ExportsPage` | ADM-13 | `export.create` or `report.manage` or `audit.view` |
+| `/buyer/admin/reports/exports/:exportId` | `reports` | `reports/pages/ExportPage` | ADM-13, ADM-14 | `export.create` or `report.manage` or `audit.view` |
+| `/buyer/requests` | `requests` | `requests/pages/RequestRegisterPage` | BUY-02 | `request.create` or `request.view_all` |
+| `/buyer/requests/new` | `requests` | `requests/pages/RequestFormPage` | BUY-03 | `request.create` |
+| `/buyer/requests/:requestId` | `requests` | `requests/pages/RequestPage` | BUY-03 | `request.create` or `request.view_all` |
+| `/buyer/requests/:requestId/edit` | `requests` | `requests/pages/RequestFormPage` | BUY-03 | `request.create` |
+| `/buyer/requests/:requestId/decision` | `requests` | `requests/pages/RequestDecisionPage` | BUY-04 | `request.review` or `request.approve` or `request.funding_confirm` or `request.view_all` |
+| `/buyer/strategies` | `requests` | `requests/pages/StrategiesPage` | BUY-06 | `strategy.manage` or `strategy.approve` or `audit.view` |
+| `/buyer/strategies/new` | `requests` | `requests/pages/StrategyFormPage` | BUY-06 | `strategy.manage` |
+| `/buyer/strategies/:strategyId` | `requests` | `requests/pages/StrategyPage` | BUY-06 | `strategy.manage` or `strategy.approve` or `audit.view` |
+| `/buyer/strategies/:strategyId/edit` | `requests` | `requests/pages/StrategyFormPage` | BUY-06 | `strategy.manage` |
+| `/buyer/selection` | `selection` | `selection/pages/buyer/SelectionRegisterPage` | BUY-22, BUY-25, BUY-27 | `selection.manage` or `shortlist.approve` or `diligence.manage` or `negotiation.conduct` or `negotiation.approve` or `award.approve` or `audit.view` or `evaluation.chair` or `evaluation.score` |
+| `/buyer/selection/tenders/:tenderId` | `selection` | `selection/pages/buyer/TenderSelectionPage` | BUY-22, BUY-25, BUY-27 | `selection.manage` or `shortlist.approve` or `diligence.manage` or `negotiation.conduct` or `negotiation.approve` or `award.approve` or `audit.view` |
+| `/buyer/selection/assessments` | `selection` | `selection/pages/buyer/AssessmentsPage` | BUY-22 | `selection.manage` or `shortlist.approve` or `diligence.manage` or `negotiation.conduct` or `negotiation.approve` or `award.approve` or `audit.view` or `evaluation.chair` or `evaluation.score` |
+| `/buyer/selection/assessments/new` | `selection` | `selection/pages/buyer/AssessmentSessionFormPage` | BUY-22 | `selection.manage` |
+| `/buyer/selection/assessments/:sessionId` | `selection` | `selection/pages/buyer/AssessmentSessionPage` | BUY-22 | `selection.manage` or `shortlist.approve` or `diligence.manage` or `negotiation.conduct` or `negotiation.approve` or `award.approve` or `audit.view` or `evaluation.chair` or `evaluation.score` |
+| `/buyer/selection/references` | `selection` | `selection/pages/buyer/ReferenceChecksPage` | BUY-22 | `selection.manage` or `shortlist.approve` or `diligence.manage` or `negotiation.conduct` or `negotiation.approve` or `award.approve` or `audit.view` or `evaluation.chair` or `evaluation.score` |
+| `/buyer/selection/shortlists` | `selection` | `selection/pages/buyer/ShortlistsPage` | BUY-23 | `selection.manage` or `shortlist.approve` or `diligence.manage` or `negotiation.conduct` or `negotiation.approve` or `award.approve` or `audit.view` |
+| `/buyer/selection/shortlists/new` | `selection` | `selection/pages/buyer/ShortlistFormPage` | BUY-23 | `selection.manage` |
+| `/buyer/selection/shortlists/:shortlistId` | `selection` | `selection/pages/buyer/ShortlistPage` | BUY-23 | `selection.manage` or `shortlist.approve` or `diligence.manage` or `negotiation.conduct` or `negotiation.approve` or `award.approve` or `audit.view` |
+| `/buyer/selection/preferred-bidders` | `selection` | `selection/pages/buyer/PreferredBiddersPage` | BUY-24 | `selection.manage` or `shortlist.approve` or `diligence.manage` or `negotiation.conduct` or `negotiation.approve` or `award.approve` or `audit.view` |
+| `/buyer/selection/preferred-bidders/new` | `selection` | `selection/pages/buyer/PreferredBidderFormPage` | BUY-24 | `selection.manage` |
+| `/buyer/selection/preferred-bidders/:preferredBidderId` | `selection` | `selection/pages/buyer/PreferredBidderPage` | BUY-24 | `selection.manage` or `shortlist.approve` or `diligence.manage` or `negotiation.conduct` or `negotiation.approve` or `award.approve` or `audit.view` |
+| `/buyer/selection/due-diligence` | `selection` | `selection/pages/buyer/DiligenceCasesPage` | BUY-25 | `selection.manage` or `shortlist.approve` or `diligence.manage` or `negotiation.conduct` or `negotiation.approve` or `award.approve` or `audit.view` |
+| `/buyer/selection/due-diligence/:caseId` | `selection` | `selection/pages/buyer/DiligenceCasePage` | BUY-25 | `selection.manage` or `shortlist.approve` or `diligence.manage` or `negotiation.conduct` or `negotiation.approve` or `award.approve` or `audit.view` |
+| `/buyer/selection/negotiations` | `selection` | `selection/pages/buyer/NegotiationsPage` | BUY-27 | `selection.manage` or `shortlist.approve` or `diligence.manage` or `negotiation.conduct` or `negotiation.approve` or `award.approve` or `audit.view` |
+| `/buyer/selection/negotiations/new` | `selection` | `selection/pages/buyer/NegotiationFormPage` | BUY-27 | `negotiation.conduct` |
+| `/buyer/selection/negotiations/:negotiationId` | `selection` | `selection/pages/buyer/NegotiationPage` | BUY-27 | `selection.manage` or `shortlist.approve` or `diligence.manage` or `negotiation.conduct` or `negotiation.approve` or `award.approve` or `audit.view` |
+| `/buyer/selection/final-offers` | `selection` | `selection/pages/buyer/FinalOffersPage` | BUY-27 | `selection.manage` or `shortlist.approve` or `diligence.manage` or `negotiation.conduct` or `negotiation.approve` or `award.approve` or `audit.view` |
+| `/buyer/selection/final-offers/new` | `selection` | `selection/pages/buyer/FinalOfferFormPage` | BUY-27 | `selection.manage` |
+| `/buyer/selection/final-offers/:roundId` | `selection` | `selection/pages/buyer/FinalOfferPage` | BUY-27 | `selection.manage` or `shortlist.approve` or `diligence.manage` or `negotiation.conduct` or `negotiation.approve` or `award.approve` or `audit.view` |
+| `/buyer/submissions` | `submission-monitoring` | `submission-monitoring/pages/MonitoringListPage` | BUY-19 | `bid.monitor` |
+| `/buyer/submissions/:tenderId` | `submission-monitoring` | `submission-monitoring/pages/MonitoringTenderPage` | BUY-19, COM-02 | `bid.monitor` |
+| `/buyer/suppliers` | `supplier-directory` | `supplier-directory/pages/SupplierDirectoryPage` | BUY-31 | `supplier.directory.view` |
+| `/buyer/suppliers/:supplierTenantId` | `supplier-directory` | `supplier-directory/pages/SupplierRecordPage` | BUY-32 | `supplier.directory.view` |
+| `/buyer/tenders` | `tender-authoring` | `tender-authoring/pages/TenderRegisterPage` | BUY-07 | `tender.view` |
+| `/buyer/tenders/new` | `tender-authoring` | `tender-authoring/pages/CreateTenderPage` | BUY-07, COM-02 | `tender.create` |
+| `/buyer/tenders/:tenderId` | `tender-authoring` | `tender-authoring/pages/TenderOverviewPage` | BUY-08 | `tender.view` |
+| `/buyer/tenders/:tenderId/scope` | `tender-authoring` | `tender-authoring/pages/ScopePage` | BUY-09 | `tender.view` |
+| `/buyer/tenders/:tenderId/pricing` | `tender-authoring` | `tender-authoring/pages/PricingPage` | BUY-10 | `tender.view` |
+| `/buyer/tenders/:tenderId/evaluation` | `tender-authoring` | `tender-authoring/pages/EvaluationPlanPage` | BUY-11 | `tender.view` |
+| `/buyer/tenders/:tenderId/timetable` | `tender-authoring` | `tender-authoring/pages/TimetablePage` | BUY-12 | `tender.view` |
+| `/buyer/tenders/:tenderId/release` | `tender-authoring` | `tender-authoring/pages/ReleaseReviewPage` | BUY-13, COM-05 | `tender.view` |
+
+**Supplier `/supplier` (supplier organizations)**: 60 routes.
+
+| Route | Feature module | Page | Screens (page doc comment) | Route permission (any of) |
+|---|---|---|---|---|
+| `/supplier/admin/access` | `admin-access-supplier` | `admin-access/pages/AccessIndexPage` | - | `supplier.users.manage` |
+| `/supplier/admin/access/users` | `admin-access-supplier` | `admin-access/pages/UsersPage` | ADM-03, SUP-04 | `supplier.users.manage` |
+| `/supplier/admin/access/users/:userId` | `admin-access-supplier` | `admin-access/pages/UserDetailPage` | ADM-03, SUP-04 | `supplier.users.manage` |
+| `/supplier/admin/access/roles` | `admin-access-supplier` | `admin-access/pages/RolesPage` | ADM-04, SUP-04 | `supplier.users.manage` |
+| `/supplier/admin/access/roles/:roleId` | `admin-access-supplier` | `admin-access/pages/RoleDetailPage` | ADM-04, SUP-04 | `supplier.users.manage` |
+| `/supplier/admin/access/groups` | `admin-access-supplier` | `admin-access/pages/GroupsPage` | ADM-04, SUP-04 | `supplier.users.manage` |
+| `/supplier/admin/access/groups/:groupId` | `admin-access-supplier` | `admin-access/pages/GroupDetailPage` | ADM-04, SUP-04 | `supplier.users.manage` |
+| `/supplier/admin/access/authority` | `admin-access-supplier` | `admin-access/pages/SupplierAuthorityPage` | SUP-04 | `supplier.users.manage` |
+| `/supplier/admin/access/assignments` | `admin-access-supplier` | `admin-access/pages/TenderAssignmentsPage` | SUP-04 | `supplier.users.manage` |
+| `/supplier/clarifications` | `clarifications-supplier` | `clarifications/pages/supplier/SupplierClarificationsPage` | SUP-10 | `supplier.opportunities.view` |
+| `/supplier/clarifications/tenders/:tenderId` | `clarifications-supplier` | `clarifications/pages/supplier/SupplierTenderPage` | COM-02, SUP-10 | `supplier.opportunities.view` |
+| `/supplier/clarifications/questions/:questionId` | `clarifications-supplier` | `clarifications/pages/supplier/SupplierQuestionPage` | SUP-10 | `supplier.opportunities.view` |
+| `/supplier/clarifications/addenda/:addendumId` | `clarifications-supplier` | `clarifications/pages/supplier/SupplierAddendumPage` | SUP-10 | `supplier.opportunities.view` |
+| `/supplier/briefings` | `clarifications-supplier` | `clarifications/pages/supplier/SupplierSessionsPage` | SUP-11 | `supplier.opportunities.view` |
+| `/supplier/briefings/:sessionId` | `clarifications-supplier` | `clarifications/pages/supplier/SupplierSessionPage` | SUP-11 | `supplier.opportunities.view` |
+| `/supplier/contracts` | `contracts-supplier` | `contracts/pages/supplier/SupplierContractsPage` | SUP-23 | `supplier.contract.participate` or `supplier.outcomes.view` |
+| `/supplier/contracts/:contractId` | `contracts-supplier` | `contracts/pages/supplier/SupplierContractPage` | SUP-23 | `supplier.contract.participate` or `supplier.outcomes.view` |
+| `/supplier/dashboard` | `dashboard-supplier` | `dashboard/pages/SupplierDashboardPage` | SUP-01 | `supplier.dashboard.view` |
+| `/supplier/assessment-requests` | `opening.supplier` | `opening/pages/AssessmentRequestsPage` | SUP-18 | `supplier.response.edit` or `supplier.response.approve` or `supplier.response.submit` or `supplier.outcomes.view` |
+| `/supplier/assessment-requests/:requestId` | `opening.supplier` | `opening/pages/AssessmentRequestPage` | COM-02, SUP-18 | `supplier.response.edit` or `supplier.response.approve` or `supplier.response.submit` or `supplier.outcomes.view` |
+| `/supplier/opportunities` | `opportunities` | `opportunities/pages/DiscoveryPage` | SUP-06 | `supplier.opportunities.view` |
+| `/supplier/opportunities/find/:buyerSlug/:ref` | `opportunities` | `opportunities/pages/OpportunityLookupPage` | PUB-03, SUP-08 | `supplier.opportunities.view` |
+| `/supplier/opportunities/:tenderId` | `opportunities` | `opportunities/pages/OpportunityWorkspacePage` | SUP-08 | `supplier.opportunities.view` |
+| `/supplier/opportunities/:tenderId/pursuit` | `opportunities` | `opportunities/pages/PursuitPage` | SUP-09 | `supplier.pursuit.manage` or `supplier.opportunities.view` |
+| `/supplier/opportunities/:tenderId/response` | `opportunities` | `opportunities/pages/ResponseRedirectPage` | SUP-12 | `supplier.opportunities.view` |
+| `/supplier/invitations` | `opportunities` | `opportunities/pages/InvitationsPage` | SUP-07 | `supplier.opportunities.view` |
+| `/supplier/invitations/:participantId` | `opportunities` | `opportunities/pages/InvitationPage` | SUP-07 | `supplier.opportunities.view` |
+| `/supplier/pursuits` | `opportunities` | `opportunities/pages/PursuitsPage` | SUP-09 | `supplier.pursuit.manage` or `supplier.opportunities.view` |
+| `/supplier/outcomes` | `outcomes` | `outcomes/pages/SupplierOutcomesPage` | SUP-21 | `supplier.outcomes.view` |
+| `/supplier/outcomes/:tenderId` | `outcomes` | `outcomes/pages/SupplierOutcomePage` | SUP-21 | `supplier.outcomes.view` |
+| `/supplier/complaints` | `outcomes` | `outcomes/pages/SupplierComplaintsPage` | SUP-22 | `supplier.complaint.submit` or `supplier.outcomes.view` |
+| `/supplier/complaints/new` | `outcomes` | `outcomes/pages/NewComplaintPage` | SUP-22 | `supplier.complaint.submit` |
+| `/supplier/complaints/:complaintId` | `outcomes` | `outcomes/pages/SupplierComplaintPage` | SUP-22 | `supplier.complaint.submit` or `supplier.outcomes.view` |
+| `/supplier/qualification` | `qualification-supplier` | `qualification/pages/supplier/SupplierQualificationPage` | SUP-20, SUP-24 | `supplier.qualification.apply` or `supplier.outcomes.view` |
+| `/supplier/qualification/programs/:programId` | `qualification-supplier` | `qualification/pages/supplier/SupplierProgramPage` | SUP-20 | `supplier.qualification.apply` |
+| `/supplier/qualification/applications/:applicationId` | `qualification-supplier` | `qualification/pages/supplier/SupplierApplicationPage` | SUP-20 | `supplier.qualification.apply` |
+| `/supplier/qualification/decisions` | `qualification-supplier` | `qualification/pages/supplier/SupplierDecisionsPage` | SUP-24 | `supplier.qualification.apply` or `supplier.outcomes.view` |
+| `/supplier/qualification/decisions/:decisionId` | `qualification-supplier` | `qualification/pages/supplier/SupplierDecisionPage` | SUP-24 | `supplier.qualification.apply` or `supplier.outcomes.view` |
+| `/supplier/responses` | `responses` | `responses/pages/ResponsesPage` | SUP-12, SUP-17 | `supplier.response.edit` or `supplier.pricing.edit` or `supplier.response.approve` or `supplier.response.submit` |
+| `/supplier/responses/:bidId` | `responses` | redirect to `answers` | - | `supplier.response.edit` or `supplier.pricing.edit` or `supplier.response.approve` or `supplier.response.submit` |
+| `/supplier/responses/:bidId/answers` | `responses` | `responses/pages/AnswersPage` | SUP-12 | `supplier.response.edit` or `supplier.pricing.edit` or `supplier.response.approve` or `supplier.response.submit` |
+| `/supplier/responses/:bidId/answers/:requirementId` | `responses` | `responses/pages/AnswerPage` | SUP-12 | `supplier.response.edit` or `supplier.pricing.edit` or `supplier.response.approve` or `supplier.response.submit` |
+| `/supplier/responses/:bidId/pricing` | `responses` | `responses/pages/PricingPage` | SUP-13 | `supplier.response.edit` or `supplier.pricing.edit` or `supplier.response.approve` or `supplier.response.submit` |
+| `/supplier/responses/:bidId/declarations` | `responses` | `responses/pages/DeclarationsPage` | SUP-14 | `supplier.response.edit` or `supplier.pricing.edit` or `supplier.response.approve` or `supplier.response.submit` |
+| `/supplier/responses/:bidId/review` | `responses` | `responses/pages/ReviewPage` | SUP-15 | `supplier.response.edit` or `supplier.pricing.edit` or `supplier.response.approve` or `supplier.response.submit` |
+| `/supplier/responses/:bidId/submit` | `responses` | `responses/pages/SubmitPage` | COM-02, SUP-16 | `supplier.response.edit` or `supplier.pricing.edit` or `supplier.response.approve` or `supplier.response.submit` |
+| `/supplier/responses/:bidId/receipts` | `responses` | `responses/pages/ResponseHistoryPage` | SUP-17 | `supplier.response.edit` or `supplier.pricing.edit` or `supplier.response.approve` or `supplier.response.submit` |
+| `/supplier/receipts` | `responses` | `responses/pages/ReceiptsPage` | SUP-17 | `supplier.response.edit` or `supplier.pricing.edit` or `supplier.response.approve` or `supplier.response.submit` or `supplier.outcomes.view` |
+| `/supplier/receipts/:receiptId` | `responses` | `responses/pages/ReceiptPage` | SUP-16, SUP-17 | `supplier.response.edit` or `supplier.pricing.edit` or `supplier.response.approve` or `supplier.response.submit` or `supplier.outcomes.view` |
+| `/supplier/assessment-invites` | `selection-supplier` | `selection/pages/supplier/SupplierInvitesPage` | SUP-18 | `supplier.opportunities.view` |
+| `/supplier/negotiations` | `selection-supplier` | `selection/pages/supplier/SupplierNegotiationsPage` | SUP-19 | `supplier.outcomes.view` or `supplier.pricing.edit` |
+| `/supplier/negotiations/:negotiationId` | `selection-supplier` | `selection/pages/supplier/SupplierNegotiationPage` | SUP-19 | `supplier.outcomes.view` or `supplier.pricing.edit` |
+| `/supplier/final-offers/:roundId` | `selection-supplier` | `selection/pages/supplier/SupplierFinalOfferPage` | SUP-19 | `supplier.outcomes.view` or `supplier.pricing.edit` |
+| `/supplier/organization` | `supplier-org` | `supplier-org/pages/OrganizationProfilePage` | SUP-02, SUP-03 | `supplier.org.manage` or `supplier.dashboard.view` |
+| `/supplier/organization/edit` | `supplier-org` | `supplier-org/pages/ProfileEditPage` | SUP-03 | `supplier.org.manage` |
+| `/supplier/organization/identity-changes/new` | `supplier-org` | `supplier-org/pages/IdentityChangeNewPage` | SUP-03 | `supplier.org.manage` |
+| `/supplier/organization/identity-changes/:changeId` | `supplier-org` | `supplier-org/pages/IdentityChangeDetailPage` | SUP-03 | `supplier.org.manage` or `supplier.dashboard.view` |
+| `/supplier/evidence` | `supplier-org` | `supplier-org/pages/EvidenceLibraryPage` | SUP-05 | `supplier.evidence.manage` or `supplier.evidence.share` or `supplier.financial.view` |
+| `/supplier/evidence/new` | `supplier-org` | `supplier-org/pages/EvidenceNewPage` | SUP-05 | `supplier.evidence.manage` |
+| `/supplier/evidence/:evidenceId` | `supplier-org` | `supplier-org/pages/EvidenceDetailPage` | SUP-05 | `supplier.evidence.manage` or `supplier.evidence.share` or `supplier.financial.view` |
+
+**Operator `/ops` (the platform operator)**: 25 routes.
+
+| Route | Feature module | Page | Screens (page doc comment) | Route permission (any of) |
+|---|---|---|---|---|
+| `/ops/customers` | `ops` | `ops/pages/CustomersPage` | OPS-01 | `ops.customers.manage` or `ops.support.manage` or `ops.oversight.view` |
+| `/ops/customers/:customerTenantId` | `ops` | `ops/pages/CustomerPage` | OPS-01, OPS-02 | `ops.customers.manage` or `ops.support.manage` or `ops.oversight.view` |
+| `/ops/customers/:customerTenantId/onboarding` | `ops` | `ops/pages/OnboardingPage` | OPS-02 | `ops.customers.manage` or `ops.support.manage` or `ops.oversight.view` |
+| `/ops/offboarding` | `ops` | `ops/pages/OffboardingPlansPage` | OPS-02 | `ops.customers.manage` or `ops.support.manage` or `ops.oversight.view` |
+| `/ops/offboarding/:planId` | `ops` | `ops/pages/OffboardingPlanPage` | ADM-17, OPS-02 | `ops.customers.manage` or `ops.support.manage` or `ops.oversight.view` |
+| `/ops/subscriptions` | `ops` | `ops/pages/SubscriptionsPage` | OPS-03 | `ops.subscriptions.manage` or `ops.oversight.view` |
+| `/ops/subscriptions/:subscriptionId` | `ops` | `ops/pages/SubscriptionPage` | OPS-03 | `ops.subscriptions.manage` or `ops.oversight.view` |
+| `/ops/support` | `ops` | `ops/pages/SupportCasesPage` | OPS-04 | `ops.support.manage` or `ops.oversight.view` |
+| `/ops/support/grants` | `ops` | `ops/pages/SupportGrantsPage` | OPS-04 | `ops.support.manage` or `ops.oversight.view` |
+| `/ops/support/cases/:caseId` | `ops` | `ops/pages/SupportCasePage` | OPS-04 | `ops.support.manage` or `ops.oversight.view` |
+| `/ops/incidents` | `ops` | `ops/pages/IncidentsPage` | OPS-05 | `ops.incidents.manage` or `ops.oversight.view` |
+| `/ops/incidents/:incidentId` | `ops` | `ops/pages/IncidentPage` | OPS-05 | `ops.incidents.manage` or `ops.oversight.view` |
+| `/ops/oversight` | `ops` | `ops/pages/OversightPage` | OPS-06 | `ops.oversight.view` |
+| `/ops/content` | `ops` | redirect to `/ops/content/announcements` | - | `ops.content.manage` or `ops.oversight.view` |
+| `/ops/content/announcements` | `ops` | `ops/pages/AnnouncementsPage` | OPS-07 | `ops.content.manage` or `ops.oversight.view` |
+| `/ops/content/announcements/new` | `ops` | `ops/pages/AnnouncementEditorPage` | OPS-07 | `ops.content.manage` |
+| `/ops/content/announcements/:announcementId` | `ops` | `ops/pages/AnnouncementEditorPage` | OPS-07 | `ops.content.manage` or `ops.oversight.view` |
+| `/ops/content/help` | `ops` | `ops/pages/HelpArticlesPage` | OPS-07 | `ops.content.manage` or `ops.oversight.view` |
+| `/ops/content/help/new` | `ops` | `ops/pages/HelpArticleEditorPage` | OPS-07 | `ops.content.manage` |
+| `/ops/content/help/:articleId` | `ops` | `ops/pages/HelpArticleEditorPage` | OPS-07 | `ops.content.manage` or `ops.oversight.view` |
+| `/ops/supplier-registrations` | `supplier-directory.ops` | `supplier-directory/pages/OpsRegistrationsPage` | SUP-02 | `ops.customers.manage` |
+| `/ops/supplier-duplicates` | `supplier-directory.ops` | `supplier-directory/pages/OpsDuplicatesPage` | - | `ops.customers.manage` |
+| `/ops/supplier-duplicates/:candidateId` | `supplier-directory.ops` | `supplier-directory/pages/OpsDuplicateDetailPage` | - | `ops.customers.manage` |
+| `/ops/supplier-identity-changes` | `supplier-directory.ops` | `supplier-directory/pages/OpsIdentityChangesPage` | - | `ops.customers.manage` |
+| `/ops/supplier-identity-changes/:changeId` | `supplier-directory.ops` | `supplier-directory/pages/OpsIdentityChangeDetailPage` | - | `ops.customers.manage` |
+
+### 8.2 As-built navigation
+
+The sidebar shows the items of the active organization's area plus the `common` items, filtered by the active membership's permissions (any of the listed codes) and, for two `common` items, by tenant kind. Sections render in the order `home`, `work`, `planning`, `sourcing`, `evaluation`, `award`, `contracts`, `suppliers`, `insights`, `platform`, then a separator and `admin`; section headings are not shown, as in the reference sidebar. Items sort by `order` inside a section. The top bar's search, notification bell and help link reach `/me/search`, `/me/notifications` and `/me/help`. Badges: `open tasks` and `unread notifications` come from the `badges` slice (`/me` summaries, across all memberships); a `feature count` is reported by the feature for the active organization (open clarification questions).
+
+| Area | Section | Order | Destination | Nav item id | Shown when the membership holds (any of) | Badge |
+|---|---|---|---|---|---|---|
+| buyer | home | 10 | `/buyer/dashboard` | `buyer.dashboard` | `dashboard.view` | — |
+| buyer | planning | 10 | `/buyer/requests` | `buyer.requests` | `request.create` or `request.view_all` | — |
+| buyer | planning | 20 | `/buyer/planning` | `buyer.planning` | `plan.manage` or `request.view_all` | — |
+| buyer | planning | 30 | `/buyer/strategies` | `buyer.strategies` | `strategy.manage` or `strategy.approve` or `audit.view` | — |
+| buyer | sourcing | 10 | `/buyer/tenders` | `buyer.tenders` | `tender.view` | — |
+| buyer | sourcing | 30 | `/buyer/publications` | `buyer.publications` | `tender.view` or `tender.publish` | — |
+| buyer | sourcing | 40 | `/buyer/clarifications` | `buyer.clarifications` | `tender.clarifications.manage` or `tender.addenda.approve` or `tender.sessions.manage` | feature count |
+| buyer | sourcing | 50 | `/buyer/submissions` | `buyer.submissions` | `bid.monitor` | — |
+| buyer | evaluation | 10 | `/buyer/opening` | `buyer.opening` | `bid.open` or `bid.witness` or `compliance.assess` or `evaluation.chair` or `exclusion.approve` | — |
+| buyer | evaluation | 20 | `/buyer/compliance` | `buyer.compliance` | `compliance.assess` or `exclusion.approve` or `evaluation.chair` | — |
+| buyer | evaluation | 30 | `/buyer/bid-clarifications` | `buyer.bidClarifications` | `compliance.assess` or `evaluation.chair` or `exclusion.approve` or `evaluation.score` | — |
+| buyer | evaluation | 40 | `/buyer/evaluation/assignments` | `buyer.evaluation.assignments` | `evaluation.score` or `evaluation.commercial` or `evaluation.chair` | — |
+| buyer | evaluation | 50 | `/buyer/evaluation` | `buyer.evaluation.evaluations` | `evaluation.chair` or `evaluation.score` or `evaluation.commercial` or `evaluation.moderate` or `evaluation.signoff` or `award.recommend` or `award.approve` | — |
+| buyer | evaluation | 60 | `/buyer/selection` | `buyer.selection` | `selection.manage` or `shortlist.approve` or `diligence.manage` or `negotiation.conduct` or `negotiation.approve` or `award.approve` or `audit.view` or `evaluation.chair` or `evaluation.score` | — |
+| buyer | award | 10 | `/buyer/awards` | `buyer.awards` | `award.recommend` or `award.approve` or `notice.issue` or `event.closeout` or `audit.view` | — |
+| buyer | award | 20 | `/buyer/award-cases` | `buyer.award-cases` | `complaint.manage` or `debrief.manage` or `audit.view` | — |
+| buyer | award | 30 | `/buyer/closeout` | `buyer.closeout` | `event.closeout` or `award.recommend` or `audit.view` | — |
+| buyer | contracts | 10 | `/buyer/contracts` | `buyer.contracts` | `contract.view` | — |
+| buyer | suppliers | 10 | `/buyer/suppliers` | `buyer.suppliers` | `supplier.directory.view` | — |
+| buyer | suppliers | 20 | `/buyer/qualification` | `buyer.qualification.queue` | `qualification.review` or `qualification.financial_review` or `qualification.decide` | — |
+| buyer | suppliers | 21 | `/buyer/qualification/monitoring` | `buyer.qualification.monitoring` | `qualification.review` or `qualification.financial_review` or `qualification.decide` | — |
+| buyer | insights | 10 | `/buyer/reports` | `buyer.reports` | `report.view` or `report.manage` | — |
+| buyer | insights | 20 | `/buyer/admin/reports` | `buyer.admin.reports` | `report.manage` or `export.create` or `audit.view` | — |
+| buyer | insights | 30 | `/buyer/admin/records` | `buyer.admin.records` | `audit.view` or `records.retention.manage` or `records.hold.manage` or `records.disposal.approve` or `export.create` | — |
+| buyer | admin | 10 | `/buyer/admin/organization` | `buyer.admin-org` | `org.settings.manage` or `org.structure.manage` or `org.authority.manage` or `org.access.review` | — |
+| buyer | admin | 20 | `/buyer/admin/access` | `buyer.admin-access` | `org.users.view` or `org.users.manage` or `org.roles.manage` or `org.access.review` or `evaluation.chair` | — |
+| buyer | admin | 30 | `/buyer/admin/policy` | `buyer.admin-policy` | `org.policy.manage` or `org.policy.approve` or `audit.view` or `org.fields.manage` or `org.templates.manage` or `org.templates.approve` or `org.portal.manage` or `org.settings.manage` or `tender.publish` | — |
+| buyer | admin | 40 | `/buyer/admin/qualification` | `buyer.qualification.programs` | `qualification.program.manage` or `qualification.review` or `qualification.financial_review` or `qualification.decide` | — |
+| buyer | admin | 50 | `/buyer/admin/calendars` | `buyer.calendars` | `org.calendars.manage` | — |
+| buyer | admin | 60 | `/buyer/admin/notification-rules` | `buyer.notification-rules` | `org.notifications.manage` | — |
+| buyer | admin | 70 | `/buyer/admin/service` | `buyer.admin-integrations` | `org.integrations.manage` or `tender.publish` or `org.imports.manage` or `org.subscription.view` or `org.support_access.authorize` | — |
+| supplier | home | 10 | `/supplier/dashboard` | `supplier.dashboard` | `supplier.dashboard.view` | — |
+| supplier | sourcing | 10 | `/supplier/opportunities` | `supplier.opportunities` | `supplier.opportunities.view` | — |
+| supplier | sourcing | 20 | `/supplier/invitations` | `supplier.invitations` | `supplier.opportunities.view` | — |
+| supplier | sourcing | 30 | `/supplier/pursuits` | `supplier.pursuits` | `supplier.pursuit.manage` or `supplier.opportunities.view` | — |
+| supplier | sourcing | 40 | `/supplier/clarifications` | `supplier.clarifications` | `supplier.opportunities.view` | feature count |
+| supplier | sourcing | 45 | `/supplier/briefings` | `supplier.briefings` | `supplier.opportunities.view` | — |
+| supplier | sourcing | 50 | `/supplier/responses` | `supplier.responses` | `supplier.response.edit` or `supplier.pricing.edit` or `supplier.response.approve` or `supplier.response.submit` | — |
+| supplier | sourcing | 55 | `/supplier/receipts` | `supplier.receipts` | `supplier.response.edit` or `supplier.pricing.edit` or `supplier.response.approve` or `supplier.response.submit` or `supplier.outcomes.view` | — |
+| supplier | sourcing | 60 | `/supplier/assessment-requests` | `supplier.assessmentRequests` | `supplier.response.edit` or `supplier.response.approve` or `supplier.response.submit` or `supplier.outcomes.view` | — |
+| supplier | sourcing | 70 | `/supplier/assessment-invites` | `supplier.selection.invites` | `supplier.opportunities.view` | — |
+| supplier | award | 10 | `/supplier/outcomes` | `supplier.outcomes` | `supplier.outcomes.view` | — |
+| supplier | award | 20 | `/supplier/negotiations` | `supplier.selection.negotiations` | `supplier.outcomes.view` or `supplier.pricing.edit` | — |
+| supplier | award | 30 | `/supplier/complaints` | `supplier.complaints` | `supplier.complaint.submit` or `supplier.outcomes.view` | — |
+| supplier | contracts | 10 | `/supplier/contracts` | `supplier.contracts` | `supplier.contract.participate` or `supplier.outcomes.view` | — |
+| supplier | suppliers | 10 | `/supplier/qualification` | `supplier.qualification` | `supplier.qualification.apply` or `supplier.outcomes.view` | — |
+| supplier | suppliers | 11 | `/supplier/qualification/decisions` | `supplier.qualification.decisions` | `supplier.qualification.apply` or `supplier.outcomes.view` | — |
+| supplier | suppliers | 20 | `/supplier/evidence` | `supplier.evidence` | `supplier.evidence.manage` or `supplier.evidence.share` or `supplier.financial.view` | — |
+| supplier | admin | 10 | `/supplier/organization` | `supplier.organization` | `supplier.org.manage` or `supplier.dashboard.view` | — |
+| supplier | admin | 20 | `/supplier/admin/access` | `supplier.admin-access` | `supplier.users.manage` | — |
+| ops | platform | 10 | `/ops/customers` | `ops.customers` | `ops.customers.manage` or `ops.support.manage` or `ops.oversight.view` | — |
+| ops | platform | 20 | `/ops/offboarding` | `ops.offboarding` | `ops.customers.manage` or `ops.support.manage` or `ops.oversight.view` | — |
+| ops | platform | 30 | `/ops/subscriptions` | `ops.subscriptions` | `ops.subscriptions.manage` or `ops.oversight.view` | — |
+| ops | platform | 40 | `/ops/support` | `ops.support` | `ops.support.manage` or `ops.oversight.view` | — |
+| ops | platform | 50 | `/ops/incidents` | `ops.incidents` | `ops.incidents.manage` or `ops.oversight.view` | — |
+| ops | platform | 60 | `/ops/oversight` | `ops.oversight` | `ops.oversight.view` | — |
+| ops | platform | 70 | `/ops/content` | `ops.content` | `ops.content.manage` or `ops.oversight.view` | — |
+| ops | platform | 80 | `/ops/supplier-registrations` | `ops.supplierReviews` | `ops.customers.manage` | — |
+| ops | platform | 81 | `/ops/supplier-duplicates` | `ops.supplierDuplicates` | `ops.customers.manage` | — |
+| ops | platform | 82 | `/ops/supplier-identity-changes` | `ops.supplierIdentityChanges` | `ops.customers.manage` | — |
+| common | work | 10 | `/me/tasks` | `me.tasks` | — | open tasks |
+| common | work | 20 | `/me/approvals` | `me.approvals` | — (buyer memberships only) | — |
+| common | work | 30 | `/me/notifications` | `me.notifications` | — | unread notifications |
+| common | work | 40 | `/me/documents` | `me.documents` | — | — |
+| common | work | 90 | `/me/search` | `me.search` | — | — |
+| common | admin | 90 | `/me/memberships` | `me.memberships` | — | — |
+| common | admin | 92 | `/me/membership-requests` | `me.supplierMembershipRequests` | — (supplier memberships only) | — |
+| common | admin | 95 | `/me/help` | `me.help` | — | — |
+
 ## 9. State management
 
-Redux Toolkit holds client state in `app/store.ts`, with typed hooks in `app/hooks.ts`. The sources name three slices (brief §10):
+Redux Toolkit holds client state in `app/store.ts`, with typed hooks in `app/hooks.ts`. As built, the store has exactly the three slices the brief names (brief §10):
 
 | Slice | Holds | Tenant-scoped |
 |---|---|---|
-| `session` | signed-in user, memberships (tenant, kind, capacity, status), **active tenant**, the active tenant's effective permissions | user and memberships: no; active tenant and permissions: yes |
+| `session` | auth status, signed-in user (with `theme`), memberships (tenant, kind, capacity, status), the `environment` reported by `/me/context` (`mode`, `appEnv`), **active tenant** with its effective permissions, the tenant status (`none`, `switching`, `active`, `error`), the last sign-out reason, and `tenantEpoch`, which increases every time the active tenant is set or cleared | user and memberships: no; active tenant and permissions: yes |
 | `filters` | current filter and sort state per screen, and the applied saved view (`saved_views.scope` = screen id) | yes |
 | `badges` | counts for the notifications bell and nav badges | yes, except the `/me` counts, which cover all active memberships (DD-21) |
 
-The session slice is the single source of `X-Tenant-Id` for the API client. How feature pages hold server data they fetch through `call()` is fixed in Stage A; every such store is tenant-scoped, except the `/me` lists, which span all active memberships and label each row with its organization (DD-21).
+The session slice is the single source of `X-Tenant-Id` for the API client. Feature pages hold server data through the hooks of `api/hooks.ts`, not in Redux: `useApiQuery(endpoint, request)` fetches on mount and whenever the request, the active tenant or the tenant epoch changes. Its cache key includes the tenant epoch, so data fetched under one tenant never renders under another (BR-02); while a new request runs, the previous data of the same endpoint and tenant stays visible (`isFetching`) to avoid flicker. `useApiMutation(endpoint)` runs commands and exposes `pending` (submit buttons are disabled while it is true, DD-39) and the normalized `error`. `invalidateApiQueries(match)` re-runs mounted queries whose endpoint id matches after a command. `QueryView` renders a query's loading, error, restricted, empty and data states consistently. The `/me` lists span all active memberships and label each row with its organization (DD-21).
 
 **Remembered tenant (DD-36).** The active tenant is remembered per user in `localStorage`. This is a convenience only: on the next load the SPA re-validates it through `/me/context` before using it, and the API still validates `X-Tenant-Id` on every request.
 
@@ -391,16 +813,17 @@ stateDiagram-v2
 
 ## 10. API client
 
-`api/client.ts` exposes `call(endpoint, { params, query, body })`, where `endpoint` is a `defineEndpoint` value from `src/contracts`. Domain modules in `api/<domain>.ts` are thin wrappers (architecture-plan §3.10). The brief's transport rules for `apiGet`/`apiPost`/`apiPut` (brief §10) apply to every request `call()` makes:
+`api/client.ts` exposes `call(endpoint, { params, query, body }, options?)`, where `endpoint` is a `defineEndpoint` value from `src/contracts`. Domain modules in `api/<domain>.ts` are thin wrappers (architecture-plan §3.10). The client imports neither supabase-js nor the store: `AuthProvider` installs its adapters once (`configureApiClient`: the per-request token, the active tenant id, and sign-out on 401). `options.tenantId` names the row's tenant for a `/me` row action (DD-21). The brief's transport rules for `apiGet`/`apiPost`/`apiPut` (brief §10) apply to every request `call()` makes:
 
 | Behaviour | Rule |
 |---|---|
 | URL | Built from the contract `path` and typed `params` and `query`, under the relative base `/api/v1` |
 | Bearer token | `Authorization: Bearer <token>`, read **per request** from the supabase-js session (`auth/supabase.ts`), in both stages (DD-43) |
 | Tenant | `X-Tenant-Id` from the session slice; omitted for `/me/*` reads, `/public/*` and `/health`. An action on a row listed under `/me/*` carries the row's tenant (DD-21) |
-| Double submission | Submit buttons are disabled while their request is in flight. Commands that create records accept an optional `Idempotency-Key` header (DD-39, [07-api.md](07-api.md#6-commands-state-guards-and-idempotency)) |
+| Double submission | Submit buttons are disabled while their request is in flight. On idempotent commands the client sends an `Idempotency-Key`, generated per call unless the caller passes one (DD-39, [07-api.md](07-api.md#6-commands-state-guards-and-idempotency)) |
 | Response validation | In **development builds**, the body is parsed with the contract's `response` schema, so drift between UI, mock and backend surfaces immediately |
-| Errors | problem+json is normalized to `{ status, title, fieldErrors[] }`; `fieldErrors` come from `errors[]` (`{ field, code, message }`) |
+| Errors | problem+json is normalized to an `ApiError` with `status`, `title`, `code`, `fieldErrors` (from `errors[]`, `{ field, code, message }`), `correlationId` and a `kind`: `unauthenticated`, `forbidden`, `not_found`, `validation`, `conflict` (409, 410, 412), `rate_limited` (429), `server`, `network`, `contract` (a response that fails its schema in development builds) or `tenant_required` |
+| Server clock | Each response's `x-server-time` header updates the application clock (`lib/clock.ts`, §13) |
 | 401 | Sign out and redirect to `/signin` |
 | 403 | Restricted-access explanation; nothing about other tenants is revealed |
 | 5xx | Sanitized message plus the `correlationId`, which the user is asked to quote |
@@ -439,7 +862,7 @@ Authentication is **real Supabase Auth in both stages** (DD-43, architecture-pla
 
 **Local Supabase stack from Stage A.** The Supabase CLI runs in Docker (Auth, Postgres, Studio, Mailpit) from Stage A and is started with `npm run supabase:start`. Stage A uses Auth only; no application schema exists yet. `npm run auth:personas` creates or updates every demo persona in local Supabase Auth through the Admin API (email confirmed, password `test1234`). It is idempotent and refuses to run against anything that is not local. Local Supabase Auth is configured with `site_url` `http://localhost:5173`, redirect URLs that include `/reset-password` and `/invite`, and self-signup disabled (`enable_signup = false`). The cost of this choice is that Docker must be running to use the prototype (architecture-plan §11.8).
 
-**supabase-js only.** `auth/supabase.ts` is the one browser Supabase client, built only from `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` and used for **authentication only**: never the Data API, Storage or Realtime (brief §5.7, §10). The SPA uses it exactly as in production for email + password sign-in, forgot and reset password, invitation set-password, session persistence, automatic token refresh and sign-out. The CSP meta tag allows its Supabase URL (DD-30). `AuthProvider` exposes the auth state, gives the API client the current token and loads the session context (`/me/context`) after sign-in. `permissions.ts` answers "does the active membership hold permission X?" for navigation and control visibility.
+**supabase-js only.** `auth/supabase.ts` is the one browser Supabase client, built only from `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` and used for **authentication only**: never the Data API, Storage or Realtime (brief §5.7, §10). The SPA uses it exactly as in production for email + password sign-in, forgot and reset password, invitation set-password, session persistence, automatic token refresh and sign-out. The CSP meta tag allows its Supabase URL (DD-30). `AuthProvider` exposes the auth state, gives the API client the current token and loads the session context (`/me/context`) after sign-in. As built it also keeps the Redux session slice in step with supabase-js, handles the password-recovery session that lands on `/reset-password`, and applies the user's theme to `<html data-theme>`. After sign-in, `sessionActions.ts` restores the remembered organization when `/me/context` confirms it, enters the only enterable membership (tenant status `active` or `offboarding`), or sends the user to `/select-organization`. The sign-in form shows one generic error for every failure and returns focus to the password field. `permissions.ts` answers "does the active membership hold permission X?" for navigation and control visibility.
 
 The mock API verifies the resulting JWT with the real `src/server/lib/auth/verify.ts` and maps the verified email to its fixture persona; an account with no persona gets 401 ([07-api.md](07-api.md#32-authentication)). In Stage B the real API verifies the same token and resolves the application user.
 
@@ -472,7 +895,7 @@ sequenceDiagram
 
 **Sign-in rules.** One generic error message for any sign-in failure, so the form cannot reveal which accounts exist. MFA and step-up sign-in are not in this release; they are recorded as a later extension using Supabase MFA (DD-29). Self-signup is disabled: `/register` submits a supplier registration that the platform turns into a provisioned account in one transaction before sending the Auth Admin invite, and the public POST is rate-limited (DD-27, DD-28, [adr/0012-supplier-registration-via-provisioned-accounts.md](adr/0012-supplier-registration-via-provisioned-accounts.md)). The owner confirmed this approach on 2026-09-29 (architecture-plan §11.4). `/invite/:token` accepts an invitation through `POST /api/v1/me/invitations/:token/accept`, the only API route open to a user in status `invited`; accepting activates the membership, and the user if needed (DD-27). In Stage B, B1 `ui-live-api` completes this set-password flow through the Supabase invite link against the real accept endpoint. The password-reset redirect lands on `/reset-password`.
 
-**Demo accounts** (local development builds only). `DemoAccounts` on the sign-in page lists the demo personas grouped by organization. Choosing one fills its email and the password `test1234`, and the SPA then signs in **for real** through supabase-js. The component is rendered only under `import.meta.env.DEV`, so Vite strips it from production builds. It carries a unique marker string, and `scan-bundle` fails if that string appears in `src/ui/dist` (§1, §16). The personas include `tebogo.officer` (tender owner), `boitumelo.chair`, `thato.eval`, `refilwe.commercial`, `oratile.opener`, `admin.kwu` (no sealed access, AC-15), `keabetswe.approver`, `masego.contracts`, `pule.auditor`, `tsodilo.bidmanager`, `sam.dual` (one person in a buyer and two suppliers, AC-02), `ops.admin` and `support.agent`. Each persona's fixture permission set drives both navigation and the mock API's 403s, so the prototype demonstrates Stage B access behaviour. With no persona switcher, changing persona means signing out and signing in with another demo account.
+**Demo accounts** (local development builds only). As built, `SignInPage` loads `DemoAccounts` with a lazy import that exists only when `import.meta.env.DEV` is true, so Vite removes both the import and the module (`auth/demoAccountList.ts`) from production builds. The component carries `data-marker="tiq-demo-accounts-dev-only-quick-pick"`, and `scan-bundle` fails if that string appears in `src/ui/dist`. The list holds 42 accounts in 9 groups: Kalahari Water Utilities (19), Okavango District Council (2), several organizations (`sam.dual`), Tsodilo Engineering, Chobe Pipe & Valve Supplies, Serowe ICT Solutions and Gaborone Metering Co. (4 each), other suppliers (2) and TenderIQ Platform Operations (2). Choosing an account fills its email and the password `test1234`, and the SPA then signs in **for real** through supabase-js (§1, §16). The personas include `tebogo.officer` (tender owner), `boitumelo.chair`, `thato.eval`, `refilwe.commercial`, `oratile.opener`, `admin.kwu` (no sealed access, AC-15), `keabetswe.approver`, `masego.contracts`, `pule.auditor`, `tsodilo.bidmanager`, `sam.dual` (one person in a buyer and two suppliers, AC-02), `ops.admin` and `support.agent`. Each persona's fixture permission set drives both navigation and the mock API's 403s, so the prototype demonstrates Stage B access behaviour. With no persona switcher, changing persona means signing out and signing in with another demo account.
 
 **Prototype banner.** `PrototypeBanner` shows "Prototype — static demo data" whenever `/me/context` reports `environment.mode = 'prototype'` (DD-43). The mock API always reports that mode (together with `appEnv`), so in the prototype the banner is visible on every page. It cannot be dismissed, so nobody mistakes fixture data for live data (architecture-plan §0). Against the real API, the banner shows only when `/me/context` reports that mode (B1 `ui-live-api`).
 
@@ -483,7 +906,7 @@ sequenceDiagram
 | Field anatomy | Every input has a visible label (`.tiq-field`), a required marker (`.tiq-required`), optional hint (`.tiq-field-hint`) and an error line (`.tiq-field-error`); the invalid input carries `aria-invalid="true"`, which the CSS styles in danger. Labels, hints and messages come from `t()` (DD-37) |
 | Layout | Two-column `.tiq-form-grid` (one column below 1200 px), full-width rows (`.tiq-form-full`), section titles or `fieldset` legends, check lists, and a sticky footer holding the save and submit actions |
 | Schemas | Request bodies are defined by the contract schemas in `src/contracts`. The server's (or mock's) 422 is authoritative |
-| Server errors | `errors[]` (`{ field, code, message }`, from the `CODE|message` convention) become `fieldErrors`, bound to inputs by `field`. No field error is dropped silently; where errors without a matching input are shown is fixed in Stage A |
+| Server errors | `errors[]` (`{ field, code, message }`, from the `CODE|message` convention) become `fieldErrors`, bound to inputs by `field`. No field error is dropped silently: as built, `formErrors()` binds each error to the input whose name is its `field` path or a prefix of it, and errors that match no input are listed by `FormErrorSummary` above the form actions |
 | Enumerations | Option lists come from `src/contracts/enums.ts`, never from hand-typed strings. `framework_calloff` is never offered: the write enums exclude it and it never appears in the UI (DD-40) |
 | Custom fields | Request, tender, qualification-application and contract forms render the tenant's configured `custom_fields` (text, number, date, boolean, choice; optional, required or conditional; audience) (ADM-07) |
 | Money input | Entered and held as a **decimal string** plus a currency code; never converted to a JavaScript number ([adr/0005-decimal-strings-for-money-and-scores.md](adr/0005-decimal-strings-for-money-and-scores.md)). Live totals, for example on the SUP-13 pricing schedule, are computed in the browser with `src/contracts/decimal.ts`; the server recomputes them authoritatively (DD-32) |
@@ -556,7 +979,7 @@ Formatting uses the platform `Intl` API in `lib/format`; no date library is appr
 | Visual tests | Playwright against the mock API | Screen appearance | after Stage B |
 | Guards | boundary and scan tests | Browser Supabase client used only for auth; `src/ui` cannot import server modules; `scan-bundle`, including the check that the marker string of the dev-only demo-accounts quick-pick is absent from `src/ui/dist` (DD-43); no raw hex values in components | A (scans), B (architecture guards) |
 
-`ci:test:ui` fails on any skipped test and enforces a minimum test count, set after each stage's integration. The Stage A `verify` sequence is typecheck → typecheck:ui → lint → lint:ui → test → test:ui → build:ui (architecture-plan §9). At Stage A handoff, `docs/prototype/walkthrough.md` records a screenshot per screen; the screenshots in `docs/prototype/screens/` are committed (owner decision of 2026-09-29). See [11-testing-strategy.md](11-testing-strategy.md).
+`ci:test:ui` fails on any skipped test and enforces a minimum test count, set after each stage's integration. As built at the end of Stage A, the SPA suite has 265 test files with 1,456 tests; the Playwright `prototype` project has the `shell` and `a11y` specs in `e2e_tests/specs/prototype/`. The Stage A `verify` sequence is typecheck → typecheck:ui → lint → lint:ui → test → test:ui → build:ui (architecture-plan §9). At Stage A handoff, `docs/prototype/walkthrough.md` records a screenshot per screen; the screenshots in `docs/prototype/screens/` are committed (owner decision of 2026-09-29). See [11-testing-strategy.md](11-testing-strategy.md).
 
 ## 17. Open points
 
@@ -575,7 +998,7 @@ Formatting uses the platform `Intl` API in `lib/format`; no date library is appr
 
 ## 18. Related documents
 
-- [07-api.md](07-api.md): contracts, problem+json, mock API, planned endpoint catalog.
+- [07-api.md](07-api.md): contracts, problem+json, mock API, endpoint catalog by domain ([api/endpoint-catalog.md](api/endpoint-catalog.md)).
 - [02-architecture.md](02-architecture.md): containers and components.
 - [04-security-model.md](04-security-model.md): tenancy, permissions, sealing (the UI only mirrors them).
 - [05-lifecycles.md](05-lifecycles.md): the states `StatusChip` must cover.

@@ -1,6 +1,6 @@
 # Architecture
 
-Status: As-designed (pre-build). Updated to as-built at the end of Stage A and Stage B.
+Status: As-built (Stage A prototype); backend sections as-designed
 
 Sources:
 - `docs/plan/architecture-plan.md` (revision 3): §0 delivery stages, §3.1 tenancy, §3.2 authorization, §3.3 sealing, §3.6 state machines, §3.7 money and scoring, §3.8 notifications, §3.9 background jobs, §3.10 contracts-first API, §3.11 prototype mode, §4 repository layout, URL map, registries and cross-domain writes, §5 file ownership, §6 domain map, §7 UI design system, §8 testing strategy, §9 build commands, §11 deviations (owner review of 2026-09-29), §12 resilience.
@@ -492,7 +492,7 @@ URL map (architecture-plan §4):
 
 ### 6.4 State
 
-Redux Toolkit with a typed `store.ts` and `hooks.ts`. The brief names three slices. `session` holds the active tenant that the client sends as `X-Tenant-Id`; the SPA boots from `/me/context`. The other two are `filters` and `badges`. The complete slice list and slice contents are finalized in the Stage A build. Switching the active tenant clears all tenant-scoped state. The active tenant is remembered per user in `localStorage` as a convenience only; `/me/context` re-validates it at boot (DD-36). UI code never hard-codes data: every value comes through the API client (architecture-plan §2).
+Redux Toolkit with a typed `store.ts` and `hooks.ts`. The brief names three slices. `session` holds the active tenant that the client sends as `X-Tenant-Id`; the SPA boots from `/me/context`. The other two are `filters` and `badges`. As built, the store has exactly these three slices; server data is held by the query hooks of `api/hooks.ts`, whose cache key includes the session's `tenantEpoch` ([09-frontend.md §9](09-frontend.md#9-state-management)). Switching the active tenant clears all tenant-scoped state. The active tenant is remembered per user in `localStorage` as a convenience only; `/me/context` re-validates it at boot (DD-36). UI code never hard-codes data: every value comes through the API client (architecture-plan §2).
 
 ### 6.5 API client and contracts
 
@@ -606,6 +606,23 @@ Rules:
 
 See [adr/0006-contracts-first-ui-prototype-stage.md](adr/0006-contracts-first-ui-prototype-stage.md) and [11-testing-strategy.md](11-testing-strategy.md).
 
+### 7.4 As-built prototype (Stage A)
+
+This subsection records what Stage A actually built. It is generated from the code of 2026-09-30; the design in §7.1 to §7.3 holds unchanged.
+
+| Aspect | As built |
+|---|---|
+| API surface | **919 contract endpoints** in 25 modules under `src/contracts` (buyer 583, supplier 195, ops 63, me 49, public 29), plus `GET /api/v1/health`. The mock API mounts every one; `catalog.test.ts` and the registry tests fail if a module is left out ([07-api.md §13](07-api.md#13-endpoint-catalog-by-domain)). |
+| Mock API app | `createMockApp()` in `src/mock-api/app.ts`, hosted by `scripts/dev/serve-mock-api.ts` on `127.0.0.1:3001` (or `--port <P>`). `registry.ts` auto-discovers `handlers/*.ts` and `handlers/<domain>/index.ts` and loads each module in isolation: a failing module is logged and skipped. |
+| Middleware chain | `src/mock-api/middleware/chain.ts`: security headers → request context (correlation id, `x-server-time`) → request log → error boundary → route resolution (unknown route: 404 before authentication) → real JWT verification with `src/server/lib/auth/verify.ts` and persona mapping (401) → tenant context (one identical 403) → permission (403) → dispatch with contract parsing (422) and response validation (500 on fixture drift). |
+| Fixtures | `src/mock-api/fixtures/**`, one file or folder per domain, all written "as of" the storyline clock `DEMO_AS_OF` = 2026-10-06T08:00:00Z (10:00 in Africa/Gaborone, `fixtures/demo-clock.ts`). The mock serves requests at `storylineNow()` (the real clock, never earlier than `DEMO_AS_OF`) and reports it as `/me/context.serverTime` and the `x-server-time` header; the SPA's application clock follows it, so countdowns, overdue marks and "data as of" footers agree. `fixtures/consistency.test.ts` checks references, personas, slugs, in-app links, deadlines, receipts and award values across domains. |
+| Commands | Validate the request against the contract and return a contract-valid static response; nothing persists, and a re-read returns the unchanged fixture world (owner decision of 2026-09-29). |
+| SPA | 50 feature modules in 34 feature directories, **284 feature routes** and 68 sidebar items, registered through `features/*/routes.tsx`; three Redux slices (`session`, `filters`, `badges`); server data through `useApiQuery` and `useApiMutation` ([09-frontend.md §7, §8](09-frontend.md#7-feature-modules-and-auto-registration)). |
+| Authentication | supabase-js against the local Supabase Auth in Docker. The dev-only `DemoAccounts` quick-pick (42 demo accounts in 9 groups) is loaded by a lazy import behind `import.meta.env.DEV` and carries the marker `tiq-demo-accounts-dev-only-quick-pick`, which `scan-bundle` must not find in `src/ui/dist` ([09-frontend.md §11](09-frontend.md#11-authentication-demo-accounts-and-prototype-banner)). |
+| Traceability | Every one of the 118 in-scope screens has at least one route and at least one contract endpoint ([12-traceability.md §4.9](12-traceability.md#49-as-built-screen-to-route-to-contract-endpoints)). |
+| Tests at the end of Stage A | Root `unit` project: 100 files, 2,900 tests (contracts, mock API, platform auth, scripts). SPA suite: 265 files, 1,456 tests. Playwright `prototype` project: `shell` and `a11y` specs. |
+| Checkpoints | Phases A1 (foundation), A3 (integration) and A4 (QA) are checkpointed on `build/tenderiq-core`, with one marker per domain unit in `.build/progress/A/` ([13-delivery-and-resilience.md §2.1](13-delivery-and-resilience.md#21-stage-a-status-as-built)). |
+
 ## 8. Repository layout
 
 The brief §2 layout is used verbatim, with the additions below (architecture-plan §4). Legend: ★ addition to the brief, Ⓐ created in Stage A, Ⓑ created in Stage B.
@@ -618,7 +635,7 @@ The brief §2 layout is used verbatim, with the additions below (architecture-pl
 │   └── queue/drain.ts                    # queue drain (POST, INTERNAL_JOB_SECRET)
 ├── src/
 │   ├── contracts/ ★Ⓐ                    # common.ts enums.ts endpoint.ts decimal.ts <domain>.ts catalog.ts
-│   ├── mock-api/ ★Ⓐ                     # app.ts middleware/ handlers/<domain>.ts fixtures/<domain>.ts registry.ts
+│   ├── mock-api/ ★Ⓐ                     # app.ts persona.ts registry.ts middleware/ handlers/<domain>/ fixtures/<domain>[.ts|/] testing/
 │   ├── server/  Ⓑ                        # except lib/config, lib/supabase and lib/auth/verify.ts: Ⓐ, extended in Ⓑ (DD-43)
 │   │   ├── domains/
 │   │   │   ├── registry.ts ★             # composes every domain router (Integration)
@@ -642,9 +659,10 @@ The brief §2 layout is used verbatim, with the additions below (architecture-pl
 │           ├── auth/        supabase.ts AuthProvider SignIn/Forgot/Reset pages, DemoAccounts★ (dev builds only), permissions.ts
 │           ├── components/  shell/ ui/ charts/ approvals/ documents/ audit/
 │           ├── features/<feature>/  routes.tsx★ i18n/en.ts pages/ components/ *.test.tsx
+│           ├── i18n/        en.ts (shell catalog)
 │           ├── pages/
 │           ├── theme/       tokens.css components.css index.css (--tiq-*)
-│           ├── lib/         format, download
+│           ├── lib/         format, zonedTime, clock, useNow, download, i18n, storage
 │           └── test/
 ├── supabase/                             # Ⓐ config.toml ([inbucket] smtp_port 54325, DD-44)  Ⓑ migrations/ seed.sql schema.expected.sql (signing_keys.json: local only, git-ignored)
 ├── scripts/
@@ -718,7 +736,7 @@ flowchart TB
 | # | Rule | Enforcement | Source |
 |---|---|---|---|
 | R1 | `src/ui` never imports `src/server/**` | Import-boundary tests (including `lib/supabase` and `lib/config`); `scan-bundle` fails on server code fragments, server variable names or service-role literals in `src/ui/dist` | brief §8.4, architecture-plan §11 |
-| R2 | `src/contracts` is pure TypeScript + zod with no Node or browser APIs, so the SPA, the mock API and the backend can all import it. This includes the shared decimal helper `decimal.ts`. | Contract unit tests. The concrete lint or boundary check is finalized in Stage A. | architecture-plan §3.10, DD-32 |
+| R2 | `src/contracts` is pure TypeScript + zod with no Node or browser APIs, so the SPA, the mock API and the backend can all import it. This includes the shared decimal helper `decimal.ts`. | Contract unit tests, and the ESLint block `tenderiq/contracts-purity` in the root `eslint.config.js`: files under `src/contracts` may import only `zod` and sibling contract files, and no Node or browser API. | architecture-plan §3.10, DD-32 |
 | R3 | `src/mock-api` is development and test only. It is never part of `api/` or the production bundle. The demo-accounts quick-pick on the sign-in page renders only in local development builds (`import.meta.env.DEV`), so Vite strips it from production builds. | `scan-bundle` fails if `src/ui/dist` contains mock-api fixtures or the demo-accounts marker string | architecture-plan §0, §3.11, §11, DD-43 |
 | R4 | `api/` entrypoints contain no logic. They export named `GET`/`POST` handlers and `config = { runtime: 'nodejs' }`, and delegate to `src/server`. | Integration test for rewrites and entrypoints | brief §3.1, §3.2 |
 | R5 | Only `src/server/lib/config/index.ts` reads `process.env` | ESLint `no-restricted-properties` plus a source-scanning integration test | brief §5.4 |
@@ -844,8 +862,8 @@ The sources leave the following details open. They are finalized in the stage na
 | Split between domain `schemas.ts` and `src/contracts/<domain>.ts` | Stage B |
 | Owning domain of the `exports` queue handler | Resolved — DD-16: the documents service owns `exports` and the queue handler through `requestExport()`; domains register per-type generators in `documents/export-registry.ts`, wired by Integration. |
 | Guard mechanism for "only `lifecycle` changes tender and lot status" | Stage B |
-| Complete Redux slice list beyond `session`, `filters`, `badges` | Stage A |
-| Endpoint inventory (`catalog.ts`, `openapi.json`) | Stage A Integration (A3) |
+| Complete Redux slice list beyond `session`, `filters`, `badges` | Resolved — as built in Stage A: exactly `session`, `filters` and `badges` (§6.4). |
+| Endpoint inventory (`catalog.ts`, `openapi.json`) | Resolved — as built in Stage A: 919 endpoints in 25 contract modules ([07-api.md §13](07-api.md#13-endpoint-catalog-by-domain), [api/endpoint-catalog.md](api/endpoint-catalog.md)). |
 | Hosted SMTP provider for Supabase Auth emails | Owner decision (design-decisions §E.4), needed only before the first hosted Stage B environment. Resolved — DD-44: email is an SMTP channel with `nodemailer`, and local development uses Mailpit. The hosted provider, which will serve both Supabase Auth and TenderIQ notice emails, and its delivery-event webhooks are **deferred** until before the first hosted environment (options in `docs/plan/email-delivery-options.md` §3). |
 | Hosting the prototype for remote reviewers (design-decisions §E.2) | Resolved — owner decision 2026-09-29: local only |
 | Off-machine backup of the build branch (design-decisions §E.3) | Resolved — owner decision 2026-09-29: local only (no remote) |

@@ -1,6 +1,6 @@
 # Delivery and Resilience
 
-Status: As-designed (pre-build). Updated to as-built at the end of Stage A and Stage B.
+Status: As-built (Stage A prototype); backend sections as-designed
 
 Sources:
 - `docs/plan/design-decisions.md`: the binding status of the log for both stages (preamble); DD-16 (shared owners, export registry); DD-28 and DD-39 (rate limiting, idempotency keys); DD-30, DD-32, DD-34 to DD-37 (Stage A foundation items: CSP meta tag, decimal helper, CSS port, fonts, shell behaviour, i18n catalogs); DD-38 (withdrawn); DD-43 (real Supabase Auth in local Docker from Stage A), DD-44 (email channel: `nodemailer` declared in A1, built in B2), DD-45 (Node 24); §E owner decisions of 2026-09-29: items 1 (plan and log approval), 2 (hosted prototype: local only), 3 (no remote: checkpoints local only), 6 (Stage A authentication), 8 (prototype actions do not persist, screenshots committed) and 9 (the approval gate)
@@ -8,11 +8,12 @@ Sources:
 - `docs/architecture-brief.md`: §4.3 scripts, §7.2 local quick start, §16 Build order
 - `docs/plan/demo-storyline.md`: preamble (single story for fixtures and seeds)
 - `docs/plan/tenderiq-prototype.workflow.js`: `meta.phases`, configuration and resume (`args.resume`, `branch`, `checkpointCommits`), `RULES` (binding documents, Node 24, the local Supabase stack for authentication only), `DOMAINS`, `ownedPaths`, `run()` (one retry per agent call; the circuit breaker halts after 4 consecutive agent failures), `gateLoop()`, `checkpoint()` (marker, then a local commit that is never pushed), `A_GATE_BASE` (runtime smoke with real sign-in) and `A_GATE_FULL`, the A1 scaffold task (branch, dependencies, `.nvmrc`, `supabase/config.toml`, starting the stack, `.env.local`, `.gitignore`), the A1 contracts-core, mock-platform and ui-shell tasks, the A2 review and fix tasks (domain markers), phase skips in `main()`, the return statuses including `interrupted`
+- As built (Stage A): the resume markers in `.build/progress/A/`, the checkpoint commits on `build/tenderiq-core`, and the test and catalog counts of 2026-09-30
 - `docs/plan/tenderiq-backend.workflow.js` (draft): the same items for Stage B, plus the `prototypeApproved` guard, `BASE_GATE`, `INT_GATE` and `FINAL_GATE`, the B1 scaffold-b, platform and ui-live-api tasks, the B2 shared-service tasks (the email channel in svc-notifications) and the B6 completeness critic
 
 Contents:
 1. [Delivery overview](#1-delivery-overview)
-2. [Stage A: UI prototype](#2-stage-a-ui-prototype)
+2. [Stage A: UI prototype](#2-stage-a-ui-prototype), with the [as-built status](#21-stage-a-status-as-built)
 3. [The approval gate](#3-the-approval-gate)
 4. [Stage B: full backend](#4-stage-b-full-backend)
 5. [Workflow phases](#5-workflow-phases)
@@ -108,6 +109,30 @@ Verification before STOP:
 | Clickable result | `npm run dev:prototype`, with the local Supabase stack running |
 | Screen evidence | `docs/prototype/walkthrough.md` |
 
+### 2.1 Stage A status (as built)
+
+**Stage A is complete and awaits the owner's explicit written approval.** Phases A1 to A4 have passed their gates and are checkpointed; the A5 handoff delivers the walkthrough and this as-built documentation, and then the run stops. Stage B has not started: no migration, no business code under `src/server` and no `api/` function exists, and the Stage B script refuses to launch without `args.prototypeApproved = true` (§3).
+
+| Phase | State | Evidence |
+|---|---|---|
+| A1 Foundation | Done, gate passed | Marker `phase-A1-foundation.json`; checkpoint commit `prototype: foundation (scaffold, contracts core, mock API platform, SPA shell)` |
+| A2 Domains | Done for all 17 units | Markers `workspace`, `org-admin`, `policy`, `suppliers`, `qualification`, `requests`, `tenders`, `publication`, `clarifications`, `bids`, `opening`, `evaluation`, `selection`, `awards`, `contracts`, `reporting`, `operations` in `.build/progress/A/`, each with status `done` after its adversarial review and fixes |
+| A3 Integration | Done, gate passed | Marker `phase-A3-integration.json` (`report.gate = true`); checkpoint commit `prototype: all domains integrated (contracts catalog, mock handlers, fixtures)` |
+| A4 QA | Done, gate passed | Marker `phase-A4-qa.json`: 106 findings raised, 104 confirmed by the verifiers and fixed, `report.gate = true`; checkpoint commit `prototype: QA fixes (style, accessibility, completeness, PRD screens, contracts, confidentiality, journeys)` |
+| A5 Handoff | In progress at the time of this sync | `docs-sync` (this documentation update and `docs/technical/api/**`) and `walkthrough` (`docs/prototype/**`) run in parallel; the A5 gate then writes the `stage-A-complete` checkpoint and the run stops |
+
+What the prototype contains:
+
+| Item | As built | Where documented |
+|---|---|---|
+| API contracts | 919 endpoints in 25 modules; `openapi.json` has 920 operations including `/health` | [07-api.md §13](07-api.md#13-endpoint-catalog-by-domain), [api/endpoint-catalog.md](api/endpoint-catalog.md) |
+| Mock API | Every contract endpoint served from static fixtures on the storyline clock (6 October 2026, 10:00 Africa/Gaborone), with real JWT verification | [07-api.md §11](07-api.md#11-stage-a-mock-api), [02-architecture.md §7.4](02-architecture.md#74-as-built-prototype-stage-a) |
+| SPA | 50 feature modules, 284 routes, 68 sidebar items; every one of the 118 in-scope screens reachable | [09-frontend.md §7, §8](09-frontend.md#8-routing-and-url-map), [12-traceability.md §4.9](12-traceability.md#49-as-built-screen-to-route-to-contract-endpoints) |
+| Sign-in | supabase-js against local Supabase Auth; 42 demo accounts in the dev-only quick-pick | [09-frontend.md §11](09-frontend.md#11-authentication-demo-accounts-and-prototype-banner) |
+| Tests | Root `unit` project 100 files and 2,900 tests; SPA suite 265 files and 1,456 tests; Playwright `prototype` specs `shell` and `a11y` | [11-testing-strategy.md](11-testing-strategy.md) |
+
+How the owner reviews it (§3): start Docker, run `npm run supabase:start` and `npm run auth:personas`, then `npm run dev:prototype` and open `http://localhost:5173`; sign in with any demo account (password `test1234`). The walkthrough with its committed screenshots is `docs/prototype/walkthrough.md`. Approval is given in writing ("Stage A approved"); change requests go to a UI-iteration workflow first.
+
 ## 3. The approval gate
 
 | Aspect | Design (plan §0, design-decisions §E) |
@@ -116,7 +141,7 @@ Verification before STOP:
 | Who | The owner |
 | Reviews | The running prototype (`npm run dev:prototype`), the walkthrough with its committed screenshots, and the as-built contracts and technical docs |
 | Where | Locally only (owner decision 2026-09-29, §E item 2). Docker must be running, because the prototype signs in against the local Supabase stack (DD-43). |
-| Outcomes | "Stage A approved" (§E item 9, due after the prototype is delivered), or change requests |
+| Outcomes | "Stage A approved" (§E item 9, due now that the prototype is delivered, §2.1), or change requests |
 | Change requests | Run as a UI-iteration workflow. That workflow's script, phases and scope are not detailed in the sources and are finalized when first needed. |
 | Launch rule | Stage B is never launched without explicit written approval. The Stage B script refuses to run unless it is launched with `args.prototypeApproved = true`. |
 
@@ -439,7 +464,7 @@ The repository has no git remote, so there is nothing to fetch or pull: the loca
 
 ## 9. Open items
 
-- **Draft Stage B script.** `docs/plan/tenderiq-backend.workflow.js` is marked draft and is revised against the as-built Stage A contracts before launch. The Stage B identifiers in §7.5 are checked again then.
+- **Draft Stage B script.** `docs/plan/tenderiq-backend.workflow.js` is marked draft and is revised against the as-built Stage A contracts (919 endpoints in 25 modules, [api/endpoint-catalog.md](api/endpoint-catalog.md)) before launch. The Stage B identifiers in §7.5 are checked again then.
 - **Checkpoint granularity.** Plan §11 item 7 and §12 describe one checkpoint commit per phase. The scripts make no checkpoint for A2 or B3, so domain work between the A1 and A3 checkpoints (or B2 and B4) is protected only by markers on disk until the integration checkpoint.
 - **UI-iteration workflow.** Its script, phases and approval loop are not detailed in the sources.
 - **Checkpoint durability.** Resolved — owner decision 2026-09-29 (design-decisions §E item 3; no DD entry): checkpoints stay local only, with no remote. Disk loss therefore remains outside the design (§7.4). Earlier wording: owner decision (design-decisions §E item 3; no DD entry): the repository has no remote, so checkpoint commits are local only; off-machine backup of the build branch, or a private remote to push to (plan §11 item 7), is for the owner to decide. Original point: checkpoints are local only (never pushed), so disk loss is outside the design, and the owner may choose to back up the working tree or add a remote.

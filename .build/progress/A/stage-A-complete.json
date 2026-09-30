@@ -1,0 +1,8 @@
+{
+  "stage": "A",
+  "unit": "stage-A-complete",
+  "message": "prototype: walkthrough, review guide, technical docs synced (Stage A complete — awaiting approval)",
+  "report": {
+    "gate": true
+  }
+}

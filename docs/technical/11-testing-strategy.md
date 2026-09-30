@@ -1,6 +1,6 @@
 # Testing Strategy
 
-Status: As-designed (pre-build). Updated to as-built at the end of Stage A and Stage B.
+Status: As-built (Stage A prototype); backend sections as-designed
 
 Sources:
 - `docs/plan/architecture-plan.md` (revision 3): §0 Delivery stages (contract hand-off, static mock), §3.3 Sealing, §3.4 Official time, §3.6 State machines, §3.7 Money and scoring, §3.8 Notifications (email channel), §3.10 Contracts-first API, §3.11 Prototype mode (real Supabase JWT verification), §4 Repository layout, §5 Build waves and file ownership, §6 Domain map, §7 UI design system, §8 Testing strategy, §9 Build and verification commands, §10 Demo data, §11 Deviations (items 3, 6 and 8 decided on 2026-09-29)
@@ -187,7 +187,8 @@ flowchart LR
 | Gate | Command | Floor |
 |---|---|---|
 | Backend suite | `npm run ci:test` (CI `verify` step 7) | `--min-tests N`, set after Stage B integration (B4) |
-| SPA suite | `npm run ci:test:ui` (CI `verify` step 3) | Set after Stage A integration (A3), and set again after Stage B integration (B4) |
+| SPA suite | `npm run ci:test:ui` (CI `verify` step 3) | As built in Stage A: `--min-tests 1451` (the suite runs 1,456 tests in 265 files at the end of Stage A); set again after Stage B integration (B4) |
+| Root unit project | `npm run ci:test:unit` | As built in Stage A: `--min-tests 2900` (100 files, 2,900 tests at the end of Stage A) |
 
 Plan §8: floors are set after each stage's integration step. The floor values themselves are recorded here as-built.
 
@@ -216,7 +217,7 @@ These are tests about the codebase and schema, not about features. Plan §8 sche
 | G17 | Scripts are real | `db:seed`, `cron:run`, `queue:worker` and `jobs:status` run as subprocesses | Integration tests | brief §11 |
 | G18 | Migrations reset | Reset from empty twice, CLI error markers, applied list equals disk, snapshot diff | `db:validate` | brief §6.5 |
 | G19 | Secret and bundle hygiene | No secrets in tracked files. No server variable names, service-role literals, `src/server` fragments or mock API fixtures in `src/ui/dist`. The production bundle does not contain the marker string of the dev-only demo-accounts quick-pick, which renders only under `import.meta.env.DEV` (DD-43). | `ci:security` (`scan-secrets`, `scan-bundle`) | brief §8.4, plan §3.11, §11 items 1 and 8, DD-43 |
-| G20 | Contracts purity | `src/contracts`, including the shared decimal helper `decimal.ts` (DD-32), uses no Node or browser APIs and is importable by the SPA, the mock API and the backend | Mechanism finalized in Stage A | plan §3.10, §11 item 1 |
+| G20 | Contracts purity | `src/contracts`, including the shared decimal helper `decimal.ts` (DD-32), uses no Node or browser APIs and is importable by the SPA, the mock API and the backend | As built in Stage A: the ESLint block `tenderiq/contracts-purity` (root `eslint.config.js`) allows only `zod` and sibling contract imports and bans Node and browser APIs in `src/contracts` (test files excepted) | plan §3.10, §11 item 1 |
 | G21 | Reference-only tables unreachable by suppliers | No `[R]` table (for example `evaluation_scores`, `shortlist_entries`, `buyer_supplier_relationships`) is on the `forSupplier` allow-list `supplier-scoped-tables.ts` | Guard test (B1 `schema-apply`) | DD-03 |
 
 ## 9. Contract-conformance tests
@@ -316,6 +317,6 @@ AC-37 and AC-38 are deferred with FR-20 and EXT-03 and have no tests. See [12-tr
 - **Missing storyline records.** Resolved — demo storyline, "Additional scenario anchors" (amended with the decision log): AC-11 is Serowe ICT's `approved_internally` response on T-2026-0002, AC-17 is Makgadikgadi failing REQ-Q-03 on T-2026-0003, and AC-34 is the participation report over T-2026-0001 and T-2026-0002 (§12). Original point: the storyline named no specific record for AC-11, AC-17 or AC-34.
 - **Stage A include globs.** Settled by the A1 `scaffold` task in `tenderiq-prototype.workflow.js` (no DD entry): the root `unit` project includes `src/contracts/**/*.test.ts`, `src/mock-api/**/*.test.ts` and `scripts/**/*.test.ts`, and the `integration` project passes with no tests until Stage B (§3). Original point: the include globs and Vitest project assignment for the `src/contracts` and `src/mock-api` tests were left to the A1 `scaffold` agent.
 - **Test directories for combined units.** The per-domain integration directory names for units 01 and 15, and for the shared services (`approvals`, `notifications`, `documents`, `audit`, `lifecycle`, `sealing`, `time`, built in B2), are not fixed in the plan.
-- **Test count floors.** The floor values are set after A3 and B4.
-- **E2E scope.** The persona list for "each key persona" in the `prototype` project, and the journey list for the `full` project, are finalized in Stage A and Stage B respectively.
+- **Test count floors.** Resolved for Stage A: `ci:test:ui --min-tests 1451` and `ci:test:unit --min-tests 2900` (§7). The Stage B floors are set after B4.
+- **E2E scope.** Resolved for Stage A: the `prototype` project's `a11y` spec signs in as `tebogo.officer`, `admin.kwu`, `mpho.manager`, `boitumelo.chair`, `amantle.eval`, `tsodilo.admin`, `serowe-ict.signatory` and `ops.admin`, and checks every sidebar destination with axe in both themes, plus flagged detail and form pages; the `shell` spec covers real sign-in against local Supabase Auth, the session context, the app shell, organization switching (COM-02) and sign-out. The journey list for the `full` project is finalized in Stage B.
 - **Email settings in CI.** The email integration tests need `EMAIL_ENABLED` and the SMTP settings pointing at Mailpit (DD-44). The local `.env.local` gets them from the B1 scaffold-b task, but the CI `verify` job writes its throwaway `.env.local` from `npx supabase status -o env` (brief §12), and the sources do not say how the email variables are set there. This is finalized when `scaffold-b` enables the Stage B CI steps.

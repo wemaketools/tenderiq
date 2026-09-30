@@ -1,6 +1,6 @@
 # API
 
-Status: As-designed (pre-build). Updated to as-built at the end of Stage A and Stage B.
+Status: As-built (Stage A prototype); backend sections as-designed
 
 Sources:
 - `docs/plan/design-decisions.md`: DD-02 (`UNIQUE NULLS NOT DISTINCT`), DD-03 ([S] and [R] tags, `forSupplier` allow-list), DD-04 (`customer_tenant_id`), DD-05 (sealed envelope mapping), DD-06 (`invitations.role_ids`), DD-09 (reference formats), DD-10 (identity defaults on `tenants`), DD-11 (audit partition of cross-tenant rows), DD-12 (storage keys), DD-13 (views), DD-14 (approval subject types, including `final_award`), DD-15 (deadline authority), DD-16 (shared owners, exports, price gate), DD-18 and DD-19 (split and added jobs), DD-20 (expiry semantics), DD-21 (`/me` personal inbox), DD-22 (buyer slug in public URLs), DD-23 (permission additions), DD-24 (approver permissions), DD-27 (invitation acceptance and supplier registration), DD-28 (public write rate limiting), DD-29 (MFA deferred), DD-30 (API and SPA document headers), DD-31 (audit content for sealed records), DD-32 (shared decimal helper), DD-33 (zone display), DD-38 (**withdrawn** by the owner decision of 2026-09-29, superseded by DD-43), DD-39 (idempotency keys), DD-40 (`framework_calloff`), DD-41 (bid intent), DD-42 (acknowledgment authority), DD-43 (real Supabase Auth in local Docker from Stage A: no mock auth, real JWT verification in the mock API, dev-only demo accounts, `environment.mode`), DD-44 (email delivery channel: `nodemailer` over SMTP, Mailpit locally, hosted provider and webhooks deferred), DD-45 (Node 24), and §E (owner decisions of 2026-09-29).
@@ -26,7 +26,7 @@ Contents:
 10. [OpenAPI generation](#10-openapi-generation)
 11. [Stage A mock API](#11-stage-a-mock-api)
 12. [Endpoints outside `/api/v1`](#12-endpoints-outside-apiv1)
-13. [Planned endpoint catalog by domain](#13-planned-endpoint-catalog-by-domain)
+13. [Endpoint catalog by domain](#13-endpoint-catalog-by-domain)
 14. [Open points](#14-open-points)
 15. [Related documents](#15-related-documents)
 
@@ -424,15 +424,17 @@ flowchart LR
 | `<domain>.ts` | one file per domain: request/response schemas, inferred types, endpoint map | A2 domain pipeline for that domain |
 | `catalog.ts` | aggregates every domain map | A3 `integrate` only |
 
+**As built (Stage A).** Besides the core files, `src/contracts` holds 25 endpoint modules: the shared-surface files `session.ts`, `tasks.ts`, `notifications.ts`, `notification-rules.ts`, `approvals.ts`, `documents.ts`, `audit.ts` and `calendars.ts`, and the domain files `org-admin.ts`, `policy.ts`, `suppliers.ts`, `qualification.ts`, `requests.ts`, `tenders.ts`, `publication.ts`, `clarifications.ts`, `bids.ts`, `opening.ts`, `evaluation.ts`, `selection.ts`, `awards.ts`, `contracts.ts`, `reporting.ts`, `records.ts` and `operations.ts`. Large domains keep their schemas in a sibling folder of the same name (for example `src/contracts/tenders/`), re-exported by the module file. `catalog.ts` exports `ENDPOINT_MAPS` (one map per module), `ENDPOINT_CATALOG` and `endpointById()`; `catalog.test.ts` fails when a module's map is missing from it, when two endpoints share an id or a method and path, or when two path templates can match the same request (`pathsCollide`).
+
 Needs outside an agent's owned paths are reported as follow-ups and applied by the Integration step, so no two agents edit one contract file.
 
 ### 9.3 `defineEndpoint`
 
 ```ts
-defineEndpoint({ id, method, path, audience, permission?, params?, query?, body?, response, errors, screens, idempotent? })
+defineEndpoint({ id, method, path, audience, permission?, params?, query?, body?, response, status?, errors, screens, idempotent?, rowTenant?, summary?, support? })
 ```
 
-architecture-plan §3.10 defines the signature without `idempotent`; the prototype workflow's A1 `contracts-core` task adds it for DD-39.
+architecture-plan §3.10 defines the signature without `idempotent`; the prototype workflow's A1 `contracts-core` task adds it for DD-39. As built, `defineEndpoint` also takes `status` (the success status, default 200), `rowTenant` (a `/me` action on a listed row, DD-21), `summary` (OpenAPI text) and `support` (the support-grant surface, OPS-04). It validates every definition when the module loads, so a malformed contract fails every test that imports it.
 
 | Field | Required | Meaning |
 |---|---|---|
@@ -440,14 +442,18 @@ architecture-plan §3.10 defines the signature without `idempotent`; the prototy
 | `method` | yes | HTTP method |
 | `path` | yes | Path under `/api/v1`, beginning with the audience prefix; path parameters are typed by `params` |
 | `audience` | yes | The audience partition (`public`, `me`, `buyer`, `supplier`, `ops`, per §2.2). Drives the tenant-kind check in the mock and real middleware, and whether the client sends `X-Tenant-Id` |
-| `permission` | optional | Permission code from the seeded catalog (schema-blueprint §P, including the DD-23 additions). The mock API and Stage B enforce it. Omitted only where no permission can apply: public endpoints (no user) and tenant-exempt `/me` reads (no active tenant to compute permissions against). An action on a `/me` row names the row's tenant in `X-Tenant-Id` (DD-21) |
+| `permission` | optional | One permission code, or a non-empty list meaning "any of these" (shared widgets whose rows belong to several domains), from the seeded catalog (schema-blueprint §P, including the DD-23 additions). The mock API and Stage B enforce it. Omitted only where no permission can apply: public endpoints (no user) and tenant-exempt `/me` reads (no active tenant to compute permissions against). An action on a `/me` row names the row's tenant in `X-Tenant-Id` (DD-21) |
 | `params` | optional | zod schema for path parameters |
 | `query` | optional | zod schema for the query string (list endpoints extend the shared list query) |
 | `body` | optional | zod schema for the request body |
 | `response` | yes | zod schema of the success body. Used for dev-time client validation, mock response validation and conformance tests |
-| `errors` | yes | The expected problem responses (status + domain `code`) the endpoint may return |
+| `errors` | yes | The declared business error codes (UPPER_SNAKE). Each code has one HTTP status, fixed centrally in `DOMAIN_ERROR_STATUS` (`common.ts`); platform codes (401, 403, 404, 422, 500) are implicit |
 | `screens` | yes | PRD screen ids that call the endpoint (for example `SUP-16`). A contract unit test fails if an endpoint has none |
 | `idempotent` | optional | Marks a command that creates records and accepts the `Idempotency-Key` header (§6, DD-39) |
+| `status` | optional | Success status (200, 201, 202 or 204). A 204 declares `z.null()` as its response |
+| `rowTenant` | optional | A `me` endpoint acting on a row listed under `/me/*`: `X-Tenant-Id` must be that row's tenant, and `permission` is checked there (DD-21) |
+| `summary` | optional | Short description copied into the OpenAPI operation |
+| `support` | optional | `metadata` or `records`: declared exactly when `permission` lists `support.view`, so an operator's support grant may read the endpoint (OPS-04, AC-15). Only buyer or supplier GET reads may declare it, never a path under bids, opening, evaluation, scoring or sealed content |
 
 Request and response TypeScript types are inferred from the schemas (`z.infer`), so the SPA, the mock and the backend share one type per payload.
 
@@ -473,8 +479,10 @@ In Stage B, a contract change needs a recorded reason and a UI update in the sam
 
 - `npm run docs:api` runs `scripts/docs/generate-openapi.ts`, which walks `src/contracts/catalog.ts` and writes **`docs/technical/api/openapi.json`**.
 - Schemas are converted with zod v4's built-in `z.toJSONSchema()`. No new dependency is added for this (architecture-plan §11.2); the only approved runtime addition in the project is `nodemailer`, for the email channel (DD-44).
-- Each `defineEndpoint` becomes one operation: `method` + `path`, `params`/`query` as parameters, `body` as the request body, `response` as the success response, `errors` as problem+json responses grouped under each code's registry status (§4.4; the generator refuses a code without one). How `audience`, `permission` and `screens` appear in the document (for example as tags or extension members) is decided when the generator is written in Stage A.
-- `docs/technical/api/**` is owned by the Stage A Integration step (A3 `integrate`). The file is regenerated when contracts change and synced at the end of each stage by `docs-sync`. The generated file is authoritative for exact paths; the catalog in §13 is not.
+- Each `defineEndpoint` becomes one operation: `method` + `path`, `params`/`query` as parameters, `body` as the request body, `response` as the success response, `errors` as problem+json responses grouped under each code's registry status (§4.4; the generator refuses a code without one). As built, the operation id is the endpoint `id` and the tag is the audience. Extension members carry what OpenAPI has no field for: `x-permission`, `x-screens`, `x-tenant-header` (`none`, `active` or `row`, DD-21), `x-idempotent` (DD-39) and `x-error-codes`. The `X-Tenant-Id` and `Idempotency-Key` headers appear as parameters where they apply. Reused sub-schemas are hoisted to `components.schemas`.
+- The generator discovers every endpoint map exported by `src/contracts/*.ts` (test files excluded) and fails when two different endpoints share an id or a method and path. Its own unit test is `scripts/docs/generate-openapi.test.ts`.
+- `docs/technical/api/**` is written by the Stage A Integration step (A3 `integrate`) and synced at the end of each stage by `docs-sync`. The generated file is authoritative for exact paths and schemas.
+- **As built (Stage A, regenerated 2026-09-30):** OpenAPI 3.1.0, 794 paths, **920 operations**: the 919 contract endpoints plus `GET /api/v1/health`. The per-domain listing of ids, methods, paths, permissions and screens is [api/endpoint-catalog.md](api/endpoint-catalog.md), summarized in §13.
 
 ## 11. Stage A mock API
 
@@ -482,15 +490,18 @@ In Stage B, a contract change needs a recorded reason and a UI update in the sam
 
 | Path | Role |
 |---|---|
-| `src/mock-api/app.ts` | Hono app with the same `/api/v1` surface |
-| `src/mock-api/middleware/**` | Mirrors the real chain: security headers, correlation id, **real Supabase JWT verification** through `src/server/lib/auth/verify.ts` with the verified email mapped to its fixture persona (unknown account → 401), identical-403 tenant validation, contract permission checks, problem+json errors, response validation against the contract (architecture-plan §3.11, DD-43; security headers per the prototype workflow's `mock-platform` task) |
-| `src/mock-api/handlers/<domain>.ts` | Per-domain handlers |
-| `src/mock-api/handlers/session.ts` | The `session` contract; `/me/context` includes `environment` with `mode = 'prototype'` and `appEnv`, which drives the SPA's prototype banner (DD-43) |
-| `src/mock-api/fixtures/<domain>.ts` | Typed fixtures built from [demo-storyline](../plan/demo-storyline.md); `fixtures/platform.ts` (every tenant and persona, with memberships and role templates) and `persona.ts` are owned by A1 `mock-platform`, and each domain writes only its own fixture file |
-| `src/mock-api/registry.ts` | Composes the domain handlers; written only by the Integration step |
+| `src/mock-api/app.ts` | `createMockApp()`: the Hono app with the same `/api/v1` surface; mounts every handler module's routes and serves `GET /api/v1/health`. Options let tests inject a token verifier, explicit handler modules, a log sink and a clock |
+| `src/mock-api/middleware/chain.ts` | The middleware chain, in brief §5.1 order: security headers; request context (correlation id from `x-correlation-id` or `x-request-id`, or generated, echoed on the response, plus the `x-server-time` header); the request log line; the error boundary (every throw becomes problem+json); route resolution (an unknown route is a 404 **before** authentication); authentication (**real Supabase JWT verification** through `src/server/lib/auth/verify.ts`, then the verified email mapped to its fixture persona; no persona or an inactive one gets 401, DD-43); tenant context (`X-Tenant-Id` against an active membership or support grant, the tenant's state and the kind the prefix requires, one identical 403 for every failure; `/me` reads and `/public` are exempt, a `rowTenant` action must name the row's tenant); the permission check against the persona's effective set in that tenant; dispatch (params, query and body parsed with the contract, 422 on failure; the handler's result validated against the response schema, 500 on fixture drift) |
+| `src/mock-api/middleware/{routes,problem,logger}.ts` | The route table (`mockRoute(app, endpoint, handler)`, fixture helpers such as `page()` for pagination), problem+json builders (`MockHttpError`, field errors from zod), and the structured logger |
+| `src/mock-api/registry.ts` | Auto-discovers `handlers/*.ts` and `handlers/<name>/index.ts` in alphabetical order. Each module registers into its own collector, merged only when its whole registration succeeds; a module that fails, or claims a method and path another module registered, is logged and skipped |
+| `src/mock-api/handlers/<domain>/` | One folder per domain (`approvals`, `audit`, `awards`, `bids`, `calendars`, `clarifications`, `contracts`, `documents`, `evaluation`, `notification-rules`, `notifications`, `opening`, `operations`, `org-admin`, `policy`, `publication`, `qualification`, `records`, `reporting`, `requests`, `selection`, `suppliers`, `tasks`, `tenders`), plus `handlers/session.ts`. Handlers are pure functions over fixtures |
+| `src/mock-api/handlers/session.ts` | The `session` contract; `/me/context` includes `environment` with `mode = 'prototype'` and `appEnv`, which drives the SPA's prototype banner (DD-43), and `serverTime` from the storyline clock |
+| `src/mock-api/fixtures/**` | Typed fixtures built from [demo-storyline](../plan/demo-storyline.md), one file or folder per domain. `fixtures/platform.ts` holds every tenant and persona with memberships and role templates; `fixtures/demo-clock.ts` holds the storyline clock (`DEMO_AS_OF` = 2026-10-06T08:00:00Z, Tuesday 6 October 2026, 10:00 in Africa/Gaborone): the mock serves requests at `storylineNow()`, the real clock but never earlier than `DEMO_AS_OF`, so countdowns, overdue marks and "data as of" values agree. `fixtures/consistency.test.ts` checks references, personas, slugs, in-app links against the SPA's routes, deadlines, receipts and award values across domains |
+| `src/mock-api/persona.ts` | Persona and tenant lookups, active memberships, organization labels and tenant-access resolution (memberships and support grants) |
+| `src/mock-api/testing/**` | Test helpers (fixture tokens with a test verifier, a real password-grant `signInAs()` against local Supabase Auth, `createTestMockApp()`) and the platform tests (pipeline, registry, session, demo accounts, scripts) |
 | `src/server/lib/{config,supabase}/**`, `src/server/lib/auth/verify.ts` | The **real** platform modules with the Stage A variable subset, written by A1 `mock-platform` and extended in Stage B (§3.2) |
 | `scripts/dev/seed-auth-personas.ts` | `npm run auth:personas`: creates or updates every persona in local Supabase Auth (DD-43) |
-| `scripts/dev/serve-mock-api.ts` | Serves the mock on `127.0.0.1:3001` |
+| `scripts/dev/serve-mock-api.ts` | Serves the mock on `127.0.0.1:3001`, or on `--port <P>` (agents and Playwright use their own ports) |
 | `scripts/dev/dev-prototype.mjs` | `npm run dev:prototype`: mock API + Vite |
 
 Vite proxies `/api/v1` to `127.0.0.1:3001` exactly as it does for the real API runner, so the SPA code is identical in both modes. Because sign-in is real, the local Supabase stack must be running (`npm run supabase:start`) and the demo accounts must exist (`npm run auth:personas`) before `npm run dev:prototype` is used (architecture-plan §3.11, §9).
@@ -560,13 +571,47 @@ Each validates `Authorization: Bearer <secret>` before touching the database, wi
 
 **No email webhook endpoint yet (deferred, DD-44).** The hosted email provider, and with it the provider's delivery-event webhooks (delivery, bounce, open), is **deferred** until the first hosted environment (DD-44, [email-delivery-options.md](../plan/email-delivery-options.md)). Locally, the `email` channel records `delivered` when Mailpit accepts the message, so no inbound endpoint is needed (§13, 00 Workspace).
 
-## 13. Planned endpoint catalog by domain
+## 13. Endpoint catalog by domain
 
-> **PLANNED.** This catalog is derived from the PRD screen catalogs (§11 to §13), the domain map (architecture-plan §6) and the permission catalog (schema-blueprint §P). It lists resource groups and principal operations, not paths. **Exact paths, endpoint ids, request and response schemas, success statuses, declared errors and each endpoint's `permission` are fixed by the Stage A contracts** and published in `docs/technical/api/openapi.json`. Where the "Permission" column names several codes, different operations in the group need different codes. A dash means the endpoint needs authentication only (`/me`) or nothing (`/public`).
+> **AS BUILT (Stage A).** The contracts define **919 endpoints** in 25 modules: 583 `buyer`, 195 `supplier`, 63 `ops`, 49 `me` and 29 `public`. 160 are idempotent commands (DD-39), 12 are row-tenant `/me` actions (DD-21), 3 accept an operator support grant (OPS-04), and 107 distinct permission codes are used. The mock API serves every one of them. Every endpoint's id, method, path, permission, screens and flags are listed per domain in **[api/endpoint-catalog.md](api/endpoint-catalog.md)**, generated from `src/contracts/catalog.ts`; request and response schemas and error codes are in [api/openapi.json](api/openapi.json). The screen → route → endpoint trace is [12-traceability.md §4.9](12-traceability.md#49-as-built-screen-to-route-to-contract-endpoints).
+>
+> The per-domain tables after the summary are the **design narrative** of each domain's resource groups (derived from the PRD screen catalogs, the domain map of architecture-plan §6 and the permission catalog of schema-blueprint §P). They explain what the endpoints are for and which rules apply in Stage B; the catalog file is authoritative for ids, paths and permissions. Where a "Permission" column names several codes, different operations in the group need different codes. A dash means the endpoint needs authentication only (`/me`) or nothing (`/public`).
 
 Audience values: `public`, `me`, `buyer`, `supplier`, `ops` (§2.2). Deferred extensions (FR-20 / CON-12, EXT-01 to EXT-03) have no endpoints (architecture-plan §2).
 
+**As-built summary per contract module** (reads are `GET`; commands are `POST`, `PUT`, `PATCH` and `DELETE`):
+
+| Domain | Contract module | Endpoints | Reads / commands | Audiences | Screens served | Listing |
+|---|---|---|---|---|---|---|
+| 00 | `session.ts` | 2 | 1 / 1 | me 2 | COM-01, COM-02, COM-03 | [00](api/endpoint-catalog.md#00-workspace-session-and-shared-services) |
+| 00 | `tasks.ts` | 7 | 4 / 3 | me 7 | BUY-01, COM-04, SUP-01 | [00](api/endpoint-catalog.md#00-workspace-session-and-shared-services) |
+| 00 | `notifications.ts` | 7 | 3 / 4 | me 7 | BUY-01, COM-03, COM-06, SUP-01 | [00](api/endpoint-catalog.md#00-workspace-session-and-shared-services) |
+| 00 | `notification-rules.ts` | 8 | 4 / 4 | buyer 8 | ADM-12, COM-06 | [00](api/endpoint-catalog.md#00-workspace-session-and-shared-services) |
+| 00 | `approvals.ts` | 8 | 5 / 3 | me 3, buyer 5 | ADM-06, ADM-08, ADM-14, BUY-04, BUY-06, BUY-13, BUY-17, BUY-21, BUY-23, BUY-24, BUY-25, BUY-26, BUY-29, BUY-35, COM-04, COM-05, CON-02, CON-05, CON-08, CON-09 | [00](api/endpoint-catalog.md#00-workspace-session-and-shared-services) |
+| 00 | `documents.ts` | 11 | 6 / 5 | me 4, buyer 4, supplier 3 | ADM-08, BUY-03, BUY-06, BUY-09, BUY-17, BUY-28, BUY-29, BUY-34, COM-07, CON-01, CON-03, CON-05, SUP-05, SUP-08, SUP-12, SUP-20, SUP-22, SUP-23 | [00](api/endpoint-catalog.md#00-workspace-session-and-shared-services) |
+| 00 | `audit.ts` | 1 | 1 / 0 | buyer 1 | ADM-14, BUY-04, BUY-07, BUY-33, CON-01 | [00](api/endpoint-catalog.md#00-workspace-session-and-shared-services) |
+| 00 | `calendars.ts` | 11 | 3 / 8 | buyer 11 | ADM-10, BUY-08 | [00](api/endpoint-catalog.md#00-workspace-session-and-shared-services) |
+| 01 | `org-admin.ts` | 129 | 44 / 85 | public 1, me 9, buyer 83, supplier 36 | ADM-01, ADM-02, ADM-03, ADM-04, ADM-05, COM-01, COM-02, COM-03, SUP-04 | [01](api/endpoint-catalog.md#01-identity-and-organization-administration) |
+| 02 | `policy.ts` | 43 | 17 / 26 | buyer 41, supplier 1, public 1 | ADM-06, ADM-07, ADM-08, ADM-11, BUY-03, BUY-06, BUY-07, BUY-08, BUY-34, CON-02, PUB-01, SUP-08, SUP-20, SUP-23 | [02](api/endpoint-catalog.md#02-policy) |
+| 03 | `suppliers.ts` | 47 | 18 / 29 | public 8, me 3, supplier 17, buyer 8, ops 11 | BUY-31, BUY-32, COM-02, OPS-01, SUP-02, SUP-03, SUP-04, SUP-05 | [03](api/endpoint-catalog.md#03-suppliers) |
+| 04 | `qualification.ts` | 47 | 22 / 25 | buyer 32, supplier 15 | ADM-09, BUY-15, BUY-33, BUY-34, BUY-35, SUP-20, SUP-24 | [04](api/endpoint-catalog.md#04-qualification) |
+| 05 | `requests.ts` | 49 | 18 / 31 | buyer 45, public 4 | BUY-02, BUY-03, BUY-04, BUY-05, BUY-06, PUB-06 | [05](api/endpoint-catalog.md#05-requests-and-planning) |
+| 06 | `tenders.ts` | 39 | 13 / 26 | buyer 39 | BUY-07, BUY-08, BUY-09, BUY-10, BUY-11, BUY-12, BUY-13 | [06](api/endpoint-catalog.md#06-tenders) |
+| 07 | `publication.ts` | 62 | 26 / 36 | public 9, buyer 16, supplier 37 | BUY-14, BUY-15, PUB-01, PUB-02, PUB-03, PUB-07, SUP-06, SUP-07, SUP-08, SUP-09 | [07](api/endpoint-catalog.md#07-publication-and-participation) |
+| 08 | `clarifications.ts` | 46 | 19 / 27 | buyer 30, supplier 15, public 1 | BUY-16, BUY-17, BUY-18, PUB-04, SUP-08, SUP-10, SUP-11 | [08](api/endpoint-catalog.md#08-clarifications-addenda-and-sessions) |
+| 09 | `bids.ts` | 43 | 21 / 22 | supplier 39, buyer 4 | BUY-19, SUP-12, SUP-13, SUP-14, SUP-15, SUP-16, SUP-17 | [09](api/endpoint-catalog.md#09-bids-and-submission) |
+| 10 | `opening.ts` | 30 | 13 / 17 | buyer 27, supplier 3 | BUY-20, BUY-21, EVA-03, SUP-18 | [10](api/endpoint-catalog.md#10-opening-and-compliance) |
+| 11 | `evaluation.ts` | 33 | 9 / 24 | buyer 33 | EVA-01, EVA-02, EVA-04, EVA-05, EVA-06 | [11](api/endpoint-catalog.md#11-evaluation) |
+| 12 | `selection.ts` | 49 | 21 / 28 | buyer 42, supplier 7 | BUY-22, BUY-23, BUY-24, BUY-25, BUY-27, SUP-18, SUP-19 | [12](api/endpoint-catalog.md#12-selection) |
+| 13 | `awards.ts` | 53 | 21 / 32 | buyer 39, supplier 11, public 3 | BUY-26, BUY-28, BUY-29, BUY-30, PUB-01, PUB-05, SUP-21, SUP-22 | [13](api/endpoint-catalog.md#13-awards-notices-and-complaints) |
+| 14 | `contracts.ts` | 67 | 20 / 47 | buyer 57, supplier 10 | CON-01, CON-02, CON-03, CON-04, CON-05, CON-06, CON-07, CON-08, CON-09, CON-10, CON-11, SUP-23 | [14](api/endpoint-catalog.md#14-contracts) |
+| 15 | `reporting.ts` | 21 | 12 / 9 | buyer 15, supplier 1, me 5 | ADM-13, ADM-14, BUY-01, COM-08, REP-01, REP-02, SUP-01 | [15](api/endpoint-catalog.md#15-reporting-records-and-search) |
+| 15 | `records.ts` | 16 | 9 / 7 | buyer 16 | ADM-14 | [15](api/endpoint-catalog.md#15-reporting-records-and-search) |
+| 16 | `operations.ts` | 90 | 40 / 50 | ops 52, buyer 27, me 9, public 2 | ADM-15, ADM-16, ADM-17, COM-09, OPS-01, OPS-02, OPS-03, OPS-04, OPS-05, OPS-06, OPS-07 | [16](api/endpoint-catalog.md#16-operations-help-and-integrations) |
+
 ### 00 Workspace: session and shared services
+
+As built: 55 endpoints in `session.ts` (2), `tasks.ts` (7), `notifications.ts` (7), `notification-rules.ts` (8), `approvals.ts` (8), `documents.ts` (11), `audit.ts` (1) and `calendars.ts` (11) ([listing](api/endpoint-catalog.md#00-workspace-session-and-shared-services)).
 
 Contracts written by A1 `contracts-core`: `session`, `approvals`, `tasks`, `notifications`, `documents`, `audit`, `calendars`. UI features: `tasks`, `approvals`, `notifications`, `documents`, `calendars`. FR-21; BR-06, BR-07, BR-10, BR-41, BR-42.
 
@@ -593,6 +638,8 @@ Contracts written by A1 `contracts-core`: `session`, `approvals`, `tasks`, `noti
 
 ### 01 Identity and organization administration
 
+As built: 129 endpoints in `org-admin.ts`, for buyer and supplier administration, the personal profile and memberships, and invitation preview and acceptance ([listing](api/endpoint-catalog.md#01-identity-and-organization-administration)).
+
 UI features: `account`, `admin-org`, `admin-access`. FR-01, FR-03, PRD §5.4; BR-02, BR-06, BR-07, BR-38.
 
 | Resource group | Screens | Audience | Principal reads and commands | Permission |
@@ -610,6 +657,8 @@ UI features: `account`, `admin-org`, `admin-access`. FR-01, FR-03, PRD §5.4; BR
 
 ### 02 Policy
 
+As built: 43 endpoints in `policy.ts` ([listing](api/endpoint-catalog.md#02-policy)).
+
 UI feature: `admin-policy`. FR-22, PRD §17.
 
 | Resource group | Screens | Audience | Principal reads and commands | Permission |
@@ -620,6 +669,8 @@ UI feature: `admin-policy`. FR-22, PRD §17.
 | Public portal and publication policy | ADM-11 | buyer | Portal settings (advance notices, awards, bidder counts, identity disclosure, document policy, languages); approval | `org.portal.manage` |
 
 ### 03 Suppliers
+
+As built: 47 endpoints in `suppliers.ts`, including the public registration writes and the operator review queues ([listing](api/endpoint-catalog.md#03-suppliers)).
 
 UI features: `supplier-org`, `supplier-directory`. FR-02; BR-44, BR-45.
 
@@ -632,6 +683,8 @@ UI features: `supplier-org`, `supplier-directory`. FR-02; BR-44, BR-45.
 | Relationship record | BUY-32 | buyer | Buyer-specific relationship, contacts, restrictions, risk; review identity changes; never another buyer's private assessment (BR-45). `buyer_supplier_relationships` and `relationship_contacts` are [R]: the supplier never reaches them (DD-03) | `supplier.relationship.manage` |
 
 ### 04 Qualification
+
+As built: 47 endpoints in `qualification.ts` ([listing](api/endpoint-catalog.md#04-qualification)).
 
 UI feature: `qualification`. FR-06; BR-24, BR-25.
 
@@ -646,6 +699,8 @@ UI feature: `qualification`. FR-06; BR-24, BR-25.
 
 ### 05 Requests and planning
 
+As built: 49 endpoints in `requests.ts`, including the public procurement-plan notices ([listing](api/endpoint-catalog.md#05-requests-and-planning)).
+
 UI features: `requests`, `planning`. FR-04, FR-05.
 
 | Resource group | Screens | Audience | Principal reads and commands | Permission |
@@ -658,6 +713,8 @@ UI features: `requests`, `planning`. FR-04, FR-05.
 | Public plans and advance notices | PUB-06 | public | Published advance notices | — |
 
 ### 06 Tenders
+
+As built: 39 endpoints in `tenders.ts` ([listing](api/endpoint-catalog.md#06-tenders)).
 
 UI feature: `tender-authoring`. FR-07; BR-09, BR-10, BR-16.
 
@@ -672,6 +729,8 @@ UI feature: `tender-authoring`. FR-07; BR-09, BR-10, BR-16.
 | Document package and release review | BUY-13 | buyer | Release checks, supplier and public preview, request release approval. A material edit bumps `draft_revision` and invalidates approvals (AC-06) | `tender.edit`; `tender.release_approve` |
 
 ### 07 Publication and participation
+
+As built: 62 endpoints in `publication.ts` ([listing](api/endpoint-catalog.md#07-publication-and-participation)).
 
 UI features: `publication`, `public-portal`, `opportunities`. FR-08, FR-09; BR-14, BR-15, BR-46.
 
@@ -688,6 +747,8 @@ UI features: `publication`, `public-portal`, `opportunities`. FR-08, FR-09; BR-1
 
 ### 08 Clarifications, addenda and sessions
 
+As built: 46 endpoints in `clarifications.ts` ([listing](api/endpoint-catalog.md#08-clarifications-addenda-and-sessions)).
+
 UI feature: `clarifications`. FR-10; BR-14, BR-16.
 
 | Resource group | Screens | Audience | Principal reads and commands | Permission |
@@ -700,6 +761,8 @@ UI feature: `clarifications`. FR-10; BR-14, BR-16.
 | Public clarifications and amendments | PUB-04 | public | Released questions, answers and addenda without supplier identities, at `/clarifications/:buyerSlug/:ref` (DD-22) | — |
 
 ### 09 Bids and submission
+
+As built: 43 endpoints in `bids.ts` ([listing](api/endpoint-catalog.md#09-bids-and-submission)).
 
 UI features: `responses`, `submission-monitoring`. FR-11, FR-12; BR-17 to BR-21.
 
@@ -715,6 +778,8 @@ UI features: `responses`, `submission-monitoring`. FR-11, FR-12; BR-17 to BR-21.
 
 ### 10 Opening and compliance
 
+As built: 30 endpoints in `opening.ts` ([listing](api/endpoint-catalog.md#10-opening-and-compliance)).
+
 UI feature: `opening`. FR-13; BR-22, BR-23.
 
 | Resource group | Screens | Audience | Principal reads and commands | Permission |
@@ -725,6 +790,8 @@ UI feature: `opening`. FR-13; BR-22, BR-23.
 | Supplier assessment requests | SUP-18 | supplier | Respond within the permitted scope; confirm appointments | `supplier.response.edit` |
 
 ### 11 Evaluation
+
+As built: 33 endpoints in `evaluation.ts` ([listing](api/endpoint-catalog.md#11-evaluation)).
 
 UI feature: `evaluation`. FR-14, PRD §9; BR-26 to BR-29.
 
@@ -739,6 +806,8 @@ UI feature: `evaluation`. FR-14, PRD §9; BR-26 to BR-29.
 
 ### 12 Selection
 
+As built: 49 endpoints in `selection.ts` ([listing](api/endpoint-catalog.md#12-selection)).
+
 UI feature: `selection`. FR-15, FR-16; BR-30, BR-31.
 
 | Resource group | Screens | Audience | Principal reads and commands | Permission |
@@ -751,6 +820,8 @@ UI feature: `selection`. FR-15, FR-16; BR-30, BR-31.
 | Supplier negotiation and final-offer rounds | SUP-19 | supplier | Own negotiation rounds (`negotiation_rounds` is [S]; `negotiations` itself is [R], DD-03); respond; submit the required round (the bids domain owns `bafo` and `next_stage` bid rows) | `supplier.response.edit`; `supplier.pricing.edit`; `supplier.response.submit` |
 
 ### 13 Awards, notices and complaints
+
+As built: 53 endpoints in `awards.ts` ([listing](api/endpoint-catalog.md#13-awards-notices-and-complaints)).
 
 UI features: `awards`, `outcomes`. FR-17; BR-32 to BR-34.
 
@@ -765,6 +836,8 @@ UI features: `awards`, `outcomes`. FR-17; BR-32 to BR-34.
 | Public awards | PUB-05 | public | Award search and detail at `/awards/:buyerSlug/:ref` (DD-22), from `v_public_awards`, which shows only published public award notices (DD-13) | — |
 
 ### 14 Contracts
+
+As built: 67 endpoints in `contracts.ts` ([listing](api/endpoint-catalog.md#14-contracts)).
 
 UI feature: `contracts`. FR-18, FR-19; BR-35 to BR-37.
 
@@ -784,6 +857,8 @@ UI feature: `contracts`. FR-18, FR-19; BR-35 to BR-37.
 
 ### 15 Reporting, records and search
 
+As built: 37 endpoints in `reporting.ts` (21, including search and saved views) and `records.ts` (16) ([listing](api/endpoint-catalog.md#15-reporting-records-and-search)).
+
 UI features: `dashboard`, `reports`, `records`, `search`. FR-21, PRD §15, §18; BR-40, BR-43.
 
 | Resource group | Screens | Audience | Principal reads and commands | Permission |
@@ -796,6 +871,8 @@ UI features: `dashboard`, `reports`, `records`, `search`. FR-21, PRD §15, §18;
 | Global search and saved views | COM-08 | me (`/me/search`, DD-21) | Search authorized tenders, suppliers, tasks, contracts and documents across all active memberships, each result labelled with its organization; saved views | every result is filtered by the caller's authorization in the row's tenant (BR-43, DD-21); saved views are the user's own |
 
 ### 16 Operations, help and integrations
+
+As built: 90 endpoints in `operations.ts`, covering the operator console, help and support cases, and the buyer's integrations and service screens ([listing](api/endpoint-catalog.md#16-operations-help-and-integrations)).
 
 UI features: `ops`, `help`, `admin-integrations`. FR-22, PRD §21; BR-46, BR-47.
 
@@ -820,13 +897,14 @@ UI features: `ops`, `help`, `admin-integrations`. FR-22, PRD §21; BR-46, BR-47.
 | 3 | References are unique per tenant only (`unique (tenant_id, reference)`), yet public URLs use `/opportunities/:ref`, `/awards/:ref` and `/clarifications/:ref`. Two buyers can both issue `T-2026-0001`. Public and supplier endpoints need a buyer qualifier or another unique key. | Resolved — DD-22: public URLs carry the buyer slug (`/opportunities/:buyerSlug/:ref`, `/awards/:buyerSlug/:ref`, `/clarifications/:buyerSlug/:ref`), and supplier API paths use tender ids (§8). |
 | 4 | Audience and protection of invitation-token acceptance (`/invite/:token`) and public supplier registration (`/register`), including abuse controls. | Resolved — DD-27, DD-28: acceptance is `POST /api/v1/me/invitations/:token/accept`, the one route open to `invited` users; registration provisions in one transaction and then invites; public POSTs are throttled per IP hash and email hash in `rate_limit_buckets` (§3.2, §3.6). Resolved — owner decision 2026-09-29: supplier self-registration via the API plus the Auth Admin invite follows the proposed approach (architecture-plan §11.4, design-decisions §E.7). |
 | 5 | Permission codes where the catalog has no obvious code: price-gate release, customer authorization of support grants, supplier-side notice acknowledgment, buyer and supplier dashboards. | Resolved — DD-23 (with DD-16): the price gate is released with `evaluation.chair`, and the catalog adds `org.support_access.authorize`, `supplier.notices.acknowledge`, `dashboard.view` and `supplier.dashboard.view` (§13). |
-| 6 | Which read endpoints honour `support.view`, and how `metadata_only` vs `specific_records` restricts their responses. | Stage A contracts, Stage B |
-| 7 | Member names of `Page<T>` and the list query, and wire encodings of `Instant` and calendar dates. | `common.ts`, Stage A |
+| 6 | Which read endpoints honour `support.view`, and how `metadata_only` vs `specific_records` restricts their responses. | Partly resolved — as built in Stage A: an endpoint opens to a support grant by listing `support.view` in its permissions and declaring `support: 'metadata' \| 'records'`; only buyer or supplier GET reads outside bid, opening, evaluation, scoring and sealed paths may, and `defineEndpoint` rejects anything else. Three endpoints declare it: `buyer.calendars.list`, `buyer.calendars.get` and `buyer.calendars.deadlinePolicy` (surface `metadata`). The `records` surface restricts reads to the grant's `record_refs`; its enforcement over real data is Stage B. |
+| 7 | Member names of `Page<T>` and the list query, and wire encodings of `Instant` and calendar dates. | Resolved — as built in `common.ts`: `Page<T>` is `{ items, total, page, pageSize }` (`total` counts only rows the caller may see, BR-43); the shared `ListQuery` is `q` (at most 200 characters), `page` (1-based, default 1), `pageSize` (1 to 100, default 25), `sort` (restricted per list with `listQueryWithSort`) and `dir` (`asc` default, or `desc`). `Instant` is ISO 8601 UTC with a `Z` suffix (for example `2026-10-14T10:00:00Z`); calendar dates are `YYYY-MM-DD`. |
 | 8 | The full security header set beyond HSTS. | Partly resolved — DD-30: the Hono app sets the API headers, the SPA document gets a CSP `<meta http-equiv>` tag, and `vercel.json` has no header rules (§7.4). The API header list beyond HSTS stays with Stage B (`platform-http`). |
-| 9 | The status code and problem type of a throttled public POST. DD-28 fixes the mechanism, not the response. | Stage A contracts, Stage B |
+| 9 | The status code and problem type of a throttled public POST. DD-28 fixes the mechanism, not the response. | Resolved — as built in `common.ts`: `RATE_LIMITED` is a platform error code (like 401, 403, 404, 422 and 500, implicit on every endpoint) and answers **429** problem+json. The throttling itself (`rate_limit_buckets`) is Stage B. |
 
 ## 15. Related documents
 
+- [api/endpoint-catalog.md](api/endpoint-catalog.md) and [api/openapi.json](api/openapi.json): the as-built endpoint catalog and the generated OpenAPI document.
 - [02-architecture.md](02-architecture.md): containers and components.
 - [04-security-model.md](04-security-model.md): authentication, tenancy, permissions, sealing, support access.
 - [05-lifecycles.md](05-lifecycles.md): the state machines behind every command.
