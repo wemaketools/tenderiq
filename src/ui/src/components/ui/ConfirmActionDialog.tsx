@@ -42,6 +42,8 @@ export interface ConfirmActionDialogProps {
   readonly error?: ApiError | null;
   /** Extra content, such as a readiness summary. */
   readonly children?: ReactNode;
+  /** Dialog width; form-heavy confirmations use `lg` (default `md`). */
+  readonly size?: 'sm' | 'md' | 'lg';
 }
 
 export function ConfirmActionDialog({
@@ -59,6 +61,7 @@ export function ConfirmActionDialog({
   pending = false,
   error = null,
   children,
+  size = 'md',
 }: ConfirmActionDialogProps) {
   const activeTenant = useAppSelector((state) => state.session.activeTenant);
   const [reasonText, setReasonText] = useState('');
@@ -80,6 +83,7 @@ export function ConfirmActionDialog({
   return (
     <Dialog
       open={open}
+      size={size}
       title={title}
       onClose={close}
       dismissible={!pending}

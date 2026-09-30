@@ -1,0 +1,97 @@
+{
+  "stage": "A",
+  "unit": "tenders",
+  "status": "done",
+  "gapsFixed": 8,
+  "followUps": [
+    {
+      "owner": "contracts-core/foundation",
+      "file": "src/contracts/common.ts",
+      "issue": "splitIssueMessage splits zod enum messages containing | (e.g. expected one of \"consensus\"|\"average\") into a bogus code; split only when the prefix matches /^[A-Z][A-Z0-9_]+$/, otherwise code INVALID with the full message."
+    },
+    {
+      "owner": "publication",
+      "file": "src/ui/src/features/publication/test/responses.ts",
+      "issue": "Snapshot still has T-2026-0002 updatedAt 2026-10-02T08:15:00Z; the tenders fixture now uses 2026-09-24T08:00:00Z (the addendum date of the clarifications fixture)."
+    },
+    {
+      "owner": "ui-shell",
+      "file": "src/ui/src/lib",
+      "issue": "No shared language-name helper exists; tender-authoring keeps its own (catalog en/tn with an Intl.DisplayNames fallback). A shared lib helper would let every feature render language names the same way."
+    }
+  ],
+  "steps": {
+    "contract-and-mock": {
+      "status": "done",
+      "endpoints": 39
+    },
+    "ui": {
+      "status": "done",
+      "screens": [
+        "BUY-07",
+        "BUY-08",
+        "BUY-09",
+        "BUY-10",
+        "BUY-11",
+        "BUY-12",
+        "BUY-13"
+      ],
+      "files": [
+        "src/ui/src/features/tender-authoring/components/ChangeImpactBanner.tsx",
+        "src/ui/src/features/tender-authoring/components/EditTenderDialog.tsx",
+        "src/ui/src/features/tender-authoring/components/FormDialog.tsx",
+        "src/ui/src/features/tender-authoring/components/IssueList.tsx",
+        "src/ui/src/features/tender-authoring/components/LinkStageDialog.tsx",
+        "src/ui/src/features/tender-authoring/components/LotDialog.tsx",
+        "src/ui/src/features/tender-authoring/components/PackagePreview.tsx",
+        "src/ui/src/features/tender-authoring/components/ParticipationDialogs.tsx",
+        "src/ui/src/features/tender-authoring/components/PlanEditor.tsx",
+        "src/ui/src/features/tender-authoring/components/PricingDialogs.tsx",
+        "src/ui/src/features/tender-authoring/components/ReadinessCard.tsx",
+        "src/ui/src/features/tender-authoring/components/ReleaseDialogs.tsx",
+        "src/ui/src/features/tender-authoring/components/RequirementDialog.tsx",
+        "src/ui/src/features/tender-authoring/components/SaveTemplateDialog.tsx",
+        "src/ui/src/features/tender-authoring/components/TeamCard.tsx",
+        "src/ui/src/features/tender-authoring/components/TenderWorkspace.tsx",
+        "src/ui/src/features/tender-authoring/components/TimetableEditor.tsx",
+        "src/ui/src/features/tender-authoring/i18n/catalog.test.ts",
+        "src/ui/src/features/tender-authoring/i18n/en.ts",
+        "src/ui/src/features/tender-authoring/lib/errors.ts",
+        "src/ui/src/features/tender-authoring/lib/hooks.ts",
+        "src/ui/src/features/tender-authoring/lib/labels.ts",
+        "src/ui/src/features/tender-authoring/lib/lists.ts",
+        "src/ui/src/features/tender-authoring/lib/nextAction.ts",
+        "src/ui/src/features/tender-authoring/lib/options.ts",
+        "src/ui/src/features/tender-authoring/lib/overlay.ts",
+        "src/ui/src/features/tender-authoring/lib/paths.ts",
+        "src/ui/src/features/tender-authoring/lib/permissions.ts",
+        "src/ui/src/features/tender-authoring/lib/planForm.ts",
+        "src/ui/src/features/tender-authoring/lib/readiness.tsx",
+        "src/ui/src/features/tender-authoring/pages/CreateTenderPage.test.tsx",
+        "src/ui/src/features/tender-authoring/pages/CreateTenderPage.tsx",
+        "src/ui/src/features/tender-authoring/pages/EvaluationPlanPage.test.tsx",
+        "src/ui/src/features/tender-authoring/pages/EvaluationPlanPage.tsx",
+        "src/ui/src/features/tender-authoring/pages/PricingPage.test.tsx",
+        "src/ui/src/features/tender-authoring/pages/PricingPage.tsx",
+        "src/ui/src/features/tender-authoring/pages/ReleaseReviewPage.test.tsx",
+        "src/ui/src/features/tender-authoring/pages/ReleaseReviewPage.tsx",
+        "src/ui/src/features/tender-authoring/pages/ScopePage.test.tsx",
+        "src/ui/src/features/tender-authoring/pages/ScopePage.tsx",
+        "src/ui/src/features/tender-authoring/pages/TenderOverviewPage.test.tsx",
+        "src/ui/src/features/tender-authoring/pages/TenderOverviewPage.tsx",
+        "src/ui/src/features/tender-authoring/pages/TenderRegisterPage.test.tsx",
+        "src/ui/src/features/tender-authoring/pages/TenderRegisterPage.tsx",
+        "src/ui/src/features/tender-authoring/pages/TimetablePage.test.tsx",
+        "src/ui/src/features/tender-authoring/pages/TimetablePage.tsx",
+        "src/ui/src/features/tender-authoring/routes.test.ts",
+        "src/ui/src/features/tender-authoring/routes.tsx",
+        "src/ui/src/features/tender-authoring/test/data.ts",
+        "src/ui/src/features/tender-authoring/test/helpers.tsx"
+      ],
+      "checks": "typecheck:ui, eslint --max-warnings 0 and prettier clean on tender-authoring; test:ui tender-authoring 43/43; unit tenders contract+handlers 53/53; visual check on 4106/5206"
+    }
+  },
+  "task4": {
+    "checks": "tsc server + ui clean on tenders paths; eslint (backend + SPA --max-warnings 0) and prettier clean; unit tenders 94/94; SPA tender-authoring 56/56; screenshots on 4106/5206 of BUY-10 pricing, BUY-12 T-0012 timetable, BUY-09 scope, BUY-07 create, BUY-13 release after request"
+  }
+}

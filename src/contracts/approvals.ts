@@ -283,12 +283,20 @@ export const ApprovalSummary = z.object({
 });
 export type ApprovalSummary = z.infer<typeof ApprovalSummary>;
 
-/** A document offered as evidence for the decision. */
+/**
+ * A document offered as evidence for the decision, pinned to the exact version captured with the approval snapshot
+ * (BR-10; PRD §14.1 "evidence versions used at the time"). A later version of the document never replaces it.
+ */
 export const ApprovalEvidence = z.object({
   documentId: Id,
+  /** The document version decided on (open it in COM-07 with `?version=<versionId>`). */
+  versionId: Id,
   title: z.string().min(1),
   classification: DocumentsClassification,
+  /** Number of the pinned version. */
   versionNo: z.number().int().min(1),
+  /** Number of the document's latest confirmed version today; greater than `versionNo` when it changed since. */
+  latestVersionNo: z.number().int().min(1),
   isRedactedCopy: z.boolean(),
 });
 export type ApprovalEvidence = z.infer<typeof ApprovalEvidence>;
@@ -324,6 +332,68 @@ export const MyApprovalStep = z.object({
 });
 export type MyApprovalStep = z.infer<typeof MyApprovalStep>;
 
+/** One fact of the exact version under approval (the snapshot the approver decides on, BR-10). */
+export const ApprovalSnapshotFact = z.object({
+  /** Stable key of the fact, e.g. `estimatedValue`, `scope`. */
+  key: z.string().min(1),
+  label: z.string().min(1),
+  value: z.string(),
+  /** True when the subject's current version differs from this value (shown on an invalidated approval, AC-06). */
+  changedSince: z.boolean(),
+});
+export type ApprovalSnapshotFact = z.infer<typeof ApprovalSnapshotFact>;
+
+/** The exact version snapshot of the subject captured when the approval was requested. */
+export const ApprovalVersionSnapshot = z.object({
+  subjectVersion: z.number().int().min(1),
+  contentHash: ContentHash,
+  capturedAt: Instant,
+  facts: z.array(ApprovalSnapshotFact),
+});
+export type ApprovalVersionSnapshot = z.infer<typeof ApprovalVersionSnapshot>;
+
+/** Why an approval does not start (or no longer sits) with the usual first level: the AC-05 routing hint. */
+export const APPROVAL_ROUTING_REASONS = ['authority_exceeded', 'exchange_rate_missing', 'self_approval_blocked', 'conflict_recusal'] as const;
+export const ApprovalRoutingReason = z.enum(APPROVAL_ROUTING_REASONS);
+export type ApprovalRoutingReason = z.infer<typeof ApprovalRoutingReason>;
+
+/** "Exceeds the authority of X — routed to Y" (AC-05, BR-06). */
+export const ApprovalRouting = z.object({
+  reason: ApprovalRoutingReason,
+  /** The level that could not decide (the usual first approver). */
+  skipped: PersonRef.nullable(),
+  skippedCapacity: z.string().nullable(),
+  skippedLimit: NonNegativeMoney.nullable(),
+  /** The approver the step went to instead. */
+  routedTo: PersonRef.nullable(),
+  routedToCapacity: z.string().nullable(),
+  routedToLimit: NonNegativeMoney.nullable(),
+  routedAt: Instant,
+  note: z.string().nullable(),
+});
+export type ApprovalRouting = z.infer<typeof ApprovalRouting>;
+
+/** One material change that invalidated an approval (AC-06, BR-10). */
+export const ApprovalChange = z.object({
+  key: z.string().min(1),
+  label: z.string().min(1),
+  before: z.string().nullable(),
+  after: z.string().nullable(),
+});
+export type ApprovalChange = z.infer<typeof ApprovalChange>;
+
+/** What invalidated the approval and what happens next. */
+export const ApprovalInvalidation = z.object({
+  changedAt: Instant,
+  changedBy: PersonRef.nullable(),
+  fromVersion: z.number().int().min(1),
+  toVersion: z.number().int().min(1),
+  changes: z.array(ApprovalChange),
+  /** The approval requested for the changed version, once there is one. */
+  replacementApprovalId: Id.nullable(),
+});
+export type ApprovalInvalidation = z.infer<typeof ApprovalInvalidation>;
+
 /** Everything COM-05 shows: exact version, amount, scope, justification, evidence, previous decisions, conflicts, authority. */
 export const ApprovalDetail = ApprovalSummary.extend({
   organization: OrganizationLabel,
@@ -347,13 +417,30 @@ export const ApprovalDetail = ApprovalSummary.extend({
   authority: AuthorityCheck.nullable(),
   myStep: MyApprovalStep.nullable(),
   allowedDecisions: z.array(ApprovalDecision),
+  /** Whether this route allows an approval with conditions (COM-05 "conditionally approve if permitted"). */
+  conditionsPermitted: z.boolean().optional(),
+  /** The exact version snapshot under approval. */
+  versionSnapshot: ApprovalVersionSnapshot.nullable().optional(),
+  /** Set when the usual first level could not decide and the step was routed higher (AC-05). */
+  routing: ApprovalRouting.nullable().optional(),
+  /** Set when a material change invalidated the approval (AC-06). */
+  invalidation: ApprovalInvalidation.nullable().optional(),
+  /** Earlier approvals of the same subject (previous versions and decisions), newest first. */
+  relatedApprovals: z.array(ApprovalSummary).optional(),
 });
 export type ApprovalDetail = z.infer<typeof ApprovalDetail>;
+
+/** How the caller is involved in an approval listed in the inbox. */
+export const APPROVAL_INVOLVEMENTS = ['approver', 'delegate', 'requester'] as const;
+export const ApprovalInvolvement = z.enum(APPROVAL_INVOLVEMENTS);
+export type ApprovalInvolvement = z.infer<typeof ApprovalInvolvement>;
 
 /** One row of the caller's approval inbox. */
 export const MyApprovalItem = ApprovalSummary.extend({
   organization: OrganizationLabel,
   myStep: MyApprovalStep.nullable(),
+  involvement: ApprovalInvolvement.optional(),
+  subjectLinkPath: LinkPath.nullable().optional(),
 });
 export type MyApprovalItem = z.infer<typeof MyApprovalItem>;
 
@@ -366,6 +453,9 @@ export const MyApprovalListQuery = listQueryWithSort(APPROVAL_SORT_FIELDS).exten
   /** Only approvals whose current step is the caller's (directly or by delegation). */
   awaitingMyDecision: QueryBoolean.optional(),
   overdue: QueryBoolean.optional(),
+  involvement: queryList(ApprovalInvolvement).optional(),
+  requestedFrom: CalendarDate.optional(),
+  requestedTo: CalendarDate.optional(),
 });
 export type MyApprovalListQuery = z.input<typeof MyApprovalListQuery>;
 

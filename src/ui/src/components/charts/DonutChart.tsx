@@ -46,7 +46,7 @@ export function DonutChart({ segments, label, caption, centerValue, size = 220 }
     >
       <div className="tiq-donut">
         <div className="tiq-donut-figure" style={{ width: size, height: size }}>
-          <PieChart width={size} height={size}>
+          <PieChart width={size} height={size} accessibilityLayer={false}>
             <Pie
               data={segments.map((segment) => ({ name: segment.label, value: segment.value }))}
               dataKey="value"

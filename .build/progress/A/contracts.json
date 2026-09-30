@@ -1,0 +1,16 @@
+{
+  "stage": "A",
+  "unit": "contracts",
+  "status": "done",
+  "gapsFixed": 6,
+  "followUps": [
+    "approvals: seed approval records for the contract approvals that exist only in the contracts domain (14301, 14302, 14304 contract agreements; 14305/14306 CR-0001/CR-0002 changes; 14308 C-2025-0007 renewal; 14309/14310 security releases) and tell the contracts owner their ids; until then the SPA shows them without a link",
+    "approvals: id 42 (C-2026-0002 difference) amount must be BWP 4,668,000.00 (award allocation BWP 4,620,000.00 from the BWP 5,340,000.00 Lot 1 award + BWP 48,000.00 commissioning); snapshot facts 'Approved award value' BWP 4,620,000.00 allocated from Lot 1 (not 2,960,000.00) and 'Contract value' BWP 4,668,000.00; delivery 16 weeks (award 12 weeks) already agrees",
+    "approvals: id 35 (T-2026-0001 Lot 1 award) amount BWP 2,960,000.00 contradicts the awards domain (BWP 5,340,000.00)",
+    "approvals: id 36 snapshot fact 'Cumulative changes (CR-0001 to CR-0003)' must read BWP 430,000.00 (23.24% of the original BWP 1,850,000.00); contract value after the change BWP 2,280,000.00",
+    "audit (fixtures/audit.ts): entry 1041 cumulative BWP 430,000.00 (not 612,000.00); entry 1042 before value BWP 4,620,000.00 / after BWP 4,668,000.00 (not 2,960,000/3,008,000)",
+    "records (fixtures/records/index.ts): audit 5015 CR-0003 amount 285000.00 and cumulative 430000.00 (not 95000/285000)",
+    "notifications (id 531) and tasks (id 135): the C-2026-0001 renewal notice window opens on 5 Oct 2026 (AC-32 anchor: 5 days from 30 Sep 2026), not 11 Oct 2026",
+    "documents: CR-0003 document title should describe the change as 'Maintenance of 6 heavy tanker trucks' to match approval 36 and the contracts change register"
+  ]
+}

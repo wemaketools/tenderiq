@@ -197,7 +197,11 @@ export function DataTable<T>({
                     key={column.id}
                     scope="col"
                     className={column.numeric === true ? 'tiq-num' : undefined}
-                    style={column.width === undefined ? undefined : { width: column.width }}
+                    style={
+                      column.width === undefined
+                        ? undefined
+                        : { width: column.width, minWidth: column.width }
+                    }
                     aria-sort={sortable ? state : undefined}
                   >
                     {sortable ? (

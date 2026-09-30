@@ -60,6 +60,10 @@ export const TaskItem = z.object({
   delegatedFrom: PersonRef.nullable(),
   createdAt: Instant,
   allowedActions: z.array(TaskAction),
+  /** The accountable owner of the source record (FR-21 "owner"), when there is one. */
+  sourceOwner: PersonRef.nullable().optional(),
+  /** Who the task escalates to when overdue (FR-21 "escalation route"). */
+  escalationTo: PersonRef.nullable().optional(),
 });
 export type TaskItem = z.infer<typeof TaskItem>;
 
@@ -93,6 +97,12 @@ export const TaskListQuery = listQueryWithSort(TASK_SORT_FIELDS).extend({
   overdue: QueryBoolean.optional(),
   dueFrom: CalendarDate.optional(),
   dueTo: CalendarDate.optional(),
+  /** Source record types, e.g. `approval_request`, `tender`, `contract`. */
+  sourceType: queryList(z.string().regex(/^[a-z][a-z0-9_]{1,62}$/, issue('INVALID_SOURCE_TYPE', 'Use a snake_case source type.'))).optional(),
+  /** Only tasks that reached the caller through a delegation (true) or directly (false). */
+  delegated: QueryBoolean.optional(),
+  /** Only tasks assigned to one of the caller's groups rather than to the caller personally (true), or the reverse. */
+  groupAssigned: QueryBoolean.optional(),
 });
 export type TaskListQuery = z.input<typeof TaskListQuery>;
 

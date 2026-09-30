@@ -2559,6 +2559,19 @@ button.tiq-org-option:hover:not(:disabled) {
 .tiq-stack--spaced {
   margin-top: var(--tiq-space-4);
 }
+/* Stacked chips or links keep their own width instead of stretching across a table cell. */
+.tiq-stack--start {
+  align-items: flex-start;
+}
+/* A list inside a card without the browser's bullets and indentation. */
+.tiq-list-plain {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--tiq-space-2);
+}
 .tiq-loading-screen {
   min-height: 100vh;
   display: grid;

@@ -52,6 +52,7 @@ export function StackedBarChart({
       <div style={{ width: '100%', height }}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
+            accessibilityLayer={false}
             data={data}
             layout={horizontal ? 'vertical' : 'horizontal'}
             margin={{ top: 8, right: 24, bottom: 0, left: 0 }}

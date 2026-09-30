@@ -2187,6 +2187,57 @@ export const WRITE_ENUMS = {
 // ---------------------------------------------------------------------------------------------------------
 
 /** Every enumeration keyed by `table.column`. The StatusChip tone map and the blueprint test iterate it. */
+
+// ---------------------------------------------------------------------------------------------------------
+// Contract-defined enumerations of the domain contracts (derived display states and contract-only choices)
+// ---------------------------------------------------------------------------------------------------------
+// Listed once here so StatusChip, enumLabel and enumTone render them; the domain modules re-export them.
+
+/** `evidence_items.freshness` (contract-defined). */
+export const EVIDENCE_FRESHNESS = ['current', 'expiring_soon', 'expired', 'no_expiry'] as const;
+/** `supplier_verification_requests.status` (contract-defined). */
+export const VERIFICATION_REQUEST_STATUSES = ['open', 'answered', 'closed'] as const;
+/** `supplier_claim_invitations.state` (contract-defined). */
+export const CLAIM_INVITATION_STATES = ['pending', 'expired', 'claimed', 'revoked'] as const;
+/** `service_incidents.severity` (contract-defined). */
+export const SERVICE_INCIDENT_SEVERITIES = ['low', 'medium', 'high', 'critical'] as const;
+/** `subscriptions.plan_code` (contract-defined). */
+export const PLAN_CODES = ['pilot', 'buyer_standard', 'buyer_enterprise'] as const;
+/** `invoices.status` (contract-defined). */
+export const INVOICE_STATUSES = ['issued', 'paid', 'overdue', 'disputed', 'void'] as const;
+/** `service_actions.status` (contract-defined). */
+export const SERVICE_ACTION_STATUSES = ['open', 'in_progress', 'resolved'] as const;
+/** `onboarding_items.area` (contract-defined). */
+export const ONBOARDING_ITEM_AREAS = ['setup', 'ownership', 'adoption', 'issue'] as const;
+/** `onboarding_items.status` (contract-defined). */
+export const ONBOARDING_ITEM_STATUSES = ['open', 'in_progress', 'done', 'blocked', 'not_applicable'] as const;
+/** `privileged_access_reviews.status` (contract-defined). */
+export const ACCESS_REVIEW_STATUSES = ['due', 'overdue', 'completed'] as const;
+/** `privileged_access_reviews.outcome` (contract-defined). */
+export const ACCESS_REVIEW_OUTCOMES = ['retain', 'reduce', 'revoke'] as const;
+/** `conduct_cases.kind` (contract-defined). */
+export const CONDUCT_CASE_KINDS = ['service_complaint', 'misuse'] as const;
+/** `conduct_cases.status` (contract-defined). */
+export const CONDUCT_CASE_STATUSES = ['open', 'under_review', 'closed'] as const;
+/** `access_items.status` (contract-defined). */
+export const ACCESS_ITEM_STATUSES = ['scheduled', 'active', 'expiring_soon', 'expired', 'revoked'] as const;
+/** `contact_change_requests.status` (contract-defined). */
+export const CONTACT_CHANGE_STATUSES = ['pending_confirmation', 'confirmed', 'cancelled', 'expired'] as const;
+/** `access_findings.finding_type` (contract-defined). */
+export const ACCESS_FINDING_TYPES = ['sod_conflict', 'grant_expiring', 'dormant_account', 'active_restriction', 'pending_conflict_review'] as const;
+/** `access_findings.severity` (contract-defined). */
+export const FINDING_SEVERITIES = ['info', 'warning', 'critical'] as const;
+/** `release_checks.readiness` (contract-defined). */
+export const READINESS_CHECK_STATUS = ['passed', 'warning', 'blocking'] as const;
+/** `qualification_applications.priority` (contract-defined): the task priorities. */
+export const QUALIFICATION_APPLICATIONS_PRIORITY = TASKS_PRIORITY;
+export const QualificationApplicationsPriority = z.enum(QUALIFICATION_APPLICATIONS_PRIORITY);
+export type QualificationApplicationsPriority = (typeof QUALIFICATION_APPLICATIONS_PRIORITY)[number];
+/** `envelope_openings.envelope` (DD-05): the envelopes of a staged opening. */
+export const ENVELOPE_OPENINGS_ENVELOPE = ['qualification', 'technical', 'commercial'] as const;
+export const EnvelopeOpeningsEnvelope = z.enum(ENVELOPE_OPENINGS_ENVELOPE);
+export type EnvelopeOpeningsEnvelope = (typeof ENVELOPE_OPENINGS_ENVELOPE)[number];
+
 export const ENUMS = {
   'tenants.kind': TENANTS_KIND,
   'tenants.status': TENANTS_STATUS,
@@ -2456,6 +2507,26 @@ export const ENUMS = {
   'holds.blocked_actions': HOLDS_BLOCKED_ACTIONS,
   'notification_rules.event_type': NOTIFICATION_RULES_EVENT_TYPE,
   'documents.related_type': DOCUMENTS_RELATED_TYPE,
+  'evidence_items.freshness': EVIDENCE_FRESHNESS,
+  'supplier_verification_requests.status': VERIFICATION_REQUEST_STATUSES,
+  'supplier_claim_invitations.state': CLAIM_INVITATION_STATES,
+  'service_incidents.severity': SERVICE_INCIDENT_SEVERITIES,
+  'subscriptions.plan_code': PLAN_CODES,
+  'invoices.status': INVOICE_STATUSES,
+  'service_actions.status': SERVICE_ACTION_STATUSES,
+  'onboarding_items.area': ONBOARDING_ITEM_AREAS,
+  'onboarding_items.status': ONBOARDING_ITEM_STATUSES,
+  'privileged_access_reviews.status': ACCESS_REVIEW_STATUSES,
+  'privileged_access_reviews.outcome': ACCESS_REVIEW_OUTCOMES,
+  'conduct_cases.kind': CONDUCT_CASE_KINDS,
+  'conduct_cases.status': CONDUCT_CASE_STATUSES,
+  'access_items.status': ACCESS_ITEM_STATUSES,
+  'contact_change_requests.status': CONTACT_CHANGE_STATUSES,
+  'access_findings.finding_type': ACCESS_FINDING_TYPES,
+  'access_findings.severity': FINDING_SEVERITIES,
+  'release_checks.readiness': READINESS_CHECK_STATUS,
+  'qualification_applications.priority': QUALIFICATION_APPLICATIONS_PRIORITY,
+  'envelope_openings.envelope': ENVELOPE_OPENINGS_ENVELOPE,
 } as const satisfies Record<string, readonly [string, ...string[]]>;
 
 /** An enumeration name (`table.column`). */
@@ -2471,6 +2542,26 @@ export const CONTRACT_DEFINED_ENUMS = [
   'holds.blocked_actions',
   'notification_rules.event_type',
   'documents.related_type',
+  'evidence_items.freshness',
+  'supplier_verification_requests.status',
+  'supplier_claim_invitations.state',
+  'service_incidents.severity',
+  'subscriptions.plan_code',
+  'invoices.status',
+  'service_actions.status',
+  'onboarding_items.area',
+  'onboarding_items.status',
+  'privileged_access_reviews.status',
+  'privileged_access_reviews.outcome',
+  'conduct_cases.kind',
+  'conduct_cases.status',
+  'access_items.status',
+  'contact_change_requests.status',
+  'access_findings.finding_type',
+  'access_findings.severity',
+  'release_checks.readiness',
+  'qualification_applications.priority',
+  'envelope_openings.envelope',
 ] as const satisfies readonly EnumName[];
 
 const ENUM_NAMES: readonly string[] = Object.keys(ENUMS);
@@ -2555,6 +2646,15 @@ const ENUM_LABEL_OVERRIDES: { readonly [N in EnumName]?: Partial<Record<EnumValu
   'tenders.event_type': { tender: 'Tender' },
   'procurement_strategies.event_type': { tender: 'Tender' },
   'opening_sessions.envelope': { all: 'All envelopes (single stage)' },
+  'submission_attempts.outcome': {
+    failed_error: 'Failed (service error)',
+    failed_late: 'Rejected as late',
+    failed_validation: 'Failed validation',
+    failed_authority: 'No submit authority',
+  },
+  'evidence_items.freshness': { no_expiry: 'No expiry' },
+  'subscriptions.plan_code': { buyer_standard: 'Buyer standard', buyer_enterprise: 'Buyer enterprise' },
+  'access_items.status': { expiring_soon: 'Expiring soon' },
 };
 
 /** Turns `awaiting_release_approval` into `Awaiting release approval`. */

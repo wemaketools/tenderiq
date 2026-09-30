@@ -1,0 +1,18 @@
+{
+  "stage": "A",
+  "unit": "operations",
+  "status": "done",
+  "gapsFixed": 7,
+  "followUps": [
+    {
+      "kind": "mock_platform",
+      "description": "SUPPORT_GRANTS[0].expiresAt exceeds MAX_SUPPORT_GRANT_DAYS",
+      "detail": "src/mock-api/fixtures/platform.ts SUPPORT_GRANTS[0] runs 2026-09-28T07:00:00Z to 2026-12-31T15:00:00Z (about 94 days). Set expiresAt to 2026-10-12T07:00:00Z (14 days, as requested). The operations fixture already caps grant 1 at that expiry, and its fixture test accepts any platform expiry at or after the cap."
+    },
+    {
+      "kind": "other",
+      "description": "Regenerate docs/technical/api/openapi.json",
+      "detail": "Operations contract changes: LiveEvent/LiveContract gain withheld and nullable title/supplierName, SupportGrant gains caseReference, SubscriptionRow gains commercialContactEmail, exception endpoints gain summaries, and request-body enums now return coded errors. Run npm run docs:api at integration."
+    }
+  ]
+}

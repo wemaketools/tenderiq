@@ -8,22 +8,58 @@
  */
 import { approvalEndpoints } from './approvals.js';
 import { auditEndpoints } from './audit.js';
+import { awardEndpoints } from './awards.js';
+import { bidEndpoints } from './bids.js';
 import { calendarEndpoints } from './calendars.js';
+import { clarificationsEndpoints } from './clarifications.js';
+import { contractsEndpoints } from './contracts.js';
 import { documentEndpoints } from './documents.js';
 import type { AnyEndpoint } from './endpoint.js';
+import { evaluationEndpoints } from './evaluation.js';
+import { notificationRuleEndpoints } from './notification-rules.js';
 import { notificationEndpoints } from './notifications.js';
+import { openingEndpoints } from './opening.js';
+import { operationsEndpoints } from './operations.js';
+import { orgAdminEndpoints } from './org-admin.js';
+import { policyEndpoints } from './policy.js';
+import { publicationEndpoints } from './publication.js';
+import { qualificationEndpoints } from './qualification.js';
+import { recordsEndpoints } from './records.js';
+import { reportingEndpoints } from './reporting.js';
+import { requestEndpoints } from './requests.js';
+import { selectionEndpoints } from './selection.js';
 import { sessionEndpoints } from './session.js';
+import { suppliersEndpoints } from './suppliers.js';
 import { taskEndpoints } from './tasks.js';
+import { tenderEndpoints } from './tenders.js';
 
 /** Every endpoint map, keyed by the contract module that defines it. */
 export const ENDPOINT_MAPS = {
   session: sessionEndpoints,
   tasks: taskEndpoints,
   notifications: notificationEndpoints,
+  notificationRules: notificationRuleEndpoints,
   approvals: approvalEndpoints,
   documents: documentEndpoints,
   audit: auditEndpoints,
   calendars: calendarEndpoints,
+  orgAdmin: orgAdminEndpoints,
+  policy: policyEndpoints,
+  suppliers: suppliersEndpoints,
+  qualification: qualificationEndpoints,
+  requests: requestEndpoints,
+  tenders: tenderEndpoints,
+  publication: publicationEndpoints,
+  clarifications: clarificationsEndpoints,
+  bids: bidEndpoints,
+  opening: openingEndpoints,
+  evaluation: evaluationEndpoints,
+  selection: selectionEndpoints,
+  awards: awardEndpoints,
+  contracts: contractsEndpoints,
+  reporting: reportingEndpoints,
+  records: recordsEndpoints,
+  operations: operationsEndpoints,
 } as const;
 
 export type EndpointModule = keyof typeof ENDPOINT_MAPS;

@@ -1,0 +1,22 @@
+/** URLs of the operator area (OPS-01..07). Relative route patterns live in `routes.tsx`. */
+export const opsPaths = {
+  customers: '/ops/customers',
+  customer: (tenantId: number): string => `/ops/customers/${tenantId}`,
+  onboarding: (tenantId: number): string => `/ops/customers/${tenantId}/onboarding`,
+  offboarding: '/ops/offboarding',
+  offboardingPlan: (planId: number): string => `/ops/offboarding/${planId}`,
+  subscriptions: '/ops/subscriptions',
+  subscription: (subscriptionId: number): string => `/ops/subscriptions/${subscriptionId}`,
+  support: '/ops/support',
+  supportGrants: '/ops/support/grants',
+  supportCase: (caseId: number): string => `/ops/support/cases/${caseId}`,
+  incidents: '/ops/incidents',
+  incident: (incidentId: number): string => `/ops/incidents/${incidentId}`,
+  oversight: '/ops/oversight',
+  announcements: '/ops/content/announcements',
+  announcementNew: '/ops/content/announcements/new',
+  announcement: (announcementId: number): string => `/ops/content/announcements/${announcementId}`,
+  helpArticles: '/ops/content/help',
+  helpArticleNew: '/ops/content/help/new',
+  helpArticle: (articleId: number): string => `/ops/content/help/${articleId}`,
+} as const;

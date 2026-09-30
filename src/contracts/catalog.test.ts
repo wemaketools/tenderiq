@@ -48,6 +48,19 @@ describe('endpoint catalog', () => {
     expect(new Set(ENDPOINT_CATALOG).size).toBe(expected);
   });
 
+  it('aggregates every endpoint map that a contract module exports', () => {
+    // Arrange
+    const listed = new Set<unknown>(Object.values(ENDPOINT_MAPS));
+    const listedEndpoints = new Set(ENDPOINT_CATALOG);
+
+    // Act
+    const missing = discovered.endpoints.filter((endpoint) => !listedEndpoints.has(endpoint)).map((endpoint) => endpoint.id);
+
+    // Assert
+    expect(listed.size).toBe(discovered.maps.length);
+    expect(missing).toEqual([]);
+  });
+
   it('keeps every contract valid', () => {
     const problems = discovered.endpoints.flatMap((endpoint) =>
       validateEndpointDefinition(endpoint).map((problem) => `${endpoint.id}: ${problem}`),

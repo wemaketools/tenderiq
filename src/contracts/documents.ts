@@ -24,6 +24,7 @@ import {
   LinkPath,
   OrganizationLabel,
   PersonRef,
+  QueryBoolean,
   ReasonText,
   issue,
   pageOf,
@@ -61,6 +62,20 @@ export const AllowedContentType = z.enum(ALLOWED_CONTENT_TYPES, {
   error: issue('CONTENT_TYPE_NOT_ALLOWED', 'This file type is not accepted.'),
 });
 export type AllowedContentType = z.infer<typeof AllowedContentType>;
+
+/**
+ * Audience breadth of each classification (wider audiences score higher). A redacted copy must be strictly wider
+ * than its original (CLASSIFICATION_NOT_WIDER).
+ */
+export const DOCUMENT_CLASSIFICATION_BREADTH = {
+  sealed: 0,
+  restricted_assessment: 1,
+  commercially_confidential: 1,
+  supplier_private: 1,
+  buyer_internal: 2,
+  participating_suppliers: 3,
+  public: 4,
+} as const satisfies Record<z.infer<typeof DocumentsClassification>, number>;
 
 /** A SHA-256 digest in lowercase hex. */
 export const Sha256 = z.string().regex(/^[a-f0-9]{64}$/, issue('INVALID_HASH', 'Must be a SHA-256 hex digest.'));
@@ -112,11 +127,27 @@ export const DocumentEvidenceFacts = z.object({
 });
 export type DocumentEvidenceFacts = z.infer<typeof DocumentEvidenceFacts>;
 
+/** Why the caller may view the metadata but not download the file (COM-07 "download if permitted"). */
+export const DOWNLOAD_BLOCK_REASONS = [
+  /** Sealed submission content is never downloadable before the authorized opening (BR-17). */
+  'sealed',
+  /** The classification restricts the file to specific assigned users. */
+  'classification_restricted',
+  /** No confirmed version exists yet. */
+  'no_confirmed_version',
+  /** The document was withdrawn; only its history remains. */
+  'withdrawn',
+] as const;
+export const DownloadBlockReason = z.enum(DOWNLOAD_BLOCK_REASONS);
+export type DownloadBlockReason = z.infer<typeof DownloadBlockReason>;
+
 /** What the caller may do with the document. */
 export const DocumentCapabilities = z.object({
   canDownload: z.boolean(),
   canUploadVersion: z.boolean(),
   canCreateRedactedCopy: z.boolean(),
+  /** Set when `canDownload` is false. */
+  downloadBlockedReason: DownloadBlockReason.nullable().optional(),
 });
 export type DocumentCapabilities = z.infer<typeof DocumentCapabilities>;
 
@@ -155,6 +186,44 @@ export const DocumentDetail = DocumentSummary.extend({
 export type DocumentDetail = z.infer<typeof DocumentDetail>;
 
 export const DocumentParams = z.object({ documentId: IdParam });
+
+/** A row of the caller's document list (`/me/documents`), labelled with its organization (DD-21). */
+export const MyDocumentItem = DocumentSummary.extend({
+  organization: OrganizationLabel,
+  relatedReference: z.string().nullable(),
+  canDownload: z.boolean(),
+});
+export type MyDocumentItem = z.infer<typeof MyDocumentItem>;
+
+export const MY_DOCUMENT_SORT_FIELDS = ['title', 'updatedAt', 'classification', 'status'] as const;
+
+export const MyDocumentListQuery = listQueryWithSort(MY_DOCUMENT_SORT_FIELDS).extend({
+  classification: queryList(DocumentsClassification).optional(),
+  status: queryList(DocumentsStatus).optional(),
+  relatedType: queryList(DocumentsRelatedType).optional(),
+  tenantId: IdParam.optional(),
+  redactedCopy: QueryBoolean.optional(),
+  updatedFrom: CalendarDate.optional(),
+  updatedTo: CalendarDate.optional(),
+});
+export type MyDocumentListQuery = z.input<typeof MyDocumentListQuery>;
+
+export const MyDocumentPage = pageOf(MyDocumentItem);
+export type MyDocumentPage = z.infer<typeof MyDocumentPage>;
+
+/** GET /api/v1/me/documents: documents the caller may read in any of their organizations (COM-07 index). */
+export const listMyDocuments = defineEndpoint({
+  id: 'me.documents.list',
+  method: 'GET',
+  path: '/api/v1/me/documents',
+  audience: 'me',
+  query: MyDocumentListQuery,
+  response: MyDocumentPage,
+  errors: [],
+  screens: ['COM-07'],
+  summary:
+    'Documents of the records the caller may read, across every active membership. Sealed content appears as metadata only; totals count only visible rows (BR-43).',
+});
 export const DocumentVersionParams = z.object({ documentId: IdParam, versionId: IdParam });
 
 /** GET /api/v1/me/documents/:documentId (COM-07). */
@@ -511,6 +580,7 @@ export const createRedactedCopy = defineEndpoint({
 
 /** The documents endpoint map. */
 export const documentEndpoints = {
+  listMyDocuments,
   getMyDocument,
   listMyDocumentVersions,
   getDocumentDownloadLink,

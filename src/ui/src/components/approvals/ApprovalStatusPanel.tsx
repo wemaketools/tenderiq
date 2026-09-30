@@ -70,37 +70,87 @@ function ApprovalRoute({
         approval.steps.length === 0 ? (
           <EmptyState compact title={t('approvalWidget.route.empty')} />
         ) : (
-          <Timeline
-            label={t('approvalWidget.route.label')}
-            items={approval.steps.map((step) => ({
-              id: step.id,
-              title: stepTitle(step),
-              tone: STEP_TONE[step.status] ?? 'neutral',
-              icon:
-                step.status === 'pending'
-                  ? 'hourglass'
-                  : step.status === 'rejected'
-                    ? 'xCircle'
-                    : 'checkCircle',
-              meta: (
-                <>
-                  {tEnum('approval_steps.status', step.status)}
-                  {step.decidedAt !== null && ` · ${formatOfficialTime(step.decidedAt, timeZone)}`}
-                  {step.actingFor !== null &&
-                    ` · ${t('approvalWidget.step.actingFor', { name: step.actingFor.fullName })}`}
-                </>
-              ),
-              detail:
-                step.decisionReason !== null || step.conditions !== null ? (
+          <>
+            {approval.routing !== null && approval.routing !== undefined && (
+              <Banner tone="info" title={t('approvalWidget.route.routedTitle')}>
+                <p>
+                  {t('approvalWidget.route.routed', {
+                    skipped:
+                      approval.routing.skipped?.fullName ?? t('approvalWidget.step.unassigned'),
+                    skippedLimit:
+                      approval.routing.skippedLimit === null
+                        ? t('approvalWidget.route.noLimit')
+                        : formatMoney(approval.routing.skippedLimit),
+                    routedTo:
+                      approval.routing.routedTo?.fullName ?? t('approvalWidget.step.unassigned'),
+                    routedToLimit:
+                      approval.routing.routedToLimit === null
+                        ? t('approvalWidget.route.noLimit')
+                        : formatMoney(approval.routing.routedToLimit),
+                  })}
+                </p>
+                {approval.routing.note !== null && <p>{approval.routing.note}</p>}
+              </Banner>
+            )}
+            {approval.invalidation !== null && approval.invalidation !== undefined && (
+              <Banner tone="warning" title={t('approvalWidget.route.invalidatedTitle')}>
+                <p>
+                  {t('approvalWidget.route.invalidated', {
+                    from: approval.invalidation.fromVersion,
+                    to: approval.invalidation.toVersion,
+                    at: formatOfficialTime(approval.invalidation.changedAt, timeZone),
+                  })}
+                </p>
+                {approval.invalidation.changes.length > 0 && (
+                  <ul className="tiq-list-plain">
+                    {approval.invalidation.changes.map((change) => (
+                      <li key={change.key}>
+                        {t('approvalWidget.route.change', {
+                          field: change.label,
+                          before: change.before ?? '—',
+                          after: change.after ?? '—',
+                        })}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </Banner>
+            )}
+            <Timeline
+              label={t('approvalWidget.route.label')}
+              items={approval.steps.map((step) => ({
+                id: step.id,
+                title: stepTitle(step),
+                tone: STEP_TONE[step.status] ?? 'neutral',
+                icon:
+                  step.status === 'pending'
+                    ? 'hourglass'
+                    : step.status === 'rejected'
+                      ? 'xCircle'
+                      : 'checkCircle',
+                meta: (
                   <>
-                    {step.decisionReason !== null && <p>{step.decisionReason}</p>}
-                    {step.conditions !== null && (
-                      <p>{t('approvalWidget.step.conditions', { conditions: step.conditions })}</p>
-                    )}
+                    {tEnum('approval_steps.status', step.status)}
+                    {step.decidedAt !== null &&
+                      ` · ${formatOfficialTime(step.decidedAt, timeZone)}`}
+                    {step.actingFor !== null &&
+                      ` · ${t('approvalWidget.step.actingFor', { name: step.actingFor.fullName })}`}
                   </>
-                ) : undefined,
-            }))}
-          />
+                ),
+                detail:
+                  step.decisionReason !== null || step.conditions !== null ? (
+                    <>
+                      {step.decisionReason !== null && <p>{step.decisionReason}</p>}
+                      {step.conditions !== null && (
+                        <p>
+                          {t('approvalWidget.step.conditions', { conditions: step.conditions })}
+                        </p>
+                      )}
+                    </>
+                  ) : undefined,
+              }))}
+            />
+          </>
         )
       }
     </QueryView>

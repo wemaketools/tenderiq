@@ -133,6 +133,65 @@ describe('ApprovalStatusPanel', () => {
     );
   });
 
+  it('explains a routing to a higher authority and the change that invalidated the approval', async () => {
+    installFetch({
+      'GET /api/v1/buyer/approvals/subjects/tender_release/5': () => ({
+        body: {
+          subjectType: 'tender_release',
+          subjectId: 5,
+          current: approval(),
+          history: [],
+          canRequest: true,
+        },
+      }),
+      'GET /api/v1/buyer/approvals/31': () => ({
+        body: {
+          ...detail(),
+          routing: {
+            reason: 'authority_exceeded',
+            skipped: { userId: 4, fullName: 'Mpho Dikgang' },
+            skippedCapacity: 'Procurement Manager',
+            skippedLimit: { amount: '2000000.00', currency: 'BWP' },
+            routedTo: { userId: 18, fullName: 'Keabetswe Nkwe' },
+            routedToCapacity: 'Chief Executive',
+            routedToLimit: { amount: '10000000.00', currency: 'BWP' },
+            routedAt: '2026-09-23T08:15:00Z',
+            note: null,
+          },
+          invalidation: {
+            changedAt: '2026-09-28T09:14:00Z',
+            changedBy: { userId: 5, fullName: 'Tebogo Molefe' },
+            fromVersion: 2,
+            toVersion: 3,
+            changes: [
+              {
+                key: 'value',
+                label: 'Estimated value',
+                before: 'BWP 1,450,000',
+                after: 'BWP 1,920,000',
+              },
+            ],
+            replacementApprovalId: null,
+          },
+        },
+      }),
+    });
+    renderWithProviders(
+      <ApprovalStatusPanel
+        {...panelProps}
+        currentVersion={{ subjectVersion: 3, contentHash: HASH }}
+      />,
+      { state: { session: signedInSession() } },
+    );
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Show approval route' }));
+
+    expect(await screen.findByText('Routed to a higher authority')).toBeInTheDocument();
+    expect(screen.getByText(/the step went to Keabetswe Nkwe/)).toBeInTheDocument();
+    expect(screen.getByText('This approval no longer applies')).toBeInTheDocument();
+    expect(screen.getByText('Estimated value: BWP 1,450,000 → BWP 1,920,000')).toBeInTheDocument();
+  });
+
   it('lets the requester withdraw with a reason after the COM-02 confirmation', async () => {
     const { requests } = installFetch({
       'GET /api/v1/buyer/approvals/subjects/tender_release/5': () => ({

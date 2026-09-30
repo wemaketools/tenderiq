@@ -1,0 +1,38 @@
+{
+  "stage": "A",
+  "unit": "policy",
+  "status": "done",
+  "gapsFixed": 6,
+  "followUps": [
+    {
+      "kind": "mock_platform",
+      "to": "tenders",
+      "description": "Take tender policy versions from the policy fixtures instead of the private POLICY_VERSIONS copy in src/mock-api/fixtures/tenders/reference.ts",
+      "detail": "Map policyVersionId: T1, T3, T7 -> 1; T8, T5 -> 2; T4, T9 -> 4; T10, T2, T6, T12 -> 7; T11 -> 11. Take profile names and rules from src/mock-api/fixtures/policy/profiles.ts (or buyer.policy.versionOptions) and validate tender create/edit against them."
+    },
+    {
+      "kind": "mock_platform",
+      "to": "org-admin",
+      "description": "Align the organization settings policyProfile label and reconcile the configuration-approval oversight",
+      "detail": "structure.ts names KWU's policy 'KWU Standard Procurement Policy' v2; the policy fixtures have several profiles. The BR-07 configuration-approval oversight is in src/mock-api/fixtures/policy/governance.ts. Show it with the SoD policies, or move it into SOD_POLICIES under a new rule code 'configuration_approval'."
+    },
+    {
+      "kind": "contract_common",
+      "to": "contracts-core / blueprint owner",
+      "description": "Record the Stage B storage mapping of the policy contract as an approved blueprint amendment",
+      "detail": "portal_settings gains visible_notice_fields text[], channels text[] and external_notice_description. Add a portal_settings_proposals table and an approval_requests.subject_type value 'portal_settings'. Add sod_policies.rule_code 'configuration_approval'. policy_profile_versions gains created_by, created_at, submitted_by, submitted_at and returned_reason; policy_profiles gains retirement_reason. template_versions gains version_status, created_by, created_at, submitted_by, submitted_at, returned_reason and approval_request_id; templates gains retired_at and retirement_reason. custom_fields gains created_by, created_at, updated_by, updated_at and issued_record_count; history comes from audit_log. The module headers under src/contracts/policy/*.ts state the mapping."
+    },
+    {
+      "kind": "wiring",
+      "to": "requests, tenders, qualification, contracts",
+      "description": "Embed CustomFieldsSection in the request, tender, qualification and contract forms",
+      "detail": "Embed src/ui/src/features/admin-policy/components/CustomFieldsSection.tsx, which reads buyer.policy.formDefinition / supplier form definitions."
+    },
+    {
+      "kind": "mock_platform",
+      "to": "approvals",
+      "description": "Optional: seed approval_requests with subject_type 'policy_profile' or 'template' if the prototype should show an approval record for policy and template versions",
+      "detail": "The policy fixtures now carry approvalRequestId null, and a test checks that any non-null id resolves to a matching subjectType."
+    }
+  ]
+}

@@ -44,7 +44,11 @@ export function DownloadVersionButton({
       variant="ghost"
       icon="download"
       loading={link.pending}
-      aria-label={t('documentWidget.downloadFile', { name: fileName })}
+      aria-label={
+        label === undefined
+          ? t('documentWidget.downloadFile', { name: fileName })
+          : t('documentWidget.downloadLabelled', { label, name: fileName })
+      }
       onClick={() => void download()}
     >
       {label ?? t('documentWidget.download')}

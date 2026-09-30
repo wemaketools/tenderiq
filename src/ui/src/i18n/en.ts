@@ -343,6 +343,13 @@ export const shellCatalog = {
     route: {
       label: 'Approval route',
       empty: 'The route has no steps yet.',
+      routedTitle: 'Routed to a higher authority',
+      routed:
+        '{skipped} (limit {skippedLimit}) cannot decide this amount; the step went to {routedTo} (limit {routedToLimit}).',
+      noLimit: 'no limit',
+      invalidatedTitle: 'This approval no longer applies',
+      invalidated: 'A material change on {at} replaced version {from} with version {to}.',
+      change: '{field}: {before} → {after}',
     },
     step: {
       title: 'Step {sequence}: {who}',
@@ -403,6 +410,7 @@ export const shellCatalog = {
     redactedCopy: 'Redacted copy',
     download: 'Download',
     downloadFile: 'Download {name}',
+    downloadLabelled: '{label} ({name})',
     downloadFailed: 'The download could not be started. Try again.',
     history: 'History',
     versions: {

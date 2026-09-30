@@ -313,9 +313,20 @@ export interface CheckboxProps {
   readonly error?: string;
   readonly disabled?: boolean;
   readonly name?: string;
+  /** Keeps the label for screen readers only (compact table cells whose column header names the choice). */
+  readonly hideLabel?: boolean;
 }
 
-export function Checkbox({ label, checked, onChange, hint, error, disabled, name }: CheckboxProps) {
+export function Checkbox({
+  label,
+  checked,
+  onChange,
+  hint,
+  error,
+  disabled,
+  name,
+  hideLabel = false,
+}: CheckboxProps) {
   const id = useId();
   return (
     <div className="tiq-field">
@@ -330,7 +341,7 @@ export function Checkbox({ label, checked, onChange, hint, error, disabled, name
           aria-invalid={error !== undefined || undefined}
           aria-describedby={describedBy(id, hint, error)}
         />
-        <span>{label}</span>
+        <span className={hideLabel ? 'tiq-visually-hidden' : undefined}>{label}</span>
       </label>
       {hint !== undefined && (
         <p className="tiq-field-hint" id={`${id}-hint`}>

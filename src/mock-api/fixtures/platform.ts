@@ -256,12 +256,14 @@ interface MembershipSpec {
   readonly status?: MembershipsStatus;
   readonly joinedAt?: string | null;
   readonly authorityLimit?: Money;
+  /** A fixed id for a membership other domains reference (the sequence continues unchanged otherwise). */
+  readonly membershipId?: number;
 }
 
 function membership(spec: MembershipSpec): FixtureMembership {
   const status = spec.status ?? 'active';
   return {
-    membershipId: nextMembershipId++,
+    membershipId: spec.membershipId ?? nextMembershipId++,
     tenantId: TENANT_IDS[spec.tenant],
     capacity: spec.capacity,
     status,
@@ -297,14 +299,18 @@ const kwu = (capacity: string, roles: readonly string[], extra: Partial<Membersh
 });
 
 /** The four standard personas of a supplier organization (`<slug>.admin`, `.bidmanager`, `.contributor`, `.signatory`). */
-function supplierTeam(slug: TenantSlug, people: readonly [string, string, string, string]): FixturePersona[] {
+function supplierTeam(
+  slug: TenantSlug,
+  people: readonly [string, string, string, string],
+  signatoryRoles: readonly string[] = ['authorized_signatory'],
+): FixturePersona[] {
   const [admin, bidManager, contributor, signatory] = people;
   return [
     persona(`${slug}.admin`, admin, [{ tenant: slug, capacity: 'Organization Administrator', roles: ['supplier_admin'] }]),
     persona(`${slug}.bidmanager`, bidManager, [{ tenant: slug, capacity: 'Bid Manager', roles: ['bid_manager'] }]),
     persona(`${slug}.contributor`, contributor, [{ tenant: slug, capacity: 'Technical Contributor', roles: ['contributor'] }]),
     persona(`${slug}.signatory`, signatory, [
-      { tenant: slug, capacity: 'Managing Director', roles: ['authorized_signatory'] },
+      { tenant: slug, capacity: 'Managing Director', roles: signatoryRoles },
     ]),
   ];
 }
@@ -334,7 +340,11 @@ export const PERSONAS: readonly FixturePersona[] = Object.freeze([
   persona('refilwe.commercial', 'Refilwe Motsumi', [kwu('Commercial Reviewer', ['commercial_reviewer'])]),
   persona('oratile.opener', 'Oratile Baitse', [kwu('Bid Opening Officer', ['opening_officer'])]),
   persona('goitse.witness', 'Goitse Mooketsi', [kwu('Opening Witness, Internal Audit', ['opening_witness'])]),
-  persona('dineo.legal', 'Dineo Masire', [kwu('Legal Counsel', ['legal_reviewer'])]),
+  persona('dineo.legal', 'Dineo Masire', [
+    kwu('Legal Counsel', ['legal_reviewer']),
+    // Invited to ODC as a shared legal adviser (COM-01 acceptance while signed in; org-admin invitation 514).
+    { tenant: 'odc', capacity: 'Legal Adviser (shared service)', roles: ['legal_reviewer'], status: 'invited', membershipId: 514 },
+  ]),
   persona('keabetswe.approver', 'Keabetswe Nkwe', [
     kwu('Chief Executive (Award Approver)', ['award_approver'], { authorityLimit: { amount: '10000000.00', currency: 'BWP' } }),
   ]),
@@ -347,16 +357,21 @@ export const PERSONAS: readonly FixturePersona[] = Object.freeze([
   persona('admin.odc', 'Wame Olebile', [{ tenant: 'odc', capacity: 'Organization Administrator', roles: ['org_admin'] }]),
   persona('officer.odc', 'Kefilwe Sekgoma', [{ tenant: 'odc', capacity: 'Procurement Officer', roles: ['procurement_officer'] }]),
   // Suppliers with full teams
-  ...supplierTeam('tsodilo', ['Tumelo Sekgoma', 'Boago Moremi', 'Ditiro Kebonang', 'Motsamai Tsodilo']),
+  // Tsodilo's managing director also holds the finance role, so SUP-05 financial evidence is demonstrable.
+  ...supplierTeam('tsodilo', ['Tumelo Sekgoma', 'Boago Moremi', 'Ditiro Kebonang', 'Motsamai Tsodilo'], [
+    'authorized_signatory',
+    'supplier_finance',
+  ]),
   ...supplierTeam('chobe-pipe', ['Chedza Ramokate', 'Bakang Chobe', 'Thabo Maano', 'Gorata Mphoeng']),
   ...supplierTeam('serowe-ict', ['Refentse Kgama', 'Otsile Serowe', 'Mmoloki Seabo', 'Tshepiso Khama']),
   ...supplierTeam('gaborone-meter', ['Palesa Gabo', 'Kagiso Metsi', 'Omphile Ditshego', 'Lame Ntshole']),
   // Suppliers with an administrator only
+  // A one-person supplier: the administrator also signs and submits (AC-03 submission authority).
   persona('makgadikgadi.admin', 'Sethunya Makgadi', [
-    { tenant: 'makgadikgadi', capacity: 'Organization Administrator', roles: ['supplier_admin'] },
+    { tenant: 'makgadikgadi', capacity: 'Organization Administrator', roles: ['supplier_admin', 'authorized_signatory'] },
   ]),
   persona('limpopo-env.admin', 'Mothusi Limpopo', [
-    { tenant: 'limpopo-env', capacity: 'Organization Administrator', roles: ['supplier_admin'] },
+    { tenant: 'limpopo-env', capacity: 'Organization Administrator', roles: ['supplier_admin', 'authorized_signatory'] },
   ]),
   // Dual-capacity person (AC-02): evaluator at KWU and contributor at two suppliers; a pending request at a third
   // supplier demonstrates the COM-02 explanation of a membership that cannot be used yet.
@@ -389,7 +404,7 @@ export const SUPPORT_GRANTS: readonly FixtureSupportGrant[] = Object.freeze([
     scope: 'metadata_only',
     authorizedByUserId: userIdOf('admin.kwu'),
     startsAt: '2026-09-28T07:00:00Z',
-    expiresAt: '2026-12-31T15:00:00Z',
+    expiresAt: '2026-10-12T07:00:00Z',
     revokedAt: null,
   },
 ] satisfies FixtureSupportGrant[]);

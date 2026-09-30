@@ -19,7 +19,9 @@ import {
   Id,
   Instant,
   LinkPath,
+  OfficialDeadline,
   OrganizationLabel,
+  PersonRef,
   QueryBoolean,
   listQueryWithSort,
   pageOf,
@@ -43,6 +45,14 @@ export const NotificationDelivery = z.object({
 });
 export type NotificationDelivery = z.infer<typeof NotificationDelivery>;
 
+/**
+ * Why a notification cannot be acknowledged by the caller: none is asked, a colleague already acknowledged it for
+ * the organization, or the caller lacks `supplier.notices.acknowledge` there (the bid manager handles it, DD-23).
+ */
+export const NOTIFICATION_ACKNOWLEDGE_BLOCKS = ['not_required', 'already_acknowledged', 'not_authorized'] as const;
+export const NotificationAcknowledgeBlock = z.enum(NOTIFICATION_ACKNOWLEDGE_BLOCKS);
+export type NotificationAcknowledgeBlock = z.infer<typeof NotificationAcknowledgeBlock>;
+
 /** One notification of the caller (`notifications`), labelled with its organization. */
 export const NotificationItem = z.object({
   id: Id,
@@ -63,6 +73,20 @@ export const NotificationItem = z.object({
   /** Set when the notification delivers a formal notice to a supplier organization. */
   noticeRecipientId: Id.nullable(),
   deliveries: z.array(NotificationDelivery),
+  /** The notice carries terms that can be accepted separately from acknowledging it (BR-41). */
+  hasTerms: z.boolean().optional(),
+  termsAcceptedAt: Instant.nullable().optional(),
+  /** Who acknowledged, when a colleague acknowledged an organization-level notice before the caller. */
+  acknowledgedBy: PersonRef.nullable().optional(),
+  /** Official deadline the notice refers to, with its IANA zone (never altered by a delivery failure, BR-42). */
+  deadline: OfficialDeadline.nullable().optional(),
+  /**
+   * Whether the caller may acknowledge the notice now (DD-23: a formal supplier notice needs
+   * `supplier.notices.acknowledge` in the recipient organization). The service always sets it.
+   */
+  canAcknowledge: z.boolean().optional(),
+  /** Why the caller cannot acknowledge (`null` when they can, or when no acknowledgment is asked). */
+  acknowledgeBlockedReason: NotificationAcknowledgeBlock.nullable().optional(),
 });
 export type NotificationItem = z.infer<typeof NotificationItem>;
 
@@ -166,6 +190,34 @@ export const acknowledgeNotification = defineEndpoint({
     'Acknowledges a notice that requires it. For a formal supplier notice the caller needs supplier.notices.acknowledge in that organization (DD-23), and the participant acknowledgment is written in the same transaction (DD-42).',
 });
 
+export const MarkAllNotificationsReadBody = z.object({
+  /** Limit to one organization of the caller; omitted for every active membership. */
+  tenantId: Id.optional(),
+});
+export type MarkAllNotificationsReadBody = z.infer<typeof MarkAllNotificationsReadBody>;
+
+export const MarkAllNotificationsReadResult = z.object({
+  /** Notifications that changed from unread to read. Acknowledgments are never recorded by this action (BR-41). */
+  updated: z.number().int().min(0),
+  summary: NotificationSummary,
+});
+export type MarkAllNotificationsReadResult = z.infer<typeof MarkAllNotificationsReadResult>;
+
+/**
+ * POST /api/v1/me/notifications/read-all: marks the caller's own unread notifications as read (all organizations,
+ * or one). It never acknowledges anything; notices that require acknowledgment stay awaiting it (BR-41).
+ */
+export const markAllNotificationsRead = defineEndpoint({
+  id: 'me.notifications.markAllRead',
+  method: 'POST',
+  path: '/api/v1/me/notifications/read-all',
+  audience: 'me',
+  body: MarkAllNotificationsReadBody,
+  response: MarkAllNotificationsReadResult,
+  errors: ['ORGANIZATION_NOT_IN_SCOPE'],
+  screens: ['COM-06'],
+});
+
 /** One event type's delivery preference (`user_notification_preferences`). */
 export const NotificationPreference = z.object({
   eventType: NotificationRulesEventType,
@@ -225,6 +277,7 @@ export const notificationEndpoints = {
   listMyNotifications,
   getMyNotificationSummary,
   markNotificationRead,
+  markAllNotificationsRead,
   acknowledgeNotification,
   getNotificationPreferences,
   updateNotificationPreferences,

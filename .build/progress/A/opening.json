@@ -1,0 +1,50 @@
+{
+  "stage": "A",
+  "unit": "opening",
+  "status": "done",
+  "gapsFixed": 10,
+  "followUps": [
+    {
+      "kind": "contract_common",
+      "owner": "approvals",
+      "description": "Approval request 37 must point at exclusion 5101 and carry the ISO 9001 expiry grounds; add the historical exclusion decisions 2602 (approved, 5102) and 2604 (rejected, 5104).",
+      "detail": "src/mock-api/fixtures/approvals.ts request 37: subjectId 303 -> 5101, justification -> 'Certificate QMS-88213 expired on 30 Nov 2025; the clarification response of 11 Sep 2026 confirms no valid certificate at closing (28 Aug 2026).' Add request 2602 (subjectType exclusion, subjectId 5102, T-2026-0001 Makgadikgadi, requested by tebogo.officer 2026-07-28T08:00:00Z, approved by mpho.manager 2026-07-30T13:00:00Z) and 2604 (subjectId 5104, T-2026-0009 Limpopo, requested 2026-08-17T08:00:00Z, rejected by mpho.manager 2026-08-20T09:00:00Z)."
+    },
+    {
+      "kind": "mock_platform",
+      "owner": "evaluation",
+      "description": "Align the evaluation fixtures with the tenders and bids fixtures for T-2026-0001, T-2026-0003 and T-2026-0009 (opening now follows tenders/bids).",
+      "detail": "t2026-0003.ts: deadline 28 Aug 2026 08:00Z (timeline says 7 Sep), receipts from bids (Serowe RCPT-2026-000019 27 Aug 15:10Z, Tsodilo RCPT-2026-000020 28 Aug 07:55Z, Makgadikgadi RCPT-2026-000018 26 Aug 12:00Z). t2026-0001-lot3.ts: LOT_ID 1103 -> 103, receipts Tsodilo RCPT-2026-000014 23 Jul 14:05Z, Chobe RCPT-2026-000013 22 Jul 11:30Z. t2026-0009.ts: deadline 14 Aug 2026 08:00Z (timeline says 11 Aug), all envelopes opened 2026-08-14T10:04:09Z."
+    },
+    {
+      "kind": "mock_platform",
+      "owner": "tenders",
+      "description": "Opening modes: tender_envelopes in tenders/timetable.ts disagree with opening and evaluation for T-2026-0001 (single vs staged), T-2026-0008 (single vs staged) and T-2026-0009 (staged vs single_stage).",
+      "detail": "Opening and evaluation both treat T-2026-0001 and T-2026-0008 as staged (qualification -> technical -> commercial, per-lot price gates) and T-2026-0009 as single stage. Proposed: envelopes(1,'staged'), envelopes(8,'staged'), envelopes(9,'single') with openingMode set accordingly in tenders.ts; T-2026-0008 opening milestone 2026-09-30T08:00:00Z (qualification) instead of 2026-10-02T08:00:00Z."
+    },
+    {
+      "kind": "mock_platform",
+      "owner": "bids",
+      "description": "T-2026-0009 stage-two suppliers differ: bids has next-stage responses from Serowe and Tsodilo; opening and evaluation have Serowe, Gaborone Metering and Limpopo Environmental (received 10-11 Aug 2026).",
+      "detail": "Opening keeps its own T-2026-0009 receipts (RCPT-2026-000901..903) until bids and evaluation agree on the restricted list; T-2026-0003 bids have lotIds [301] but the tenders fixtures define no lot for T-2026-0003."
+    },
+    {
+      "kind": "mock_platform",
+      "owner": "mock-platform",
+      "description": "Single-person suppliers need submission authority to answer assessment requests (respondAssessmentRequest now requires supplier.response.submit, AC-03).",
+      "detail": "makgadikgadi.admin and limpopo-env.admin hold only supplier_admin; the bids fixtures already treat them as their organization's signatory. Add the authorized_signatory role to both memberships in src/mock-api/fixtures/platform.ts."
+    },
+    {
+      "kind": "shared_component",
+      "owner": "selection",
+      "description": "SUP-18 reverse link: the supplier Assessment appointments page should link to /supplier/assessment-requests for written questions.",
+      "detail": "Opening's AssessmentRequestsPage links to selectionPaths.supplierInvites; add a Banner action on the selection supplier invites page pointing to /supplier/assessment-requests."
+    },
+    {
+      "kind": "other",
+      "owner": "plan/blueprint",
+      "description": "EVA-03 answer distribution has no storage in schema-blueprint Migration 10.",
+      "detail": "Add bid_clarification_recipients(clarification_id, user_id, distributed_at) [T] (or record a design decision to derive ClarificationDetail.distributedTo from notifications with related_type bid_clarification). Documented in the JSDoc of ClarificationDetail.distributedTo and RecordEffectBody.distributeToUserIds."
+    }
+  ]
+}

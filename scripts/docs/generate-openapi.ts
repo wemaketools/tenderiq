@@ -108,10 +108,49 @@ export async function discoverContractEndpoints(dir: string = CONTRACTS_DIR): Pr
   return collectEndpoints(groups);
 }
 
+/**
+ * Shared definitions of the converted schemas. `z.toJSONSchema` puts reused and recursive sub-schemas under a local
+ * `$defs` whose `#/$defs/...` references only resolve inside that schema; embedded in the OpenAPI document they would
+ * resolve against the document root. Each schema's definitions are therefore moved to `components.schemas` under a
+ * unique, deterministic name and the references are rewritten.
+ */
+let hoisted = new Map<string, JsonSchema>();
+let hoistCounter = 0;
+
+function rewriteRefs(node: unknown, names: ReadonlyMap<string, string>): unknown {
+  if (Array.isArray(node)) {
+    return node.map((item) => rewriteRefs(item, names));
+  }
+  if (node !== null && typeof node === 'object') {
+    return Object.fromEntries(
+      Object.entries(node as JsonSchema).map(([key, value]) => {
+        if (key === '$ref' && typeof value === 'string' && value.startsWith('#/$defs/')) {
+          const target = names.get(value.slice('#/$defs/'.length));
+          if (target === undefined) {
+            throw new Error(`Unresolvable schema reference ${value}.`);
+          }
+          return [key, `#/components/schemas/${target}`];
+        }
+        return [key, rewriteRefs(value, names)];
+      }),
+    );
+  }
+  return node;
+}
+
 function toSchema(schema: z.ZodType, io: 'input' | 'output'): JsonSchema {
   const converted = z.toJSONSchema(schema, { target: 'draft-2020-12', io, unrepresentable: 'any' }) as JsonSchema;
-  const { $schema: _ignored, ...rest } = converted;
-  return rest;
+  const { $schema: _ignored, $defs, ...rest } = converted;
+  const definitions = ($defs ?? {}) as Record<string, JsonSchema>;
+  if (Object.keys(definitions).length === 0) {
+    return rest;
+  }
+  hoistCounter += 1;
+  const names = new Map(Object.keys(definitions).map((key) => [key, `Def${String(hoistCounter)}_${key.replace(/[^A-Za-z0-9_]/g, '_')}`]));
+  for (const [key, definition] of Object.entries(definitions)) {
+    hoisted.set(names.get(key) ?? key, rewriteRefs(definition, names) as JsonSchema);
+  }
+  return rewriteRefs(rest, names) as JsonSchema;
 }
 
 function openApiPath(path: string): string {
@@ -204,6 +243,8 @@ function operation(endpoint: AnyEndpoint): JsonSchema {
 
 /** Builds the OpenAPI document. */
 export function buildOpenApiDocument(endpoints: readonly AnyEndpoint[]): JsonSchema {
+  hoisted = new Map();
+  hoistCounter = 0;
   const paths: Record<string, Record<string, JsonSchema>> = {
     [HEALTH_PATH]: {
       get: {
@@ -233,6 +274,7 @@ export function buildOpenApiDocument(endpoints: readonly AnyEndpoint[]): JsonSch
     paths[path] ??= {};
     paths[path][endpoint.method.toLowerCase()] = operation(endpoint);
   }
+  const problemSchema = toSchema(Problem, 'output');
   return {
     openapi: '3.1.0',
     info: {
@@ -251,7 +293,7 @@ export function buildOpenApiDocument(endpoints: readonly AnyEndpoint[]): JsonSch
       securitySchemes: {
         bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT (Supabase Auth, ES256)' },
       },
-      schemas: { Problem: toSchema(Problem, 'output') },
+      schemas: { Problem: problemSchema, ...Object.fromEntries(hoisted) },
     },
   };
 }

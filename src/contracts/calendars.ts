@@ -26,7 +26,13 @@ import {
 } from './common.js';
 import { defineEndpoint } from './endpoint.js';
 import type { EndpointPermission } from './endpoint.js';
-import { CalendarsStatus, TenderMilestonesMilestone, TendersStatus } from './enums.js';
+import {
+  CalendarsStatus,
+  NoticesPeriodStartBasis,
+  NotificationRulesEventType,
+  TenderMilestonesMilestone,
+  TendersStatus,
+} from './enums.js';
 
 /** ISO day of week: 1 = Monday … 7 = Sunday (`calendars.working_days`). */
 export const IsoWeekday = z
@@ -63,6 +69,11 @@ export const CalendarSummary = z.object({
   /** Events not yet closed that use this calendar. */
   activeEventCount: z.number().int().min(0),
   updatedAt: Instant,
+  /** Who drafted the calendar; the approver must be someone else (BR-07). */
+  createdBy: PersonRef.nullable().optional(),
+  /** First and last holiday dates, for the list. */
+  coverageFrom: CalendarDate.nullable().optional(),
+  coverageTo: CalendarDate.nullable().optional(),
 });
 export type CalendarSummary = z.infer<typeof CalendarSummary>;
 
@@ -81,6 +92,8 @@ export const CalendarCapabilities = z.object({
   canApprove: z.boolean(),
   canRetire: z.boolean(),
   canSetDefault: z.boolean(),
+  /** Why approval is not available to the caller (for example self-approval, BR-07). */
+  approveBlockedReason: z.enum(['not_draft', 'self_approval', 'permission_missing']).nullable().optional(),
 });
 
 export const CalendarDetail = CalendarSummary.extend({
@@ -154,8 +167,11 @@ export const createCalendar = defineEndpoint({
   screens: ['ADM-10'],
 });
 
-export const UpdateCalendarBody = CreateCalendarBody;
-export type UpdateCalendarBody = z.infer<typeof UpdateCalendarBody>;
+export const UpdateCalendarBody = CreateCalendarBody.extend({
+  /** Required when an approved calendar used by active events changes its working days: the impact review was seen (BR-12). */
+  impactReviewed: z.boolean().default(false),
+});
+export type UpdateCalendarBody = z.input<typeof UpdateCalendarBody>;
 
 /** PUT /api/v1/buyer/calendars/:calendarId: edits a draft; an approved calendar in use needs an impact review first. */
 export const updateCalendar = defineEndpoint({
@@ -307,6 +323,47 @@ export const setDefaultCalendar = defineEndpoint({
   screens: ['ADM-10'],
 });
 
+/** One deadline reminder policy: when reminders go out before a deadline and when overdue work escalates. */
+export const DeadlineReminderPolicy = z.object({
+  eventType: NotificationRulesEventType,
+  ruleId: Id.nullable(),
+  mandatory: z.boolean(),
+  active: z.boolean(),
+  /** Hours before the deadline at which reminders are sent, largest first. */
+  reminderOffsetsHours: z.array(z.number().int().min(1)),
+  escalateAfterHours: z.number().int().min(1).nullable(),
+  escalationRole: z.string().nullable(),
+});
+export type DeadlineReminderPolicy = z.infer<typeof DeadlineReminderPolicy>;
+
+/** The organization's deadline policy (ADM-10): official zone, default calendar, reminder periods and notice rules. */
+export const DeadlinePolicy = z.object({
+  /** Authoritative on the tenant (DD-10); every deadline renders in this zone with its offset (BR-11, DD-33). */
+  officialTimeZone: TimeZone,
+  defaultCalendar: CalendarSummary.nullable(),
+  reminders: z.array(DeadlineReminderPolicy),
+  /** What starts a notice period under the adopted policy (PRD §14.3). */
+  noticePeriodStartBasis: NoticesPeriodStartBasis,
+  /** Minimum working days between an addendum that changes requirements and the submission deadline. */
+  minimumAddendumResponseWorkingDays: z.number().int().min(0),
+  /** A calendar change never moves a published deadline; affected events need an addendum (BR-12, BR-16). */
+  calendarChangesMoveDeadlines: z.literal(false),
+});
+export type DeadlinePolicy = z.infer<typeof DeadlinePolicy>;
+
+/** GET /api/v1/buyer/deadline-policy: the reminder periods and notice rules that apply with the calendars (ADM-10). */
+export const getDeadlinePolicy = defineEndpoint({
+  id: 'buyer.calendars.deadlinePolicy',
+  method: 'GET',
+  path: '/api/v1/buyer/deadline-policy',
+  audience: 'buyer',
+  permission: CALENDAR_READ,
+  response: DeadlinePolicy,
+  errors: [],
+  screens: ['ADM-10'],
+  summary: 'Reminder periods come from the notification rules (ADM-12); the official zone comes from the organization (ADM-01).',
+});
+
 /** The calendars endpoint map. */
 export const calendarEndpoints = {
   listCalendars,
@@ -319,4 +376,5 @@ export const calendarEndpoints = {
   approveCalendar,
   retireCalendar,
   setDefaultCalendar,
+  getDeadlinePolicy,
 } as const;

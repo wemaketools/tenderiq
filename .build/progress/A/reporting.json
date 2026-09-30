@@ -1,0 +1,14 @@
+{
+  "stage": "A",
+  "unit": "reporting",
+  "status": "done",
+  "gapsFixed": 9,
+  "followUps": [
+    "tenders: add the imported legacy tender T-2025-0003 (id 2503, archived, legal hold AC-35) as a fixture so drill-throughs can open /buyer/tenders/2503; until then reporting/records link it to /buyer/admin/records/audit?entityType=tender&entityId=2503",
+    "approvals: align PR-2026-0003 title 'Emergency borehole pump spares' (approvals/world.ts) with the requests domain title 'Northern wellfield pipeline extension'",
+    "schema-blueprint: add a DD entry for retention_classes.purpose text not null (BR-39 defined purpose) used by RetentionClass.purpose / UpdateRetentionClassBody.purpose",
+    "bids vs selection/awards: T-2026-0009 bidders are Serowe, Tsodilo, Gaborone in bids/responses.ts but Serowe, Limpopo, Gaborone in selection/awards; reporting follows the bids domain for participation and pursuits",
+    "bids vs awards: T-2026-0001 lot 2 has two submitted bids (Chobe bid 2, Makgadikgadi bid 3) but the awards notice says 'the only offer' failed REQ-T-02",
+    "docs: re-run npm run docs:api (SupplierPursuitItem gained bidId)"
+  ]
+}

@@ -1,0 +1,113 @@
+{
+  "stage": "A",
+  "unit": "requests",
+  "domain": "05 requests",
+  "steps": {
+    "contract-and-mock": {
+      "status": "done",
+      "endpoints": 49,
+      "files": [
+        "src/contracts/requests.ts",
+        "src/contracts/requests/shared.ts",
+        "src/contracts/requests/requests.ts",
+        "src/contracts/requests/planning.ts",
+        "src/contracts/requests/strategies.ts",
+        "src/contracts/requests/requests.test.ts",
+        "src/mock-api/fixtures/requests/index.ts",
+        "src/mock-api/fixtures/requests/reference.ts",
+        "src/mock-api/fixtures/requests/requests.ts",
+        "src/mock-api/fixtures/requests/planning.ts",
+        "src/mock-api/fixtures/requests/strategies.ts",
+        "src/mock-api/fixtures/requests/fixtures.test.ts",
+        "src/mock-api/handlers/requests/index.ts",
+        "src/mock-api/handlers/requests/lookup.ts",
+        "src/mock-api/handlers/requests/requests.ts",
+        "src/mock-api/handlers/requests/planning.ts",
+        "src/mock-api/handlers/requests/strategies.ts",
+        "src/mock-api/handlers/requests/requests.test.ts",
+        "src/mock-api/handlers/requests/planning.test.ts",
+        "src/mock-api/handlers/requests/strategies.test.ts",
+        "src/mock-api/handlers/requests/discovery.test.ts",
+        "src/ui/src/api/requests.ts"
+      ],
+      "checks": "typecheck, typecheck:ui, lint (requests paths) clean; vitest unit requests paths 104/104 (incl. real Supabase Auth discovery test); mock API smoke on 4105 loaded requests/index with 0 failed modules"
+    },
+    "ui": {
+      "status": "done",
+      "screens": [
+        "BUY-02",
+        "BUY-03",
+        "BUY-04",
+        "BUY-05",
+        "BUY-06",
+        "PUB-06"
+      ],
+      "files": [
+        "src/ui/src/features/planning/components/CalendarTab.tsx",
+        "src/ui/src/features/planning/components/NoticeFields.tsx",
+        "src/ui/src/features/planning/components/NoticesTab.tsx",
+        "src/ui/src/features/planning/components/PlanItemsTab.tsx",
+        "src/ui/src/features/planning/components/ResourceDemandTab.tsx",
+        "src/ui/src/features/planning/components/noticeDraft.ts",
+        "src/ui/src/features/planning/i18n/en.ts",
+        "src/ui/src/features/planning/lib.ts",
+        "src/ui/src/features/planning/pages/AdvanceNoticeFormPage.tsx",
+        "src/ui/src/features/planning/pages/AdvanceNoticePage.test.tsx",
+        "src/ui/src/features/planning/pages/AdvanceNoticePage.tsx",
+        "src/ui/src/features/planning/pages/PlanItemFormPage.tsx",
+        "src/ui/src/features/planning/pages/PlanItemPage.test.tsx",
+        "src/ui/src/features/planning/pages/PlanItemPage.tsx",
+        "src/ui/src/features/planning/pages/PlanningPage.test.tsx",
+        "src/ui/src/features/planning/pages/PlanningPage.tsx",
+        "src/ui/src/features/planning/pages/public/PublicNoticePage.tsx",
+        "src/ui/src/features/planning/pages/public/PublicPlansPage.test.tsx",
+        "src/ui/src/features/planning/pages/public/PublicPlansPage.tsx",
+        "src/ui/src/features/planning/routes.test.ts",
+        "src/ui/src/features/planning/routes.tsx",
+        "src/ui/src/features/planning/testing/data.ts",
+        "src/ui/src/features/requests/components/RequestActionDialog.tsx",
+        "src/ui/src/features/requests/i18n/en.ts",
+        "src/ui/src/features/requests/lib.ts",
+        "src/ui/src/features/requests/pages/RequestDecisionPage.test.tsx",
+        "src/ui/src/features/requests/pages/RequestDecisionPage.tsx",
+        "src/ui/src/features/requests/pages/RequestFormPage.test.tsx",
+        "src/ui/src/features/requests/pages/RequestFormPage.tsx",
+        "src/ui/src/features/requests/pages/RequestPage.test.tsx",
+        "src/ui/src/features/requests/pages/RequestPage.tsx",
+        "src/ui/src/features/requests/pages/RequestRegisterPage.test.tsx",
+        "src/ui/src/features/requests/pages/RequestRegisterPage.tsx",
+        "src/ui/src/features/requests/pages/StrategiesPage.tsx",
+        "src/ui/src/features/requests/pages/StrategyFormPage.test.tsx",
+        "src/ui/src/features/requests/pages/StrategyFormPage.tsx",
+        "src/ui/src/features/requests/pages/StrategyPage.test.tsx",
+        "src/ui/src/features/requests/pages/StrategyPage.tsx",
+        "src/ui/src/features/requests/routes.test.ts",
+        "src/ui/src/features/requests/routes.tsx",
+        "src/ui/src/features/requests/testing/data.ts",
+        "src/ui/src/features/requests/testing/render.ts"
+      ],
+      "checks": "typecheck:ui and eslint (--max-warnings 0) + prettier clean on requests/planning paths; vitest src/features/requests + src/features/planning 57/57; visual check on 4105/5205 as mpho.manager, tebogo.officer and public (servers stopped)"
+    },
+    "review": {
+      "status": "done"
+    },
+    "fix": {
+      "status": "done",
+      "checks": "typecheck/typecheck:ui/eslint/prettier clean on requests paths; vitest unit requests 115/115; SPA requests+planning 64/64; screenshots on 4105/5205 (servers stopped)"
+    }
+  },
+  "status": "done",
+  "gapsFixed": 8,
+  "followUps": [
+    {
+      "kind": "mock_platform",
+      "description": "Align approvals/documents/reporting/notifications fixtures with the requests storyline",
+      "detail": "src/mock-api/fixtures/approvals.ts (+approvals/world.ts), documents.ts, reporting/dashboard.ts, notifications.ts describe PR-2026-0003 as \"Emergency borehole pump spares\" BWP 3,400,000 routed via approval 32 to mpho.manager. Requests fixtures: PR-0003 \"Northern wellfield pipeline extension\", estimate BWP 4,850,000, total commitment BWP 5,120,000 (approval value), current approver keabetswe.approver, approval id 305; PR-0013 approval 306; strategy 509 approval 328; PR-0015 approval 307 (approved). Either adopt these ids or tell the requests owner which ids to use."
+    },
+    {
+      "kind": "other",
+      "description": "Tender wizard should read ?fromRequest=ID",
+      "detail": "Requests offer /buyer/tenders/new?fromRequest=15 (PR-2026-0015, approved, no strategy); no tenders handler/page consumes fromRequest yet."
+    }
+  ]
+}

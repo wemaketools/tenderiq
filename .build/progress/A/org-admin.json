@@ -1,0 +1,73 @@
+{
+  "stage": "A",
+  "unit": "org-admin",
+  "status": "done",
+  "gapsFixed": 8,
+  "followUps": [],
+  "domain": "01 identity and organization administration",
+  "steps": {
+    "contract-and-mock": {
+      "status": "done",
+      "endpoints": 129,
+      "files": [
+        "src/contracts/org-admin.ts",
+        "src/contracts/org-admin/shared.ts",
+        "src/contracts/org-admin/account.ts",
+        "src/contracts/org-admin/members.ts",
+        "src/contracts/org-admin/organization.ts",
+        "src/contracts/org-admin/access.ts",
+        "src/contracts/org-admin/authority.ts",
+        "src/contracts/org-admin/supplier.ts",
+        "src/contracts/org-admin/org-admin.test.ts",
+        "src/mock-api/fixtures/org-admin/index.ts",
+        "src/mock-api/fixtures/org-admin/refs.ts",
+        "src/mock-api/fixtures/org-admin/people.ts",
+        "src/mock-api/fixtures/org-admin/invitations.ts",
+        "src/mock-api/fixtures/org-admin/groups.ts",
+        "src/mock-api/fixtures/org-admin/structure.ts",
+        "src/mock-api/fixtures/org-admin/access.ts",
+        "src/mock-api/fixtures/org-admin/authority.ts",
+        "src/mock-api/fixtures/org-admin/work.ts",
+        "src/mock-api/fixtures/org-admin/org-admin.test.ts",
+        "src/mock-api/handlers/org-admin/index.ts",
+        "src/mock-api/handlers/org-admin/views.ts",
+        "src/mock-api/handlers/org-admin/account.ts",
+        "src/mock-api/handlers/org-admin/members.ts",
+        "src/mock-api/handlers/org-admin/organization.ts",
+        "src/mock-api/handlers/org-admin/access.ts",
+        "src/mock-api/handlers/org-admin/authority.ts",
+        "src/mock-api/handlers/org-admin/supplier.ts",
+        "src/mock-api/handlers/org-admin/org-admin.test.ts",
+        "src/ui/src/api/org-admin.ts"
+      ],
+      "checks": "typecheck and typecheck:ui clean for org-admin paths; eslint clean for org-admin paths; eslint + prettier clean for src/ui/src/api/org-admin.ts; vitest unit org-admin contract, fixtures and handlers + catalog 122/122 (handlers with real Supabase Auth)"
+    },
+    "ui": {
+      "status": "done",
+      "screens": [
+        "COM-01",
+        "COM-02",
+        "COM-03",
+        "ADM-01",
+        "ADM-02",
+        "ADM-03",
+        "ADM-04",
+        "ADM-05",
+        "SUP-04"
+      ],
+      "files": [],
+      "checks": "typecheck:ui and eslint (--max-warnings 0) + prettier clean for account, admin-org, admin-access; vitest SPA suites of these features 45/45; visual check with Playwright on 4101/5201 as admin.kwu, tsodilo.admin, sam.dual, dineo.legal"
+    },
+    "review": {
+      "status": "done",
+      "review": "gaps",
+      "gaps": 8,
+      "checks": "root unit org-admin 115/115, SPA org-admin features 54/54; Playwright walkthrough on 4101/5201 as admin.kwu, tebogo.officer, tsodilo.admin, tsodilo.contributor, sam.dual, dineo.legal, serowe-ict.admin and anonymous invitation links"
+    },
+    "fix": {
+      "status": "done",
+      "gapsFixed": 8,
+      "checks": "typecheck and typecheck:ui clean for org-admin paths; eslint (--max-warnings 0) and prettier clean for owned paths; root unit org-admin 124/124; SPA admin-access, admin-org, account 60/60; Playwright on 4101/5201 as admin.kwu, tsodilo.admin, serowe-ict.admin"
+    }
+  }
+}

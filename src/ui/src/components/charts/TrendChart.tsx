@@ -93,7 +93,11 @@ export function TrendChart({
       <div style={{ width: '100%', height }}>
         <ResponsiveContainer width="100%" height="100%">
           {variant === 'area' ? (
-            <AreaChart data={data} margin={{ top: 8, right: 24, bottom: 0, left: 0 }}>
+            <AreaChart
+              accessibilityLayer={false}
+              data={data}
+              margin={{ top: 8, right: 24, bottom: 0, left: 0 }}
+            >
               {axes}
               {series.map((item, index) => (
                 <Area
@@ -110,7 +114,11 @@ export function TrendChart({
               ))}
             </AreaChart>
           ) : (
-            <LineChart data={data} margin={{ top: 8, right: 24, bottom: 0, left: 0 }}>
+            <LineChart
+              accessibilityLayer={false}
+              data={data}
+              margin={{ top: 8, right: 24, bottom: 0, left: 0 }}
+            >
               {axes}
               {series.map((item, index) => (
                 <Line

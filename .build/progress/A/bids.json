@@ -1,0 +1,56 @@
+{
+  "stage": "A",
+  "unit": "bids",
+  "status": "done",
+  "gapsFixed": 7,
+  "followUps": [
+    {
+      "kind": "mock_platform",
+      "description": "T-2026-0008 closing record is pending in the bids projection",
+      "detail": "To make the BUY-19 Close action demonstrable, the bids catalog sets closedAt null for T-2026-0008. Submissions stopped at the 25 Sep 10:00 deadline (status closed) but no closing record exists yet. Monitoring shows 'Deadline passed, closing not recorded' and tebogo.officer can close it. tenders/tenders.ts still has closedAt 2026-09-25T08:00:00Z. The tenders and opening domains should align, or accept closed_at as the closing record time."
+    },
+    {
+      "kind": "other",
+      "description": "Storyline deviation: AC-13 is anchored on T-2026-0008, not T-2026-0002",
+      "detail": "T-2026-0002 is open until 21 Oct, so no attempt on it can be late yet. It has 2 suppliers with receipts (Gaborone Metering, Tsodilo) and Serowe approved but not submitted (AC-11). Chobe's T-2026-0002 response is a draft that has not acknowledged addendum 1. Chobe's late replacement (38 s, RCPT-2026-000026) is on T-2026-0008. Recorded in the fixtures/bids/catalog.ts header. docs/plan/demo-storyline.md and reporting/dashboard.ts (which assumes Chobe submitted late on T-2026-0002) should be aligned."
+    },
+    {
+      "kind": "other",
+      "description": "Receipt numbers in the reporting fixtures conflict with the bids receipts",
+      "detail": "reporting/dashboard.ts uses RCPT-2026-000024 and RCPT-2026-000026 for receipts other than the bids ones (bids: 000024 = Chobe T-2026-0008 rev 1 effective, 000026 = Chobe T-2026-0008 rev 2 late_rejected, 000025 = Chobe T-2026-0006). The bids fixtures are the source of submission_receipts. Reporting should reuse these numbers."
+    },
+    {
+      "kind": "other",
+      "description": "Deadline mismatch for T-2026-0002 and T-2026-0011 across domains",
+      "detail": "tenders/timetable.ts has T-2026-0002 = 16 Oct and T-2026-0011 = 21 Oct. The bids and clarifications fixtures have 21 Oct (after addendum 1 moved it from 14 Oct) and 23 Oct. The operations incident impact note says 16 Oct. The tenders timetable and operations/incidents.ts impact 11 should follow the addendum-adjusted deadlines."
+    },
+    {
+      "kind": "other",
+      "description": "Service incident INC-2026-007 time window differs between the operations and bids fixtures",
+      "detail": "The bids projection now uses the operations title ('Slow document uploads') and severity ('high'). Its window stays 24 Sep 15:20 to 16:05 local (13:20 to 14:05Z), because it covers Gaborone Metering's failed supplement at 13:38 to 13:42Z (AC-12). operations/incidents.ts has 07:40 to 08:25Z and says 'no receipt was affected'. One domain should move its times so the incident and the AC-12 failure coincide."
+    },
+    {
+      "kind": "contract_common",
+      "description": "MonitoringIncident.severity imports ServiceIncidentSeverity from contracts/operations/shared.ts",
+      "detail": "When integration moves SERVICE_INCIDENT_SEVERITIES into contracts/enums.ts (with an enum label entry 'service_incidents.severity'), update the import in src/contracts/bids/model.ts and fixtures/bids/catalog.ts. The SPA currently labels the severity through submission-monitoring.incidents.severity.*."
+    },
+    {
+      "kind": "wiring",
+      "description": "Regenerate docs/technical/api/openapi.json (npm run docs:api)",
+      "detail": "Bids contract changes: SubmissionPreview.representative is now nullable (null when the caller lacks supplier.response.submit, FR-11), Receipt gains lateRejection {attemptId, deadlineAtAttempt, lateBySeconds, reason} | null (AC-13), and MonitoringIncident.severity is the ServiceIncidentSeverity enum."
+    }
+  ],
+  "steps": {
+    "contract-and-mock": { "status": "done", "endpoints": 42 },
+    "ui": {
+      "status": "done",
+      "screens": ["SUP-12", "SUP-13", "SUP-14", "SUP-15", "SUP-16", "SUP-17", "BUY-19"]
+    },
+    "review": { "status": "done", "verdict": "gaps", "gaps": 7 },
+    "fix": {
+      "status": "done",
+      "gapsFixed": 7,
+      "checks": "typecheck and typecheck:ui clean on bids paths; eslint (root) and eslint --max-warnings 0 + prettier (SPA) clean on owned paths; vitest unit bids 83/83 (real Supabase Auth); SPA responses + submission-monitoring + api/bids 61/61; live flows on 4109/5209 re-screenshotted (SUP-16 submit, SUP-16 contributor, SUP-17 withdrawal, receipts register, late receipt, BUY-19 list, T-2026-0002 incident, T-2026-0008 close) with no console errors"
+    }
+  }
+}

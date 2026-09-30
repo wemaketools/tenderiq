@@ -1,0 +1,56 @@
+{
+  "stage": "A",
+  "unit": "suppliers",
+  "status": "done",
+  "gapsFixed": 8,
+  "followUps": [
+    {
+      "kind": "mock_platform",
+      "owner": "mock-platform / auth:personas",
+      "description": "Add supplier_finance personas (tsodilo.finance, chobe-pipe.finance) with role supplier_finance to PERSONAS in src/mock-api/fixtures/platform.ts and to the storyline persona list, and create them in local Supabase Auth, so SUP-05 financial rows can be demonstrated signed in (the handler and UI already honour supplier.financial.view; covered by unit and UI tests)."
+    },
+    {
+      "kind": "shared_component",
+      "owner": "qualification",
+      "description": "Replace the private EVIDENCE_ITEMS of src/mock-api/fixtures/qualification/world.ts with an import of src/mock-api/fixtures/suppliers/evidence-items.ts (pure module, no cycle) and keep only the criterion 'fits' map by item id. Align registration certificates with the profiles: 401 BW00001234567/2009-03-02, 501 BW00002345678/2012-08-14, 601 BW00003456789/2016-02-01, 701 BW00004567890/2018-05-21, 801 BW00005678901/2014-09-09, 901 BW00006789012/2011-01-17. suppliers/cross-domain.test.ts checks every other field already agrees."
+    },
+    {
+      "kind": "shared_component",
+      "owner": "bids",
+      "description": "BID_EVIDENCE_ITEMS in src/mock-api/fixtures/bids/catalog.ts reuses the evidence ids with different content (402 is financial statements, 403 ISO 9001, 404 Hollard public liability BWP 10M in the suppliers library). Read titles, issuers and validity from suppliers EVIDENCE_ITEMS. Ownership of every cited id is already checked by suppliers/cross-domain.test.ts."
+    },
+    {
+      "kind": "other",
+      "owner": "documents / notifications / tasks",
+      "description": "evidence_item references 513, 514, 523, 524 (for example 'CIDB registration', Chobe public liability expiring 14 Oct 2026) do not exist in the suppliers library. Use the library ids (Chobe public liability is 504, expiring 2026-10-08)."
+    },
+    {
+      "kind": "contract_common",
+      "owner": "schema blueprint",
+      "description": "Add supplier_identity_changes.reason text not null; add supplier_verification_requests [T] (reason, evidence_types, due_date, status open/answered/closed, requested_by/at, responded_by/at, response_note) with supplier_verification_request_items (evidence_item_id). Relationship history is read from audit_log; evidence editionNo/replacesId are derived from replaced_by_id (documented in the contract)."
+    },
+    {
+      "kind": "enum",
+      "owner": "contracts-core (enums.ts)",
+      "description": "Register contract-defined values: supplier_verification_requests.status (open, answered, closed) and the claim invitation state (pending, expired, claimed, revoked), plus evidence_items.freshness reported earlier."
+    },
+    {
+      "kind": "wiring",
+      "owner": "org-admin / account",
+      "description": "Optional: let COM-01 /invite/:token recognise supplier claim tokens (clm_...) and redirect to /register/claim/:token; Stage B stores claim invitations as invitations rows of the provisional tenant."
+    }
+  ],
+  "steps": {
+    "contract-mock": { "status": "complete", "endpoints": 47 },
+    "ui": { "status": "complete" },
+    "review": { "status": "complete" },
+    "fix": {
+      "status": "complete",
+      "checks": {
+        "typecheck": "tsc -p tsconfig.server.json and src/ui tsconfig.app.json: no errors in suppliers paths",
+        "lint": "eslint --max-warnings 0 clean on suppliers contract/fixtures/handlers and both SPA features; prettier --check clean",
+        "tests": "root unit suppliers: 4 files, 83 tests passed; SPA supplier-org + supplier-directory: 19 files, 88 tests passed"
+      }
+    }
+  }
+}

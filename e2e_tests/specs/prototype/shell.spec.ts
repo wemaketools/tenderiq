@@ -52,7 +52,7 @@ test.describe('prototype shell', () => {
     await expect(sidebar.getByText('Tender Intelligence')).toBeVisible();
     await expect(page.getByTestId('prototype-banner')).toHaveText('Prototype — static demo data');
     await expect(page.getByRole('search')).toBeVisible();
-    await expect(page.getByRole('link', { name: /Notifications/ })).toHaveAttribute('href', '/me/notifications');
+    await expect(page.getByRole('link', { name: /^Notifications(, \d+ unread)?$/ })).toHaveAttribute('href', '/me/notifications');
     await expect(page.getByRole('link', { name: 'Help and support' })).toHaveAttribute('href', '/me/help');
     await expectNoAxeViolations(page);
 

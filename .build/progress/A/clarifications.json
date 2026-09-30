@@ -1,0 +1,32 @@
+{
+  "stage": "A",
+  "unit": "clarifications",
+  "status": "done",
+  "gapsFixed": 8,
+  "followUps": [
+    {
+      "kind": "mock_platform",
+      "owner": "tenders",
+      "description": "Align the T-2026-0002 version 2 and timetable with the clarifications and bids fixtures",
+      "detail": "src/mock-api/fixtures/tenders/release.ts TENDER_VERSIONS: T-2026-0002 version 2 must be addendumId 21 (OIML R49 type-approval certificate and deadline extension, new mandatory requirement Q-05), issued 2026-09-24T08:00:00Z; timetable.ts T-2026-0002 submission_deadline 2026-10-21T10:00:00Z (moved from 14 Oct by addendum 1) and opening accordingly; structure.ts T-2026-0002 requirements should use the bids ids/codes (2001..2009, Q-05 = 2008). T-2026-0001 version 2 addendumId should be 11 (issued 2026-07-03T08:00:00Z, corrected pump duty points for lot 1). Add T-2026-0003 version 2 (addendumId 31, issued 2026-08-05T09:30:00Z). T-2026-0011 submission deadline 2026-10-23T10:00:00Z (addendum 111). Add site_visit milestones for the clarifications sessions: T-2026-0002 2026-09-28T07:00Z (optional), T-2026-0006 mandatory 2026-10-08T07:00Z and alternative 2026-10-09T07:00Z (plus a mandatory-attendance participation condition), T-2026-0008 mandatory 2026-09-03T07:30Z. Participation condition 7/1 (mandatory briefing) should reference sessionId 71."
+    },
+    {
+      "kind": "mock_platform",
+      "owner": "bids",
+      "description": "Retitle and re-date addendum 11 of T-2026-0001 in the bids projections",
+      "detail": "src/mock-api/fixtures/bids/catalog.ts BID_ADDENDA id 11: title 'Corrected pump duty points for lot 1', issuedAt 2026-07-03T08:00:00Z (after the tender release of 15 Jun). BID_ACKNOWLEDGMENTS for addendum 11: Tsodilo 2026-07-03T09:12:00Z (user 25), Chobe 2026-07-06T07:35:00Z (user 29), Makgadikgadi 2026-07-07T11:02:00Z (user 40). Also note revisions of T-2026-0002 created 2 Sep predate the tenders-domain release of 14 Sep."
+    },
+    {
+      "kind": "mock_platform",
+      "owner": "approvals",
+      "description": "Date approval request 44 inside the demo clock and add approved requests for the issued addenda",
+      "detail": "src/mock-api/fixtures/approvals.ts request 44 (addendum subjectId 23, 'T-2026-0002 Addendum 3', delivery schedule in two batches, requested by mpho.manager) matches the clarifications addendum 23 (awaiting_approval, approvalRequestId 44); its requestedAt 2026-10-05 is after today's demo date (30 Sep) - use 2026-09-29T07:00:00Z. Optionally add approved addendum requests (subjectType addendum) for addenda 21 (approved 2026-09-23T15:40Z by mpho), 11 (2026-07-02T14:00Z), 31 (2026-08-04T16:00Z), 61 (2026-09-29T11:00Z) and report their ids so clarifications can link them; until then those addenda carry approvalRequestId null and the decision in their history."
+    },
+    {
+      "kind": "mock_platform",
+      "owner": "documents",
+      "description": "Add session minutes documents and fix the addendum 22 document",
+      "detail": "src/mock-api/fixtures/documents.ts: add published documents with relatedType 'session' for the sessions whose minutes are published - 41 (Minutes - pre-quotation briefing, 16 Sep 2026, T-2026-0002, participating suppliers), 45 (Boteti site visit, 3 Sep 2026, T-2026-0008), 46 (Serowe wellfield site visit, 1 Jul 2026, T-2026-0001), 71 (Kgale Hill mandatory briefing, 22 May 2026, T-2026-0007), 72 (Kgale Hill site visit, 27 May 2026) - readable by the buyer team and the tender participants. Clarifications picks them up automatically (sessionMinutesDocuments). Document 202 ('Addendum 2 - MID metrology certificate', relatedId 22) contradicts the clarifications addenda: addendum 22 is the draft 'DLMS/COSEM accepted as meter reading export format' and addendum 21 is the issued OIML R49 addendum. TENDER_PARTICIPANTS[2] should include Tsodilo (it holds receipts on T-2026-0002) and TENDER_PARTICIPANTS[8] Makgadikgadi (registered participant). Tender packages for T-2026-0001, T-2026-0003, T-2026-0007 and T-2026-0008 do not exist yet."
+    }
+  ]
+}

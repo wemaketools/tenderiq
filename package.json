@@ -30,7 +30,8 @@
     "test:ui": "npm run test -w @tenderiq/ui",
     "docs:api": "tsx scripts/docs/generate-openapi.ts",
     "ci:security": "tsx scripts/ci/scan-secrets.ts && tsx scripts/ci/scan-bundle.ts",
-    "ci:test:ui": "npm run test -w @tenderiq/ui -- --reporter=default --reporter=json --outputFile.json=../../.test-results/vitest-ui.json && tsx scripts/ci/assert-test-run.ts --report .test-results/vitest-ui.json --min-tests 1",
+    "ci:test:ui": "npm run test -w @tenderiq/ui -- --reporter=default --reporter=json --outputFile.json=../../.test-results/vitest-ui.json && tsx scripts/ci/assert-test-run.ts --report .test-results/vitest-ui.json --min-tests 1360",
+    "ci:test:unit": "vitest run --project unit --reporter=default --reporter=json --outputFile.json=.test-results/vitest-unit.json && tsx scripts/ci/assert-test-run.ts --report .test-results/vitest-unit.json --min-tests 2690",
     "test:e2e:prototype": "playwright test -c e2e_tests/playwright.config.ts --project prototype",
     "verify": "npm run typecheck && npm run typecheck:ui && npm run lint && npm run lint:ui && npm run test && npm run test:ui && npm run build:ui"
   },

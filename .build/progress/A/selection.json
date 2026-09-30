@@ -1,0 +1,163 @@
+{
+  "stage": "A",
+  "unit": "selection",
+  "status": "done",
+  "gapsFixed": 10,
+  "followUps": [
+    {
+      "kind": "mock_platform",
+      "owner": "approvals (src/mock-api/fixtures/approvals.ts)",
+      "description": "Add approval requests 1202-1208 for the selection subjects so BUY-24/BUY-27 approval panels and the approvals inbox agree with the selection records",
+      "detail": "1202 preferred_bidder/1 approved (req 2026-09-07T07:00:00Z, decided 2026-09-08T08:00:00Z); 1203 preferred_bidder/2 approved (2026-09-18T09:00:00Z / 2026-09-21T10:00:00Z); 1204 negotiation_mandate/1 approved (2026-09-08T13:00:00Z / 2026-09-09T07:00:00Z); 1205 negotiation_mandate/2 approved (2026-09-21T11:00:00Z / 2026-09-22T09:00:00Z); 1206 process_decision/1 approved (2026-09-17T15:00:00Z / 2026-09-18T07:30:00Z, decided by mpho.manager); 1207 process_decision/2 pending (2026-09-30T06:00:00Z, approver mpho.manager, decision type reopen round, AC-23); 1208 process_decision/3 rejected (2026-09-29T08:00:00Z / 2026-09-29T14:00:00Z). All subjectVersion 1, currentSubjectVersion 1, contentHash = hash(id, 1) (selection fixtures already use digest('approval:<id>:v1')), tender T-2026-0009 subjectLinkPath /buyer/selection/... . src/mock-api/fixtures/selection/selection-assignments.test.ts checks them automatically once added (remove the ids from AWAITING_APPROVALS_FIXTURES)."
+    },
+    {
+      "kind": "mock_platform",
+      "owner": "approvals (src/mock-api/fixtures/approvals.ts)",
+      "description": "Correct the justification of approval 41 (T-2026-0009 shortlist)",
+      "detail": "Replace 'Shortlisting rule: technical score of at least 65 points.' with 'Shortlisting rule: stage-one non-price score of at least 49.00, up to two applicants in rank order (stage-one conditions §4.2).'"
+    },
+    {
+      "kind": "wiring",
+      "owner": "tender-authoring (CreateTenderPage)",
+      "description": "Apply linkedFrom/linkType/shortlistId query parameters when creating a next-stage event",
+      "detail": "ShortlistDetail.nextStage.createLink for an approved shortlist without a next-stage event is /buyer/tenders/new?linkedFrom=<tenderId>&linkType=next_stage&shortlistId=<id>. CreateTenderPage should prefill the link (or open LinkStageDialog on the new tender). Shortlist 9 of T-2026-0009 now links stage 2 of the same event (no create link)."
+    },
+    {
+      "kind": "contract_common",
+      "owner": "Stage B schema blueprint",
+      "description": "negotiation_rounds.topics text[]",
+      "detail": "NegotiationRound and SupplierNegotiationRound now return topics (the authorized topics the round covered, checked against allowedTopics). The blueprint's negotiation_rounds needs a topics text[] column."
+    },
+    {
+      "kind": "permission",
+      "owner": "Stage B security/blueprint",
+      "description": "Selection assignment eligibility",
+      "detail": "Decision owner must hold selection.manage, due-diligence finding owner diligence.manage, negotiator negotiation.conduct, all on the tender team (DECISION_OWNER_NOT_ELIGIBLE, FINDING_OWNER_NOT_ELIGIBLE, NEGOTIATOR_NOT_ELIGIBLE). TenderSelectionSummary.eligible exposes the eligible people; the financial and commercial reviewers are not assignable owners/negotiators in Stage A (no assignment-based read access)."
+    },
+    {
+      "kind": "other",
+      "owner": "demo walkthrough",
+      "description": "SUP-19 final-offer view is demonstrable only in tests",
+      "detail": "The only final-offer round (T-2026-0009 variant) is a blocked draft by design (AC-23: BAFO not permitted, reopen-round decision pending), so no supplier can open /supplier/final-offers/1 in the running prototype. SupplierFinalOfferPage and its response-workspace link are covered by SupplierFinalOfferPage.test.tsx."
+    }
+  ],
+  "domain": "12 selection",
+  "steps": {
+    "contract-and-mock": {
+      "status": "done",
+      "endpoints": 49,
+      "files": [
+        "src/contracts/selection.ts",
+        "src/contracts/selection/selection.test.ts",
+        "src/mock-api/fixtures/selection/index.ts",
+        "src/mock-api/fixtures/selection/selection-fixtures.test.ts",
+        "src/mock-api/handlers/selection/index.ts",
+        "src/mock-api/handlers/selection/build.ts",
+        "src/mock-api/handlers/selection/selection.test.ts",
+        "src/ui/src/api/selection.ts"
+      ],
+      "checks": "typecheck, typecheck:ui, lint (selection paths) clean; vitest unit selection paths + catalog 73/73 with real Supabase Auth"
+    },
+    "ui": {
+      "status": "done",
+      "screens": [
+        "BUY-22",
+        "BUY-23",
+        "BUY-24",
+        "BUY-25",
+        "BUY-27",
+        "SUP-18 (assessment invites)",
+        "SUP-19"
+      ],
+      "files": [
+        "src/ui/src/features/selection/components/BidName.tsx",
+        "src/ui/src/features/selection/components/CandidateTable.tsx",
+        "src/ui/src/features/selection/components/DiligenceDialogs.tsx",
+        "src/ui/src/features/selection/components/EvidenceSelect.tsx",
+        "src/ui/src/features/selection/components/GatePanel.tsx",
+        "src/ui/src/features/selection/components/IssueInvitesDialog.tsx",
+        "src/ui/src/features/selection/components/NegotiationDialogs.tsx",
+        "src/ui/src/features/selection/components/ProcessDecisionDialog.tsx",
+        "src/ui/src/features/selection/components/ProcessDecisionTable.tsx",
+        "src/ui/src/features/selection/components/RecordFallbackDialog.tsx",
+        "src/ui/src/features/selection/components/RecordFindingDialog.tsx",
+        "src/ui/src/features/selection/components/ReferenceCheckDialogs.tsx",
+        "src/ui/src/features/selection/components/ReferenceCheckTable.tsx",
+        "src/ui/src/features/selection/components/SelectionPage.tsx",
+        "src/ui/src/features/selection/components/SelectionTabs.tsx",
+        "src/ui/src/features/selection/components/ShortlistEditor.tsx",
+        "src/ui/src/features/selection/components/TenderSelect.tsx",
+        "src/ui/src/features/selection/i18n/en.ts",
+        "src/ui/src/features/selection/lib/errors.ts",
+        "src/ui/src/features/selection/lib/hooks.ts",
+        "src/ui/src/features/selection/lib/labels.ts",
+        "src/ui/src/features/selection/lib/lists.ts",
+        "src/ui/src/features/selection/lib/paths.ts",
+        "src/ui/src/features/selection/lib/permissions.ts",
+        "src/ui/src/features/selection/pages/buyer/AssessmentSessionFormPage.test.tsx",
+        "src/ui/src/features/selection/pages/buyer/AssessmentSessionFormPage.tsx",
+        "src/ui/src/features/selection/pages/buyer/AssessmentSessionPage.test.tsx",
+        "src/ui/src/features/selection/pages/buyer/AssessmentSessionPage.tsx",
+        "src/ui/src/features/selection/pages/buyer/AssessmentsPage.test.tsx",
+        "src/ui/src/features/selection/pages/buyer/AssessmentsPage.tsx",
+        "src/ui/src/features/selection/pages/buyer/DiligenceCasePage.test.tsx",
+        "src/ui/src/features/selection/pages/buyer/DiligenceCasePage.tsx",
+        "src/ui/src/features/selection/pages/buyer/DiligenceCasesPage.test.tsx",
+        "src/ui/src/features/selection/pages/buyer/DiligenceCasesPage.tsx",
+        "src/ui/src/features/selection/pages/buyer/FinalOfferFormPage.test.tsx",
+        "src/ui/src/features/selection/pages/buyer/FinalOfferFormPage.tsx",
+        "src/ui/src/features/selection/pages/buyer/FinalOfferPage.test.tsx",
+        "src/ui/src/features/selection/pages/buyer/FinalOfferPage.tsx",
+        "src/ui/src/features/selection/pages/buyer/FinalOffersPage.test.tsx",
+        "src/ui/src/features/selection/pages/buyer/FinalOffersPage.tsx",
+        "src/ui/src/features/selection/pages/buyer/NegotiationFormPage.test.tsx",
+        "src/ui/src/features/selection/pages/buyer/NegotiationFormPage.tsx",
+        "src/ui/src/features/selection/pages/buyer/NegotiationPage.test.tsx",
+        "src/ui/src/features/selection/pages/buyer/NegotiationPage.tsx",
+        "src/ui/src/features/selection/pages/buyer/NegotiationsPage.test.tsx",
+        "src/ui/src/features/selection/pages/buyer/NegotiationsPage.tsx",
+        "src/ui/src/features/selection/pages/buyer/PreferredBidderFormPage.test.tsx",
+        "src/ui/src/features/selection/pages/buyer/PreferredBidderFormPage.tsx",
+        "src/ui/src/features/selection/pages/buyer/PreferredBidderPage.test.tsx",
+        "src/ui/src/features/selection/pages/buyer/PreferredBidderPage.tsx",
+        "src/ui/src/features/selection/pages/buyer/PreferredBiddersPage.test.tsx",
+        "src/ui/src/features/selection/pages/buyer/PreferredBiddersPage.tsx",
+        "src/ui/src/features/selection/pages/buyer/ReferenceChecksPage.test.tsx",
+        "src/ui/src/features/selection/pages/buyer/ReferenceChecksPage.tsx",
+        "src/ui/src/features/selection/pages/buyer/SelectionRegisterPage.test.tsx",
+        "src/ui/src/features/selection/pages/buyer/SelectionRegisterPage.tsx",
+        "src/ui/src/features/selection/pages/buyer/ShortlistFormPage.test.tsx",
+        "src/ui/src/features/selection/pages/buyer/ShortlistFormPage.tsx",
+        "src/ui/src/features/selection/pages/buyer/ShortlistPage.test.tsx",
+        "src/ui/src/features/selection/pages/buyer/ShortlistPage.tsx",
+        "src/ui/src/features/selection/pages/buyer/ShortlistsPage.test.tsx",
+        "src/ui/src/features/selection/pages/buyer/ShortlistsPage.tsx",
+        "src/ui/src/features/selection/pages/buyer/TenderSelectionPage.test.tsx",
+        "src/ui/src/features/selection/pages/buyer/TenderSelectionPage.tsx",
+        "src/ui/src/features/selection/pages/supplier/SupplierFinalOfferPage.test.tsx",
+        "src/ui/src/features/selection/pages/supplier/SupplierFinalOfferPage.tsx",
+        "src/ui/src/features/selection/pages/supplier/SupplierInvitesPage.test.tsx",
+        "src/ui/src/features/selection/pages/supplier/SupplierInvitesPage.tsx",
+        "src/ui/src/features/selection/pages/supplier/SupplierNegotiationPage.test.tsx",
+        "src/ui/src/features/selection/pages/supplier/SupplierNegotiationPage.tsx",
+        "src/ui/src/features/selection/pages/supplier/SupplierNegotiationsPage.test.tsx",
+        "src/ui/src/features/selection/pages/supplier/SupplierNegotiationsPage.tsx",
+        "src/ui/src/features/selection/routes.test.tsx",
+        "src/ui/src/features/selection/routes.tsx",
+        "src/ui/src/features/selection/testing/data.ts",
+        "src/ui/src/features/selection/testing/interact.ts",
+        "src/ui/src/features/selection/testing/render.ts",
+        "src/mock-api/fixtures/selection/index.ts"
+      ],
+      "checks": "typecheck:ui, eslint and prettier clean on selection paths; SPA selection tests 65/65; root unit selection tests 66/66; visual check on 4112/5212 as tebogo.officer and limpopo-env.admin"
+    },
+    "review": {
+      "status": "done"
+    },
+    "fix": {
+      "status": "done",
+      "gapsFixed": 10,
+      "checks": "typecheck (tsconfig.server.json) and typecheck:ui clean on selection paths; eslint root + SPA (--max-warnings 0) and prettier clean on selection paths; root unit selection + catalog 90/90; SPA selection 72/72; re-screenshots on 4112/5212 (tebogo.officer: tender 9, shortlist 9, preferred bidder 1, due diligence 1, negotiation 2, new negotiation, session 1; limpopo-env.admin: assessment invites, negotiation 2)"
+    }
+  }
+}

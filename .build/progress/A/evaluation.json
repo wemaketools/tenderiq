@@ -1,0 +1,30 @@
+{
+  "stage": "A",
+  "unit": "evaluation",
+  "status": "done",
+  "gapsFixed": 9,
+  "screens": ["EVA-01", "EVA-02", "EVA-04", "EVA-05", "EVA-06"],
+  "endpoints": 33,
+  "checks": {
+    "typecheck": "clean for evaluation paths (root and SPA)",
+    "lint": "eslint clean (root and SPA --max-warnings 0), prettier clean",
+    "tests": "root unit 89/89 (contract, fixtures, handlers); SPA src/features/evaluation 60/60"
+  },
+  "followUps": [
+    {
+      "kind": "contract_common",
+      "description": "Blueprint: commercial_evaluations.correction_proposed_by and correction_proposed_at",
+      "detail": "CommercialRow now carries correctionProposedBy/correctionProposedAt so CORRECTION_SELF_APPROVAL can be enforced; add the columns to docs/plan/schema-blueprint.md for Stage B."
+    },
+    {
+      "kind": "other",
+      "description": "Tenders domain: register T-2026-0014 Water treatment works instrumentation (KWU, 5 lots, staged opening, per-lot award, under_assessment, owner tebogo.officer)",
+      "detail": "The evaluation fixtures add T-2026-0014 lots 1401-1405 so every committee command has a record in the state it needs. The tender link /buyer/tenders/14 resolves only once the tenders fixtures add the tender, its lots and its team (chair boitumelo, evaluators thato and kabo, commercial reviewer refilwe, finance reviewer lesego)."
+    },
+    {
+      "kind": "permission",
+      "description": "Only one persona (refilwe.commercial) holds evaluation.commercial",
+      "detail": "Arithmetic corrections in the fixtures are proposed by lesego.finance so the commercial reviewer can approve them; a second commercial reviewer persona would let the self-approval rule be demonstrated end to end."
+    }
+  ]
+}

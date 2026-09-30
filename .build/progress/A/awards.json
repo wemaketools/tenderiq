@@ -1,0 +1,158 @@
+{
+  "stage": "A",
+  "unit": "awards",
+  "status": "done",
+  "gapsFixed": 13,
+  "followUps": [
+    {
+      "kind": "other",
+      "owner": "approvals",
+      "description": "Seed the award and final-award approvals the award fixtures reference",
+      "detail": "Awards now links only approval 35 (T-2026-0001 award, recommendation 14902) and 38 (T-2026-0007 award, recommendation 14). Align their facts with awards: 35 = BWP 5,340,000.00 decided 2026-08-05T13:00Z requested by Tebogo; 38 = BWP 7,850,000.00 approved_with_conditions 2026-09-18T11:00Z, standstill snapshot 8 Oct 2026, 17:00 (UTC+02:00). Please add: returned award approval of T-2026-0001 v1 (recommendation 11, 24 Jul 2026), PENDING award approval of T-2026-0009 recommendation 15 for keabetswe.approver (so it appears in his /me/approvals inbox), approved award approval of T-2026-0010 (recommendation 14901, 13 Feb 2026), and final_award approvals keyed by lot outcome id: 14011 (T-2026-0001 lot 1, approved by Keabetswe before 4 Sep 2026) and 14021 (T-2026-0010, before 6 Mar 2026). Report the new ids so awards can set approvalRequestId / finalAwardApprovalId (the awards fixture test checks every linked id exists with subjectType award/final_award)."
+    },
+    {
+      "kind": "other",
+      "owner": "documents",
+      "description": "Seed the complaint evidence documents",
+      "detail": "Buyer (ComplaintPage) and complainant (SupplierComplaintPage) both list evidence via DocumentList(relatedType 'complaint', relatedId = complaint id). Please add: relatedType 'complaint', relatedId 91 'Chobe pump efficiency curves (lot 1).pdf' (ownerTenantId chobe-pipe, readable by Chobe and KWU complaint.manage/audit.view) and relatedId 92 'Limpopo complaint letter and annexes.pdf' (ownerTenantId limpopo-env, readable by Limpopo and KWU complaint.manage/audit.view). The awards fixture test asserts every complaint document relates to an existing complaint."
+    },
+    {
+      "kind": "other",
+      "owner": "calendars",
+      "description": "Correct the T-2026-0007 standstill end in CALENDAR_DEADLINES",
+      "detail": "deadline('t7', 'award_pending', 'standstill_end', '2026-10-16T14:00:00Z', ...) should be '2026-10-08T15:00:00Z': 10 working days from transmission on 22 Sep 2026 on 'Botswana Public Holidays 2026' (30 Sep and 1 Oct are holidays) = 8 Oct 2026, 17:00 Africa/Gaborone. Awards notices, standstill period, supplier deadlines and gates now use 8 Oct."
+    },
+    {
+      "kind": "other",
+      "owner": "selection",
+      "description": "Keep the T-2026-0009 preferred-bidder notice ids aligned",
+      "detail": "Awards now holds the preferred_bidder notices of T-2026-0009 as outcome notices: 68 (Serowe ICT selected, issued 2026-09-08T10:00Z, after approval 1202), 69 (Serowe status withdrawn after failed due diligence, 2026-09-18T12:00Z) and 70 (Limpopo selected under the contingency, 2026-09-21T12:00Z, after approval 1203), for bids 907/908 and PREFERRED_BIDDERS 1/2. If selection models these notices, reference these ids and dates."
+    },
+    {
+      "kind": "other",
+      "owner": "tenders/evaluation",
+      "description": "Align the T-2026-0007 evaluation criteria with the debriefs",
+      "detail": "The awards debriefs of T-2026-0007 use T-1 experience 20, T-2 methodology 25, T-3 key personnel 15, T-4 health, safety and environment 10, C-1 price 30 (total 100; Makgadikgadi 83.60, Tsodilo 80.33, Limpopo 72.40, Chobe 69.99). src/mock-api/fixtures/tenders/evaluation.ts plan(7) has METH 30 / EXP 20 / PRICE 50."
+    },
+    {
+      "kind": "contract_common",
+      "owner": "workflow",
+      "description": "Regenerate the OpenAPI document",
+      "detail": "The awards contract changed (AwardValue/valueBasis, lotsWithProposedOutcome, finalAwardApproval, preferred_bidder results and notice type, ComplaintDetail.evidence removed). Run npm run docs:api at the next checkpoint."
+    }
+  ],
+  "steps": {
+    "contract-and-mock": {
+      "status": "done",
+      "endpoints": 53,
+      "files": [
+        "src/contracts/awards.ts",
+        "src/contracts/awards/model.ts",
+        "src/contracts/awards/awards.test.ts",
+        "src/mock-api/fixtures/awards/index.ts",
+        "src/mock-api/fixtures/awards/base.ts",
+        "src/mock-api/fixtures/awards/recommendations.ts",
+        "src/mock-api/fixtures/awards/notices.ts",
+        "src/mock-api/fixtures/awards/cases.ts",
+        "src/mock-api/fixtures/awards/files.ts",
+        "src/mock-api/fixtures/awards/supplier.ts",
+        "src/mock-api/fixtures/awards/awards-fixtures.test.ts",
+        "src/mock-api/handlers/awards/index.ts",
+        "src/mock-api/handlers/awards/shared.ts",
+        "src/mock-api/handlers/awards/buyer-awards.ts",
+        "src/mock-api/handlers/awards/buyer-cases.ts",
+        "src/mock-api/handlers/awards/supplier.ts",
+        "src/mock-api/handlers/awards/public.ts",
+        "src/mock-api/handlers/awards/awards.test.ts",
+        "src/ui/src/api/awards.ts",
+        "src/ui/src/api/awards.test.ts"
+      ],
+      "checks": "typecheck and typecheck:ui clean for awards paths; eslint clean for awards paths; prettier clean for SPA files; vitest unit awards paths + catalog 87/87 (real Supabase Auth); SPA client test 4/4; mock API smoke on 4113 loaded awards/index with 0 failed modules"
+    },
+    "ui": {
+      "status": "done",
+      "screens": [
+        "BUY-26",
+        "BUY-28",
+        "BUY-29",
+        "BUY-30",
+        "SUP-21",
+        "SUP-22",
+        "PUB-05"
+      ],
+      "contractAdditions": [
+        "buyer.awards.complaintOwnerCandidates",
+        "supplier.complaints.tenders"
+      ],
+      "files": [
+        "src/ui/src/features/awards/components/AwardFileLayout.tsx",
+        "src/ui/src/features/awards/components/AwardRegister.tsx",
+        "src/ui/src/features/awards/components/CasesTabs.tsx",
+        "src/ui/src/features/awards/components/GateChecklist.tsx",
+        "src/ui/src/features/awards/components/HoldsCard.tsx",
+        "src/ui/src/features/awards/components/NextStepChip.tsx",
+        "src/ui/src/features/awards/components/NoticesList.tsx",
+        "src/ui/src/features/awards/components/OwnResultCard.tsx",
+        "src/ui/src/features/awards/components/PublicNoticePanel.tsx",
+        "src/ui/src/features/awards/components/RecommendationEditor.tsx",
+        "src/ui/src/features/awards/components/ReconciliationCard.tsx",
+        "src/ui/src/features/awards/components/StandstillPanel.tsx",
+        "src/ui/src/features/awards/components/TextBlock.tsx",
+        "src/ui/src/features/awards/i18n/en.ts",
+        "src/ui/src/features/awards/lib/errors.ts",
+        "src/ui/src/features/awards/lib/gates.ts",
+        "src/ui/src/features/awards/lib/hooks.ts",
+        "src/ui/src/features/awards/lib/labels.ts",
+        "src/ui/src/features/awards/lib/lists.ts",
+        "src/ui/src/features/awards/lib/paths.ts",
+        "src/ui/src/features/awards/lib/permissions.ts",
+        "src/ui/src/features/awards/lib/validation.ts",
+        "src/ui/src/features/awards/pages/AwardOverviewPage.test.tsx",
+        "src/ui/src/features/awards/pages/AwardOverviewPage.tsx",
+        "src/ui/src/features/awards/pages/AwardRegisterPage.test.tsx",
+        "src/ui/src/features/awards/pages/AwardRegisterPage.tsx",
+        "src/ui/src/features/awards/pages/CloseoutPage.test.tsx",
+        "src/ui/src/features/awards/pages/CloseoutPage.tsx",
+        "src/ui/src/features/awards/pages/CloseoutRegisterPage.tsx",
+        "src/ui/src/features/awards/pages/ComplaintPage.tsx",
+        "src/ui/src/features/awards/pages/ComplaintsPage.test.tsx",
+        "src/ui/src/features/awards/pages/ComplaintsPage.tsx",
+        "src/ui/src/features/awards/pages/DebriefPage.tsx",
+        "src/ui/src/features/awards/pages/DebriefsPage.test.tsx",
+        "src/ui/src/features/awards/pages/DebriefsPage.tsx",
+        "src/ui/src/features/awards/pages/NoticePage.test.tsx",
+        "src/ui/src/features/awards/pages/NoticePage.tsx",
+        "src/ui/src/features/awards/pages/NoticesPage.test.tsx",
+        "src/ui/src/features/awards/pages/NoticesPage.tsx",
+        "src/ui/src/features/awards/pages/RecommendationPage.test.tsx",
+        "src/ui/src/features/awards/pages/RecommendationPage.tsx",
+        "src/ui/src/features/awards/routes.tsx",
+        "src/ui/src/features/awards/test/data.ts",
+        "src/ui/src/features/awards/test/render.tsx",
+        "src/ui/src/features/outcomes/i18n/en.ts",
+        "src/ui/src/features/outcomes/lib/paths.ts",
+        "src/ui/src/features/outcomes/pages/NewComplaintPage.tsx",
+        "src/ui/src/features/outcomes/pages/PublicAwardPage.tsx",
+        "src/ui/src/features/outcomes/pages/PublicAwards.test.tsx",
+        "src/ui/src/features/outcomes/pages/PublicAwardsPage.tsx",
+        "src/ui/src/features/outcomes/pages/SupplierComplaintPage.tsx",
+        "src/ui/src/features/outcomes/pages/SupplierComplaints.test.tsx",
+        "src/ui/src/features/outcomes/pages/SupplierComplaintsPage.tsx",
+        "src/ui/src/features/outcomes/pages/SupplierOutcomePage.tsx",
+        "src/ui/src/features/outcomes/pages/SupplierOutcomes.test.tsx",
+        "src/ui/src/features/outcomes/pages/SupplierOutcomesPage.tsx",
+        "src/ui/src/features/outcomes/routes.test.ts",
+        "src/ui/src/features/outcomes/routes.tsx"
+      ],
+      "checks": "typecheck:ui and eslint clean for awards/outcomes; prettier clean; SPA tests 55/55; root unit awards + catalog 90/90; Playwright screenshots on 4113/5213 reviewed"
+    },
+    "review": {
+      "status": "done"
+    },
+    "fix": {
+      "status": "done",
+      "gapsFixed": 13,
+      "checks": "tsc (server + SPA app) clean for awards paths; eslint clean (root + SPA, max-warnings 0); prettier clean; root unit awards 99/99; SPA awards/outcomes 62/62; browser re-check on 4113/5213 (register, T-3/T-7/T-9 award files, T-1 closeout, T-9 notices, Serowe/Limpopo/Chobe outcomes, complaint lodge flow, owner assignment dialog)"
+    }
+  }
+}

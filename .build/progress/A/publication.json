@@ -1,0 +1,16 @@
+{
+  "stage": "A",
+  "unit": "publication",
+  "status": "done",
+  "gapsFixed": 8,
+  "followUps": [
+    "tenders: structure.ts LOTS has no T-2026-0011 lots; bids/clarifications model 1101 'Council headquarters, Maun' and 1102 'District clinics' (publication derives them from bids/catalog meanwhile).",
+    "tenders: TENDER_VERSIONS has T-2026-0011 at version 1 and T-2026-0003 at version 1, but clarifications issued Addendum 111 (T-0011 v2) and Addendum 31 (T-0003 v2); T-0002 version 2 summary names a 'data security declaration' while the issued addendum is the OIML R49 certificate.",
+    "tenders: timetable.ts T-2026-0002 submission_deadline is 16 Oct ('Unchanged by addendum 1'); storyline, clarifications, bids and publication say 14 Oct moved to 21 Oct by Addendum 1. T-2026-0011 timetable still says 21 Oct; Addendum 111 moved it to 23 Oct.",
+    "tenders: PARTICIPATION_CONDITIONS for T-2026-0011 should add the eligibility_review and confidentiality_undertaking conditions publication now declares (conditionIds 112, 113).",
+    "bids: BID_ADDENDA/BID_ACKNOWLEDGMENTS date T-2026-0001 Addendum 11 on 11 Jun ('Lot 3 rising main quantity'); clarifications (owner) issues it on 3 Jul 2026 as 'Corrected pump duty points for lot 1' after the 15 Jun release. Bids response 29 (Makgadikgadi, T-0011) is created 15 Sep, before the 16 Sep release.",
+    "bids: T-2026-0009 initial round deadline is 30 Jun 2026 while the tenders timetable submission deadline is 14 Aug 2026.",
+    "blueprint: add table opportunity_dismissals [T] (supplier tenant_id, user_id, tender_id, dismissed_at; unique (tenant_id, user_id, tender_id); own-rows RLS) backing supplier.opportunities.dismiss/restore.",
+    "contracts: new endpoint supplier.opportunities.restore (DELETE /api/v1/supplier/opportunities/:tenderId/dismiss); publication endpoint count is now 62 (docs:api regeneration)."
+  ]
+}
