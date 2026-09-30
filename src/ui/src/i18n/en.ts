@@ -179,7 +179,7 @@ export const shellCatalog = {
       network: 'The service could not be reached. Check your connection and try again.',
       server: 'An unexpected error occurred. Quote the correlation id when you contact support.',
       contract:
-        'The service answered in an unexpected format. Quote the correlation id when you contact support.',
+        'Development check: the response of {endpoint} does not match its API contract ({detail}). If the code changed while the servers were running, restart the mock API (npm run dev:prototype restarts it automatically on changes).',
       notFound: 'This record does not exist or is not available to you.',
       rateLimited: 'Too many requests. Wait a moment and try again.',
       tenantRequired: 'Select an organization first.',

@@ -27,7 +27,8 @@ export function describeError(error: ApiError): string {
     case 'server':
       return t('ui.error.server');
     case 'contract':
-      return t('ui.error.contract');
+      // Only development builds validate responses, so this message is written for the developer.
+      return t('ui.error.contract', { endpoint: error.endpointId, detail: error.detail ?? '' });
     case 'not_found':
       return t('ui.error.notFound');
     case 'rate_limited':

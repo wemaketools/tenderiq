@@ -2,7 +2,9 @@
  * `npm run dev:prototype`: the Stage A prototype on the owner's ports (architecture-plan §3.11, §9).
  *
  * Starts, side by side:
- *   [mock-api]  tsx scripts/dev/serve-mock-api.ts --port 3001   (reads .env.local; real JWT verification, DD-43)
+ *   [mock-api]  tsx watch scripts/dev/serve-mock-api.ts --port 3001   (reads .env.local; real JWT verification, DD-43;
+ *               watch mode restarts it when contracts or mock code change, so it never serves stale responses
+ *               while Vite hot-reloads the SPA against the new contracts)
  *   [vite]      vite --port 5173 in src/ui                       (proxies /api to 127.0.0.1:3001)
  *
  * - Output of both is line-prefixed. When either process exits, or on Ctrl+C / SIGTERM, both are stopped (the
@@ -119,5 +121,5 @@ process.stdout.write(
     'Requires the local Supabase stack (npm run supabase:start) and the demo accounts (npm run auth:personas).\n',
 );
 
-start('mock-api', [tsxCli, '--env-file-if-exists=.env.local', 'scripts/dev/serve-mock-api.ts', '--port', String(MOCK_API_PORT)], root);
+start('mock-api', [tsxCli, 'watch', '--clear-screen=false', '--env-file-if-exists=.env.local', 'scripts/dev/serve-mock-api.ts', '--port', String(MOCK_API_PORT)], root);
 start('vite', [viteCli, '--port', String(VITE_PORT), '--strictPort'], uiDir);
