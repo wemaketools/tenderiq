@@ -44,19 +44,17 @@ describe('TenderRegisterPage (BUY-07)', () => {
     expect(requests.some((request) => request.search.includes('phase=preparation'))).toBe(true);
   });
 
-  it('offers creation and stage linking to officers but not to evaluators', async () => {
+  it('offers stage linking to officers but not to evaluators', async () => {
     installFetch({ [`GET ${API}`]: () => ({ body: list }) });
     const officer = renderPage(<TenderRegisterPage />, {
       route: '/buyer/tenders',
       permissions: OFFICER,
     });
-    expect(await screen.findByRole('link', { name: 'New tender' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Link stages' })).toBeInTheDocument();
     officer.unmount();
 
     renderPage(<TenderRegisterPage />, { route: '/buyer/tenders', permissions: EVALUATOR });
     await screen.findByRole('table', { name: 'Tender register' });
-    expect(screen.queryByRole('link', { name: 'New tender' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Link stages' })).not.toBeInTheDocument();
   });
 

@@ -328,13 +328,6 @@ export default function TenderRegisterPage() {
       <PageHeader
         title={t('tender-authoring.register.title')}
         subtitle={t('tender-authoring.register.intro')}
-        primaryAction={
-          canCreate ? (
-            <ButtonLink to={tenderPaths.create} variant="primary" icon="plus">
-              {t('tender-authoring.register.new')}
-            </ButtonLink>
-          ) : undefined
-        }
         actions={
           canEdit ? (
             <Button icon="link" onClick={() => setLinkOpen(true)}>

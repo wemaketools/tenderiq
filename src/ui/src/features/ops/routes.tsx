@@ -153,6 +153,12 @@ export const features: FeatureModule[] = [
         order: 10,
         icon: 'building',
         permission: CUSTOMERS_READ,
+        sectionAction: {
+          label: 'ops.customers.create.open',
+          path: 'customers?new=1',
+          icon: 'plus',
+          permission: 'ops.customers.manage',
+        },
       },
       {
         id: 'ops.offboarding',
@@ -180,6 +186,12 @@ export const features: FeatureModule[] = [
         order: 40,
         icon: 'lifeBuoy',
         permission: SUPPORT_READ,
+        sectionAction: {
+          label: 'ops.support.log.open',
+          path: 'support?new=1',
+          icon: 'plus',
+          permission: 'ops.support.manage',
+        },
       },
       {
         id: 'ops.incidents',
@@ -189,6 +201,12 @@ export const features: FeatureModule[] = [
         order: 50,
         icon: 'activity',
         permission: INCIDENTS_READ,
+        sectionAction: {
+          label: 'ops.incidents.declare.open',
+          path: 'incidents?new=1',
+          icon: 'plus',
+          permission: 'ops.incidents.manage',
+        },
       },
       {
         id: 'ops.oversight',

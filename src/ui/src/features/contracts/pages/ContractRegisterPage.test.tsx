@@ -38,7 +38,6 @@ describe('ContractRegisterPage (CON-01)', () => {
     expect(cells.getByText('Renewal decision')).toBeInTheDocument();
     expect(cells.getByText('Active')).toBeInTheDocument();
     expect(screen.getByText('Upcoming decisions')).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /New contract/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Assign owners of/ })).not.toBeInTheDocument();
   });
 
@@ -105,7 +104,6 @@ describe('ContractRegisterPage (CON-01)', () => {
       ...OPTIONS,
       permissions: ['contract.view', 'contract.manage', 'contract.prepare'],
     });
-    expect(await screen.findByRole('link', { name: /New contract/ })).toBeInTheDocument();
 
     await user.click(await screen.findByRole('button', { name: 'Assign owners of C-2026-0001' }));
     const dialog = await screen.findByRole('dialog');

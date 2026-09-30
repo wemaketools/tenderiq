@@ -15,9 +15,7 @@ import type {
 
 import { useApiQuery } from '../../../api/hooks';
 import { useScreenFilters } from '../../../app/hooks';
-import { usePermission } from '../../../auth/permissions';
 import {
-  ButtonLink,
   Card,
   Chip,
   DataTable,
@@ -56,7 +54,6 @@ const ALL_REQUEST = { query: { pageSize: 100 } } as const;
 export default function StrategiesPage() {
   const tenant = useActiveTenant();
   const timeZone = tenant?.officialTimeZone ?? 'UTC';
-  const canManage = usePermission('strategy.manage');
   const [filters, setFilters, clearFilters] = useScreenFilters('BUY-06', DEFAULT_FILTERS);
   const query = {
     page: filters.page,
@@ -99,13 +96,6 @@ export default function StrategiesPage() {
       <PageHeader
         title={t('requests.strategies.title')}
         subtitle={t('requests.strategies.subtitle')}
-        primaryAction={
-          canManage ? (
-            <ButtonLink to={requestPaths.newStrategy()} variant="primary" icon="plus">
-              {t('requests.strategies.new')}
-            </ButtonLink>
-          ) : undefined
-        }
       />
 
       <FilterBar

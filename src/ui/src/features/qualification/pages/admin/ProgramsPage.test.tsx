@@ -31,7 +31,6 @@ describe('ProgramsPage (ADM-09)', () => {
     expect(within(row).getByText('Draft version 3')).toBeInTheDocument();
     expect(within(row).getByText('24 months')).toBeInTheDocument();
     expect(within(row).getByText('Renewal notice 60 days')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'New program' })).toBeInTheDocument();
   });
 
   it('sends the status and owner filters', async () => {
@@ -55,7 +54,7 @@ describe('ProgramsPage (ADM-09)', () => {
     );
   });
 
-  it('opens a program and hides creation from assessors', async () => {
+  it('opens a program for an assessor', async () => {
     routeCalls({
       'buyer.qualification.programs.list': () => page([programRow()]),
       'buyer.qualification.options': () => options(),
@@ -63,7 +62,6 @@ describe('ProgramsPage (ADM-09)', () => {
     const { router } = renderPage(<ProgramsPage />, { ...PATH, permissions: ASSESSOR });
     fireEvent.click(await screen.findByText('Water Infrastructure Suppliers — Category A'));
     expect(router.state.location.pathname).toBe('/buyer/admin/qualification/11');
-    expect(screen.queryByRole('link', { name: 'New program' })).not.toBeInTheDocument();
   });
 
   it('explains an empty register', async () => {

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import {
+  activeNavItem,
   areaPath,
   collectFeatures,
   features,
@@ -154,6 +155,80 @@ describe('navGroupsFor', () => {
     expect(firstNavDestination(groups, 'ops')).toBeNull();
     expect(areaPath('common', 'tasks')).toBe('/me/tasks');
     expect(areaPath('public', '')).toBe('/');
+  });
+});
+
+describe('section actions (DD-46)', () => {
+  const withActions: FeatureModule = {
+    id: 'requests',
+    area: 'buyer',
+    routes: [],
+    nav: [
+      {
+        id: 'buyer.requests',
+        label: 'x',
+        path: 'requests',
+        section: 'planning',
+        order: 1,
+        icon: 'clipboard',
+        sectionAction: {
+          label: 'requests.register.new',
+          path: 'requests/new',
+          icon: 'plus',
+          permission: 'request.create',
+        },
+      },
+      {
+        id: 'buyer.admin',
+        label: 'x',
+        path: 'admin',
+        section: 'admin',
+        order: 1,
+        icon: 'settings',
+      },
+      {
+        id: 'buyer.admin.reports',
+        label: 'x',
+        path: 'admin/reports',
+        section: 'admin',
+        order: 2,
+        icon: 'download',
+        sectionAction: { label: 'x', path: '/select-organization', icon: 'switchOrg' },
+      },
+    ],
+  };
+  const groupsWith = (permissions: string[]) =>
+    navGroupsFor([withActions], { tenantKind: 'buyer', permissions });
+
+  it('resolves a section action to an absolute target when the membership holds its permission', () => {
+    const [item] = groupsWith(['request.create'])[0]?.items ?? [];
+    expect(item?.sectionAction).toEqual({
+      label: 'requests.register.new',
+      icon: 'plus',
+      to: '/buyer/requests/new',
+    });
+  });
+
+  it('drops a section action without its permission but keeps the destination', () => {
+    const [item] = groupsWith([])[0]?.items ?? [];
+    expect(item?.id).toBe('buyer.requests');
+    expect(item?.sectionAction).toBeUndefined();
+  });
+
+  it('keeps an absolute section action target as written', () => {
+    const reports = groupsWith([])
+      .flatMap((group) => group.items)
+      .find((item) => item.id === 'buyer.admin.reports');
+    expect(reports?.sectionAction?.to).toBe('/select-organization');
+  });
+
+  it('finds the destination of a drilled-in page, preferring the most specific one', () => {
+    const groups = groupsWith(['request.create']);
+    expect(activeNavItem(groups, '/buyer/requests')?.id).toBe('buyer.requests');
+    expect(activeNavItem(groups, '/buyer/requests/12/decision')?.id).toBe('buyer.requests');
+    expect(activeNavItem(groups, '/buyer/admin/reports/exports')?.id).toBe('buyer.admin.reports');
+    expect(activeNavItem(groups, '/buyer/admin/users')?.id).toBe('buyer.admin');
+    expect(activeNavItem(groups, '/buyer/requests-archive')).toBeNull();
   });
 });
 

@@ -38,7 +38,6 @@ describe('EvidenceLibraryPage (SUP-05)', () => {
     expect(within(row).getByText('Expiring soon')).toBeInTheDocument();
     expect(within(row).getByText('Kalahari Water Utilities (Pilot)')).toBeInTheDocument();
     expect(within(row).getByText('Edition 2')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Add evidence' })).toBeInTheDocument();
   });
 
   it('says financial evidence is withheld instead of showing it', async () => {
@@ -77,14 +76,13 @@ describe('EvidenceLibraryPage (SUP-05)', () => {
     expect(router.state.location.pathname).toBe('/supplier/evidence/105');
   });
 
-  it('shows an empty library and hides adding evidence from members who cannot manage it', async () => {
+  it('shows an empty library to a member who cannot manage evidence', async () => {
     routeCalls(routes(evidencePage([])));
     renderPage(<EvidenceLibraryPage />, {
       ...PATH,
       permissions: [...SUPPLIER_CONTRIBUTOR, 'supplier.evidence.share'],
     });
     expect(await screen.findByText('The evidence library is empty.')).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'Add evidence' })).not.toBeInTheDocument();
   });
 
   it('shows financial statements to a member who holds the financial evidence right (PRD §4.3)', async () => {

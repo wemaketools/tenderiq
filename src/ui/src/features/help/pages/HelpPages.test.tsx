@@ -12,7 +12,7 @@ import PublicServicePage from './PublicServicePage';
 
 const M = '/api/v1/me';
 
-function centre(extra: Parameters<typeof installFetch>[0] = {}) {
+function centre(extra: Parameters<typeof installFetch>[0] = {}, route = '/me/help') {
   const fetch = installFetch({
     [`GET ${M}/help-articles`]: () => ({ body: pageOf([myArticle()]) }),
     [`GET ${M}/service-notices`]: () => ({ body: notices() }),
@@ -20,7 +20,7 @@ function centre(extra: Parameters<typeof installFetch>[0] = {}) {
     [`GET ${M}/support-cases`]: () => ({ body: pageOf([myCase()]) }),
     ...extra,
   });
-  renderWithProviders(<HelpCentrePage />, { state: personState(), route: '/me/help' });
+  renderWithProviders(<HelpCentrePage />, { state: personState(), route });
   return fetch;
 }
 
@@ -50,10 +50,11 @@ describe('HelpCentrePage (COM-09)', () => {
   });
 
   it('opens a case for the chosen organization only after the acknowledgement', async () => {
-    const { requests } = centre({
-      [`POST ${M}/support-cases`]: () => ({ status: 201, body: myCase() }),
-    });
-    await userEvent.click(await screen.findByRole('button', { name: 'Open a case' }));
+    // The top bar's "Open a case" section action opens the dialog through ?new=1 (DD-46).
+    const { requests } = centre(
+      { [`POST ${M}/support-cases`]: () => ({ status: 201, body: myCase() }) },
+      '/me/help?new=1',
+    );
     const dialog = await screen.findByRole('dialog');
     await userEvent.selectOptions(within(dialog).getByLabelText(/^Concerns/), 'usage');
     await userEvent.type(within(dialog).getByLabelText(/^Subject/), 'Cannot find the addendum');

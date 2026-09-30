@@ -14,7 +14,7 @@ afterEach(() => {
 });
 
 describe('SupplierComplaintsPage (SUP-22)', () => {
-  it('lists the supplier’s own complaints and offers to lodge one', async () => {
+  it('lists the supplier’s own complaints', async () => {
     installFetch({ 'GET /api/v1/supplier/complaints': () => ({ body: supplierComplaintPage() }) });
     renderSupplier(<SupplierComplaintsPage />, {
       route: '/supplier/complaints',
@@ -22,19 +22,6 @@ describe('SupplierComplaintsPage (SUP-22)', () => {
     });
 
     expect((await screen.findAllByText('CMP-2026-0002')).length).toBeGreaterThan(0);
-    expect(screen.getByRole('link', { name: /Lodge a complaint/ })).toBeInTheDocument();
-  });
-
-  it('hides lodging from a member who may only view outcomes', async () => {
-    installFetch({ 'GET /api/v1/supplier/complaints': () => ({ body: supplierComplaintPage() }) });
-    renderSupplier(<SupplierComplaintsPage />, {
-      route: '/supplier/complaints',
-      path: '/supplier/complaints',
-      permissions: ['supplier.outcomes.view'],
-    });
-
-    await screen.findAllByText('CMP-2026-0002');
-    expect(screen.queryByRole('link', { name: /Lodge a complaint/ })).not.toBeInTheDocument();
   });
 
   it('lays the filters, KPIs and table out in a spaced page', async () => {

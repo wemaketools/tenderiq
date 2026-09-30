@@ -75,6 +75,12 @@ export const features: FeatureModule[] = [
         order: 10,
         icon: 'clipboard',
         permission: REQUEST_READ,
+        sectionAction: {
+          label: 'requests.register.new',
+          path: 'requests/new',
+          icon: 'plus',
+          permission: 'request.create',
+        },
       },
       {
         id: 'buyer.strategies',
@@ -84,6 +90,12 @@ export const features: FeatureModule[] = [
         order: 30,
         icon: 'compass',
         permission: STRATEGY_READ,
+        sectionAction: {
+          label: 'requests.strategies.new',
+          path: 'strategies/new',
+          icon: 'plus',
+          permission: 'strategy.manage',
+        },
       },
     ],
   },

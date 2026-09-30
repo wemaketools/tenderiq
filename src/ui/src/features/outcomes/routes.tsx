@@ -58,6 +58,12 @@ export const features: FeatureModule[] = [
         order: 30,
         icon: 'scale',
         permission: ['supplier.complaint.submit', 'supplier.outcomes.view'],
+        sectionAction: {
+          label: 'outcomes.complaints.new',
+          path: 'complaints/new',
+          icon: 'plus',
+          permission: 'supplier.complaint.submit',
+        },
       },
     ],
   },

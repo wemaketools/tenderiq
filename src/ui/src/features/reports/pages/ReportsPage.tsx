@@ -32,7 +32,6 @@ import { EXPORT_READ, REPORT_ADMIN_READ } from '../lib/shared';
 
 export default function ReportsPage() {
   const tenant = useActiveTenant();
-  const canManage = usePermission('report.manage');
   const canExport = usePermission('export.create');
   const canAdmin = usePermission(REPORT_ADMIN_READ);
   const canSeeExports = usePermission(EXPORT_READ);
@@ -45,13 +44,6 @@ export default function ReportsPage() {
       <PageHeader
         title={t('reports.catalog.title')}
         subtitle={t('reports.catalog.intro')}
-        primaryAction={
-          canManage ? (
-            <ButtonLink to="/buyer/reports/definitions/new" variant="primary" icon="plus">
-              {t('reports.catalog.newDefinition')}
-            </ButtonLink>
-          ) : undefined
-        }
         actions={
           canAdmin ? (
             <ButtonLink to="/buyer/admin/reports" icon="sliders">

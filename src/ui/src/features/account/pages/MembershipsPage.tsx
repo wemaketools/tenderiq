@@ -19,7 +19,6 @@ import { selectTenant } from '../../../app/sessionActions';
 import {
   Banner,
   Button,
-  ButtonLink,
   Card,
   ConfirmActionDialog,
   DataTable,
@@ -201,11 +200,6 @@ export default function MembershipsPage() {
       <PageHeader
         title={t('account.memberships.title')}
         subtitle={t('account.memberships.intro')}
-        primaryAction={
-          <ButtonLink to="/select-organization" variant="primary" icon="switchOrg">
-            {t('account.memberships.switch')}
-          </ButtonLink>
-        }
       />
       <Card title={t('account.memberships.currentTitle')}>
         <DetailList

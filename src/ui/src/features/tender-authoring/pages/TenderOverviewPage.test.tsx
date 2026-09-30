@@ -26,6 +26,9 @@ describe('TenderOverviewPage (BUY-08)', () => {
     const meta = await screen.findByTestId('tender-meta');
     expect(within(meta).getByText('T-2026-0005')).toBeInTheDocument();
     expect(within(meta).getByText('Draft revision 3')).toBeInTheDocument();
+    const dates = screen.getByTestId('tender-meta-dates');
+    expect(within(dates).getByText('Submission deadline:')).toBeInTheDocument();
+    expect(within(dates).getByText(/^Next:/)).toBeInTheDocument();
     expect(
       screen.getByText('Release approval #31 (revision 2) was invalidated by a material change'),
     ).toBeInTheDocument();

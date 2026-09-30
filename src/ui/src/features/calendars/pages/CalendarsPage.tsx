@@ -11,9 +11,7 @@ import type { CalendarsStatus } from '@contracts/enums';
 
 import { useApiQuery } from '../../../api/hooks';
 import { useScreenFilters } from '../../../app/hooks';
-import { usePermission } from '../../../auth/permissions';
 import {
-  ButtonLink,
   Card,
   Chip,
   DataTable,
@@ -53,7 +51,6 @@ function sortField(value: string): SortField {
 
 export default function CalendarsPage() {
   const timeZone = useDisplayTimeZone();
-  const canManage = usePermission('org.calendars.manage');
   const [filters, setFilters, clearFilters] = useScreenFilters('ADM-10', DEFAULTS);
   const policy = useApiQuery(getDeadlinePolicy, {});
   const overview = useApiQuery(listCalendars, { query: { pageSize: 100 } });
@@ -165,17 +162,7 @@ export default function CalendarsPage() {
 
   return (
     <div className="tiq-page">
-      <PageHeader
-        title={t('calendars.list.title')}
-        subtitle={t('calendars.list.intro')}
-        primaryAction={
-          canManage ? (
-            <ButtonLink to={calendarPaths.create} variant="primary" icon="plus">
-              {t('calendars.list.new')}
-            </ButtonLink>
-          ) : undefined
-        }
-      />
+      <PageHeader title={t('calendars.list.title')} subtitle={t('calendars.list.intro')} />
       <FilterBar label={t('calendars.list.filters')} onClear={clearFilters} canClear={filtered}>
         <SearchField
           label={t('calendars.list.search')}

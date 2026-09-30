@@ -56,6 +56,12 @@ export const features: FeatureModule[] = [
         order: 20,
         icon: 'calendar',
         permission: PLAN_READ,
+        sectionAction: {
+          label: 'planning.plan.newItem',
+          path: 'planning/items/new',
+          icon: 'plus',
+          permission: 'plan.manage',
+        },
       },
     ],
   },

@@ -145,12 +145,12 @@ Names in the first column are the ones the plan and the prototype workflow use (
 | Component or family | Location | Source | Rules |
 |---|---|---|---|
 | Sidebar: brand block, nav, separator, user card | `components/shell` | plan §7; `.qiq-sidebar`, `.qiq-brand*`, `.qiq-nav*`, `.qiq-sidebar-sep`, `.qiq-user-card*`, `.qiq-avatar`, `.qiq-menu` | See §5; icon rail below 1280px, drawer below 768px (DD-36) |
-| Top bar: title, global search, notifications bell, help, primary action | `components/shell` | plan §7; `.qiq-topbar`, `.qiq-searchbox`, `.qiq-global-search`, `.qiq-search-*`, `.qiq-icon-btn`, `.qiq-count` | One primary action only |
+| Top bar: title, section action, global search, tasks, notifications bell, help | `components/shell` | plan §7, DD-46; `.qiq-topbar`, `.qiq-searchbox`, `.qiq-global-search`, `.qiq-search-*`, `.qiq-icon-btn`, `.qiq-count` | Only the active destination's section action; search and icons never move |
 | Organization and capacity switcher | `components/shell`, `/select-organization` | plan §3.1, COM-02 | Switching clears tenant-scoped state (§9) |
 | `DemoAccounts` quick-pick | `auth/` (on the sign-in page) | plan §3.11, DD-43 | Local development builds only (`import.meta.env.DEV`); Vite strips it from production builds and `scan-bundle` checks its marker string (§11) |
 | `PrototypeBanner` | `components/shell` | plan §0, §3.11, DD-43 | Shown when `/me/context` reports `environment.mode = 'prototype'` (§11) |
 | Buttons | `components/ui` | `.qiq-btn` + `--primary`, `--danger`, `--danger-soft`, `--ghost`, `--sm`; unclassed buttons render as secondary | Accent primary; danger-soft for repeated row-level destructive actions |
-| `PageHeader` | `components/ui` | plan §7; `.qiq-page-head`, `.qiq-page-actions` | Page-local title and actions row below the top bar |
+| `PageHeader` | `components/ui` | plan §7, DD-46; `.qiq-page-head`, `.qiq-page-actions` | Page-local head row below the top bar: back link, subtitle, record meta, secondary actions, then the page's one primary action |
 | `FilterBar` | `components/ui` | plan §7; `.qiq-filterbar` inside a card | Labelled selects, date ranges, quick-range buttons, "Clear filters" (screenshots) |
 | KPI card | `components/ui` | `.qiq-kpi-halo`, `.qiq-kpi-label`, `.qiq-kpi-value`, `.qiq-kpi-delta` | Icon halo, label, value, optional delta |
 | Card | `components/ui` | `.qiq-card`, `.qiq-card-head`, `.qiq-card-title`, `.qiq-card-sub`, `.qiq-card-link`, `.qiq-menu-dots` | Title, subtitle, "View … →" link, overflow menu |
@@ -195,7 +195,12 @@ The authenticated shell reproduces the layout of `docs/screenshots/*.png` in Ten
 - A **separator** before the **admin group**.
 - **User card** at the bottom: avatar initials, name and current organization, and a menu with switch organization, profile (`/me/profile`), theme toggle and sign out.
 
-**Top bar** (64 px, sticky, `surface-card` with a bottom border): page title, global search (to `/me/search`, COM-08), notifications bell with a count badge (to `/me/notifications`, COM-06), help (to `/me/help`, COM-09), and **one** primary action in accent teal. Search and notifications cover all the user's active memberships, and each row names its organization (DD-21). The `leads.png` reference repeats Export and New Lead in the page body; TenderIQ follows the plan's single-primary-action rule.
+**Top bar** (64 px, sticky, `surface-card` with a bottom border): page title, then the **section action** of the active sidebar destination in accent teal, global search (to `/me/search`, COM-08), tasks (to `/me/tasks`, COM-04), notifications bell with a count badge (to `/me/notifications`, COM-06) and help (to `/me/help`, COM-09). Search and notifications cover all the user's active memberships, and each row names its organization (DD-21).
+
+Action placement (DD-46):
+- Search and the three icons are always last, so they stay in the same place on every page. When a destination has no section action, the space to the left of search stays empty.
+- A **section action** applies to a whole sidebar destination, usually "New …". It is declared on the nav item (`NavItem.sectionAction`), shows on every page of the destination (including the pages the user drills into), and is hidden only on the page it leads to. It always navigates. A destination that creates through a dialog links to its list with `?new=1`, and the page opens the dialog from that parameter (`lib/useCreateParam.ts`).
+- Actions on one record or one part of a destination (a tab, a sub-list, a tender's workspace sections) are **page actions**. They render in the `PageHeader` head row in the content area: secondary actions, then the page's one primary action last. The head's first row holds the back link, subtitle and actions and is at least one button tall; the record meta runs full width below it, so the tabs start at the same height on every tab of a record.
 
 **Prototype banner**: shown on every page whenever `/me/context` reports `environment.mode = 'prototype'`, which the mock API always does (§11, DD-43).
 
@@ -215,7 +220,7 @@ flowchart LR
   end
   subgraph MAIN["Main column - surface-app"]
     subgraph TOPBAR["Top bar - 64px, sticky"]
-      T1["Page title"] --- T2["Global search"] --- T3["Notifications bell with badge"] --- T4["Help"] --- T5["One primary action - accent"]
+      T1["Page title"] --- T5["Section action of the active destination - accent, optional"] --- T2["Global search"] --- T6["Tasks"] --- T3["Notifications bell with badge"] --- T4["Help"]
     end
     BANNER["Prototype banner - when me context reports prototype mode"]
     subgraph PAGE["Page content"]
@@ -1008,5 +1013,5 @@ Formatting uses the platform `Intl` API in `lib/format`; no date library is appr
 - [12-traceability.md](12-traceability.md): screens to FR, BR and AC.
 - [13-delivery-and-resilience.md](13-delivery-and-resilience.md): Stage A, approval gate, Stage B.
 - [adr/0006-contracts-first-ui-prototype-stage.md](adr/0006-contracts-first-ui-prototype-stage.md), [adr/0010-no-icon-or-pdf-dependencies.md](adr/0010-no-icon-or-pdf-dependencies.md), [adr/0005-decimal-strings-for-money-and-scores.md](adr/0005-decimal-strings-for-money-and-scores.md), [adr/0001-tenancy-equals-organization.md](adr/0001-tenancy-equals-organization.md), [adr/0012-supplier-registration-via-provisioned-accounts.md](adr/0012-supplier-registration-via-provisioned-accounts.md).
-- [../plan/design-decisions.md](../plan/design-decisions.md): the decision log (DD-01 … DD-45); DD-32 to DD-37 and DD-43 shape this document, and DD-38 is withdrawn.
+- [../plan/design-decisions.md](../plan/design-decisions.md): the decision log (DD-01 … DD-46); DD-32 to DD-37, DD-43 and DD-46 shape this document, and DD-38 is withdrawn.
 - [glossary.md](glossary.md).

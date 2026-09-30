@@ -88,6 +88,15 @@ The local Supabase CLI stack runs in Docker from Stage A, and Stage A uses Supab
 
 Node **24** everywhere: `engines` `24.x`, `.nvmrc` `24`, CI `node-version: 24`, and Vercel Node.js 24.x via `engines`. This deviates from the brief's Node 22 pin, because Node 22 reaches end-of-life on 2027-04-30.
 
+### DD-46 — Action placement: section actions in the top bar, page actions in the content area (2026-09-30)
+
+Owner decision during the prototype review. It amends architecture-plan §7 ("one primary action in the top bar").
+- **The top bar never moves.** Search, tasks, notifications and help are always the last items of the top bar, in the same place on every page. Pages do not put buttons in the top bar.
+- **Section action.** A sidebar destination may define one action that applies to the whole destination, usually "New …" (for example "New request" for Requests). The top bar shows it in accent teal, to the **left of the search box**, on **every** page of the destination, including the pages the user drills into, and hides it only on the page it leads to. It is declared on the nav item (`NavItem.sectionAction`: label, target, icon, permission). It always navigates. Where a destination creates through a dialog, the target is its list page with `?new=1`, and the page opens the dialog while the parameter is present (`useCreateParam`). Below 768px it is an accent icon button.
+- **Page action.** Every action on one record, or on one part of a destination (a tab, a sub-list, a tender's workspace section), renders in the page's content head row: secondary actions first, then the page's one primary action (`PageHeader primaryAction`).
+- **Page head layout.** The first row of the page head holds the back link and subtitle on the left and the page actions on the right, and is at least one button tall. The record meta (reference, status, dates, next action) runs full width below it, so a long meta line never pushes the buttons down and the number of buttons never changes the head's height. The tabs of a record therefore start at the same place on every tab. An inline official deadline always shows its label ("Submission deadline: …").
+- The section actions are listed and tested in `src/ui/src/app/sectionActions.test.ts`. The Playwright `layout.spec.ts` checks that the search box and icons keep their position across pages.
+
 ## E. Owner decisions
 
 Status after the owner review of 2026-09-29 (details in architecture-plan §11):

@@ -12,7 +12,6 @@ import { invalidateApiQueries, useApiMutation, useApiQuery } from '../../../api/
 import { useScreenFilters } from '../../../app/hooks';
 import {
   Button,
-  ButtonLink,
   Card,
   ConfirmActionDialog,
   DataTable,
@@ -29,7 +28,6 @@ import { browserTimeZone, formatDateTime } from '../../../lib/format';
 import { t, tEnum } from '../../../lib/i18n';
 import { withSupplierMessage } from '../lib/errors';
 import { compact, directionOf, oneOf, sortOf, tableSort } from '../lib/lists';
-import { supplierOrgPaths } from '../lib/paths';
 
 const SORTS = ['createdAt', 'status'] as const;
 const DEFAULTS = { status: '', sort: 'createdAt', dir: 'desc', page: 1, pageSize: 25 };
@@ -111,15 +109,7 @@ export default function MyMembershipRequestsPage() {
 
   return (
     <div className="tiq-page">
-      <PageHeader
-        title={t('supplier-org.mine.title')}
-        subtitle={t('supplier-org.mine.intro')}
-        primaryAction={
-          <ButtonLink to={supplierOrgPaths.register} variant="primary" icon="plus">
-            {t('supplier-org.mine.newRequest')}
-          </ButtonLink>
-        }
-      />
+      <PageHeader title={t('supplier-org.mine.title')} subtitle={t('supplier-org.mine.intro')} />
       <FilterBar onClear={clearFilters} canClear={filtered} label={t('supplier-org.mine.filters')}>
         <Select
           label={t('supplier-org.mine.filterStatus')}

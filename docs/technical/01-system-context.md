@@ -287,5 +287,5 @@ PRD §2.4 lists the following. TenderIQ records business outcomes and statuses. 
 - [06-key-flows.md](06-key-flows.md): end-to-end flows
 - [glossary.md](glossary.md): terms used across these documents
 - [README.md](README.md): documentation index
-- [../plan/design-decisions.md](../plan/design-decisions.md): design decision log DD-01 … DD-45 (DD-38 withdrawn), which amends the plan and the blueprint
+- [../plan/design-decisions.md](../plan/design-decisions.md): design decision log DD-01 … DD-46 (DD-38 withdrawn), which amends the plan and the blueprint
 - [../plan/email-delivery-options.md](../plan/email-delivery-options.md): local email through Mailpit and the deferred hosted provider options

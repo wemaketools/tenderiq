@@ -70,6 +70,12 @@ export const features: FeatureModule[] = [
         order: 10,
         icon: 'fileText',
         permission: TENDER_VIEW,
+        sectionAction: {
+          label: 'tender-authoring.register.new',
+          path: 'tenders/new',
+          icon: 'plus',
+          permission: 'tender.create',
+        },
       },
     ],
   },

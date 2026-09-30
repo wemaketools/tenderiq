@@ -77,6 +77,12 @@ export const features: FeatureModule[] = [
         order: 20,
         icon: 'mail',
         permission: OPPORTUNITY_READ,
+        sectionAction: {
+          label: 'opportunities.access.requestAction',
+          path: 'invitations?new=1',
+          icon: 'key',
+          permission: 'supplier.notices.acknowledge',
+        },
       },
       {
         id: 'supplier.pursuits',

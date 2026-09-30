@@ -76,21 +76,6 @@ describe('CalendarsPage (ADM-10)', () => {
     expect(await screen.findByText('Deadline policy')).toBeInTheDocument();
     expect(screen.getByText('7 days, 2 days')).toBeInTheDocument();
     expect(screen.getByText(/Never moved automatically/)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'New calendar' })).toBeInTheDocument();
-  });
-
-  it('hides the new calendar action from readers', async () => {
-    routeCalls({
-      'buyer.calendars.deadlinePolicy': () => deadlinePolicy(),
-      'buyer.calendars.list': () => page([calendarSummary()]),
-    });
-    renderPage(<CalendarsPage />, {
-      path: '/buyer/admin/calendars',
-      route: '/buyer/admin/calendars',
-      permissions: ['tender.view'],
-    });
-    await screen.findAllByText('Botswana Public Holidays 2026');
-    expect(screen.queryByRole('link', { name: 'New calendar' })).not.toBeInTheDocument();
   });
 });
 

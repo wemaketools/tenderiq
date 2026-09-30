@@ -37,6 +37,7 @@ const modules: FeatureModule[] = [
         order: 1,
         icon: 'messageQuestion',
         badge: { navBadgeId: 'clar' },
+        sectionAction: { label: 'shell.user.switch', path: 'clarifications/new', icon: 'plus' },
       },
       {
         id: 'buyer.settings',
@@ -45,6 +46,12 @@ const modules: FeatureModule[] = [
         section: 'admin',
         order: 1,
         icon: 'settings',
+        sectionAction: {
+          label: 'shell.user.menu',
+          path: 'settings/new',
+          icon: 'plus',
+          permission: 'evaluation.chair',
+        },
       },
       {
         id: 'buyer.hidden',
@@ -110,7 +117,6 @@ describe('Topbar', () => {
     const { store } = renderWithProviders(
       <Topbar
         titleRef={() => undefined}
-        actionRef={() => undefined}
         onOpenMenu={() => undefined}
         menuOpen={false}
         sidebarId="s"
@@ -195,6 +201,73 @@ describe('AppShell and user card', () => {
   });
 });
 
+describe('AppShell top bar layout (DD-46)', () => {
+  function topbarItems(): string[] {
+    const bar = document.querySelector('.tiq-topbar');
+    return [
+      ...(bar?.querySelectorAll(
+        '.tiq-topbar-section-action, form[role="search"], .tiq-topbar-actions > a',
+      ) ?? []),
+    ].map((element) =>
+      element.getAttribute('role') === 'search'
+        ? 'search'
+        : (element.getAttribute('aria-label') ?? element.textContent ?? ''),
+    );
+  }
+
+  it('shows the section action of the active destination to the left of search, the icons last', () => {
+    renderWithProviders(<AppShell modules={modules} />, {
+      state: { session: signedInSession() },
+      route: '/buyer/clarifications',
+    });
+    expect(topbarItems()).toEqual([
+      'Switch organization',
+      'search',
+      'My tasks',
+      'Notifications',
+      'Help and support',
+    ]);
+    const action = document.querySelector('.tiq-topbar-section-action');
+    expect(action).toHaveClass('tiq-btn--primary');
+    expect(action).toHaveAttribute('href', '/buyer/clarifications/new');
+  });
+
+  it('keeps the section action on every page below the destination, while the user drills in', () => {
+    renderWithProviders(<AppShell modules={modules} />, {
+      state: { session: signedInSession() },
+      route: '/buyer/clarifications/42/answers',
+    });
+    expect(document.querySelector('.tiq-topbar-section-action')).toHaveAttribute(
+      'href',
+      '/buyer/clarifications/new',
+    );
+  });
+
+  it('hides the section action on the page it leads to', () => {
+    renderWithProviders(<AppShell modules={modules} />, {
+      state: { session: signedInSession() },
+      route: '/buyer/clarifications/new',
+    });
+    expect(document.querySelector('.tiq-topbar-section-action')).toBeNull();
+  });
+
+  it('leaves the search box and icons in place when the destination has no section action', () => {
+    renderWithProviders(<AppShell modules={modules} />, {
+      state: { session: signedInSession() },
+      route: '/buyer/overview',
+    });
+    expect(topbarItems()).toEqual(['search', 'My tasks', 'Notifications', 'Help and support']);
+  });
+
+  it('hides a section action the membership lacks the permission for', () => {
+    renderWithProviders(<AppShell modules={modules} />, {
+      state: { session: signedInSession() },
+      route: '/buyer/settings',
+    });
+    expect(document.querySelector('.tiq-topbar-section-action')).toBeNull();
+  });
+});
+
 describe('AppShell navigation drawer (below 768px)', () => {
   function phoneWidth(): void {
     const original = window.matchMedia;
@@ -238,14 +311,15 @@ describe('AppShell navigation drawer (below 768px)', () => {
     expect(screen.getByRole('main')).toHaveFocus();
   });
 
-  it('renders no primary action slot in the top bar at phone width', () => {
+  it('shows the section action as an accent icon button at phone width, so the top bar fits', () => {
     phoneWidth();
     renderWithProviders(<AppShell modules={modules} />, {
       state: { session: signedInSession() },
-      route: '/buyer/overview',
+      route: '/buyer/clarifications',
     });
-    const actions = document.querySelector('.tiq-topbar > .tiq-topbar-actions');
-    expect(actions?.querySelector('.tiq-topbar-actions')).toBeNull();
+    const action = screen.getByRole('link', { name: 'Switch organization' });
+    expect(action).toHaveClass('tiq-icon-btn', 'tiq-topbar-section-action');
+    expect(action).toHaveAttribute('href', '/buyer/clarifications/new');
   });
 });
 

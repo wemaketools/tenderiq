@@ -93,6 +93,12 @@ export const features: FeatureModule[] = [
         order: 40,
         icon: 'layers',
         permission: PROGRAM_READ,
+        sectionAction: {
+          label: 'qualification.programs.new',
+          path: 'admin/qualification/new',
+          icon: 'plus',
+          permission: 'qualification.program.manage',
+        },
       },
     ],
   },

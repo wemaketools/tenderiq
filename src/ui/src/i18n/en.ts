@@ -242,6 +242,7 @@ export const shellCatalog = {
       },
     },
     deadline: {
+      inlineLabel: '{label}:',
       local: 'Your time: {time}',
     },
     upload: {

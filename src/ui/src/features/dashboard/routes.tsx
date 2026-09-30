@@ -25,6 +25,12 @@ export const features: FeatureModule[] = [
         order: 10,
         icon: 'dashboard',
         permission: 'dashboard.view',
+        sectionAction: {
+          label: 'dashboard.buyer.openReports',
+          path: 'reports',
+          icon: 'barChart',
+          permission: ['report.view', 'report.manage'],
+        },
       },
     ],
   },

@@ -73,6 +73,23 @@ export type NavSection = (typeof NAV_SECTIONS)[number];
 export type NavBadgeSource =
   'notifications' | 'tasks' | 'tasksOverdue' | { readonly navBadgeId: string };
 
+/**
+ * The action of a whole sidebar destination, for example "New request" for Requests (DD-46). The top bar shows it
+ * to the left of the search box on every page of the destination, so it stays in place while the user drills in.
+ * An action on one record, or on one part of a destination (a tab, a sub-list), is not a section action: it belongs
+ * in that page's head (PageHeader `primaryAction`). A section action always navigates; a create dialog opens from a
+ * search parameter of the destination's list page (`customers?new=1`, see `useCreateParam`).
+ */
+export interface SectionAction {
+  /** i18n key of the label. */
+  readonly label: string;
+  /** Target relative to the area root like `NavItem.path` (a query is allowed), or absolute when it starts with `/`. */
+  readonly path: string;
+  readonly icon: IconName;
+  /** Hidden unless the active membership holds the permission (any of a list). */
+  readonly permission?: PermissionRequirement;
+}
+
 export interface NavItem {
   /** Unique across all modules, for example `buyer.tenders`. */
   readonly id: string;
@@ -91,6 +108,8 @@ export interface NavItem {
   readonly badge?: NavBadgeSource;
   /** Active only on an exact path match (default: the path and everything below it). */
   readonly end?: boolean;
+  /** Shown in the top bar on every page of this destination (DD-46). */
+  readonly sectionAction?: SectionAction;
 }
 
 /** A page module loaded on demand: its default export is the page component. */

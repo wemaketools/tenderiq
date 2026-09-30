@@ -38,7 +38,7 @@ test.describe('strategy screens (BUY-06)', () => {
   test('every strategy in the register opens without a load or contract error', async ({ page }) => {
     await page.goto('/buyer/strategies');
     await expectLoaded(page, 'Market research and strategy');
-    const links = page.locator('a[href^="/buyer/strategies/"]');
+    const links = page.locator('main a[href^="/buyer/strategies/"]:not([href$="/new"])');
     await expect(links.first()).toBeVisible();
     const hrefs = [
       ...new Set(

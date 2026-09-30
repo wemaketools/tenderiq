@@ -40,6 +40,7 @@ import {
 } from '../../../components/ui';
 import { formatCount, formatDateTime } from '../../../lib/format';
 import { t } from '../../../lib/i18n';
+import { useCreateParam } from '../../../lib/useCreateParam';
 import { useValidatedForm } from '../lib/forms';
 import { opsOptions } from '../lib/labels';
 import { opsPaths } from '../lib/paths';
@@ -171,7 +172,8 @@ export default function IncidentsPage() {
   const tenant = useActiveTenant();
   const timeZone = tenant?.officialTimeZone ?? 'UTC';
   const canManage = usePermission(INCIDENTS_MANAGE);
-  const [declaring, setDeclaring] = useState(false);
+  const [declaringRequested, setDeclaring] = useCreateParam();
+  const declaring = canManage && declaringRequested;
   const [filters, setFilters, clearFilters] = useScreenFilters('OPS-05', DEFAULTS);
   const customers = useApiQuery(operationsEndpoints.listCustomers, {
     query: { pageSize: 100, sort: 'name' },
@@ -204,17 +206,7 @@ export default function IncidentsPage() {
 
   return (
     <div className="tiq-page">
-      <PageHeader
-        title={t('ops.incidents.title')}
-        subtitle={t('ops.incidents.subtitle')}
-        primaryAction={
-          canManage ? (
-            <Button variant="primary" icon="plus" onClick={() => setDeclaring(true)}>
-              {t('ops.incidents.declare.open')}
-            </Button>
-          ) : undefined
-        }
-      />
+      <PageHeader title={t('ops.incidents.title')} subtitle={t('ops.incidents.subtitle')} />
       <Banner tone="info" title={t('ops.incidents.ruleTitle')}>
         <p>{t('ops.incidents.rule')}</p>
       </Banner>

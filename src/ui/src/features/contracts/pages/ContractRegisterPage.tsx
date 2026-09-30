@@ -11,7 +11,6 @@ import { useApiQuery } from '../../../api/hooks';
 import { useScreenFilters } from '../../../app/hooks';
 import { usePermission } from '../../../auth/permissions';
 import {
-  ButtonLink,
   Card,
   Chip,
   DataTable,
@@ -39,7 +38,7 @@ import { NextDecision } from '../components/shared';
 import { useDialog } from '../lib/hooks';
 import { compact, directionOf, idOf, oneOf, pick, tableSort } from '../lib/lists';
 import { contractPaths } from '../lib/paths';
-import { CONTRACT_MANAGE_OR_PREPARE, CONTRACT_PREPARE } from '../lib/permissions';
+import { CONTRACT_MANAGE_OR_PREPARE } from '../lib/permissions';
 
 const DEFAULTS = {
   q: '',
@@ -120,7 +119,6 @@ function RenewalWindowCell({ row }: { readonly row: ContractRow }) {
 }
 
 export default function ContractRegisterPage() {
-  const canCreate = usePermission(CONTRACT_PREPARE);
   const canAssign = usePermission(CONTRACT_MANAGE_OR_PREPARE);
   const [filters, setFilters, clearFilters] = useScreenFilters('CON-01', DEFAULTS);
   const assign = useDialog<'assign', ContractRow>();
@@ -282,17 +280,7 @@ export default function ContractRegisterPage() {
 
   return (
     <div className="tiq-page">
-      <PageHeader
-        title={t('contracts.register.title')}
-        subtitle={t('contracts.register.intro')}
-        primaryAction={
-          canCreate ? (
-            <ButtonLink to={contractPaths.create} variant="primary" icon="plus">
-              {t('contracts.register.new')}
-            </ButtonLink>
-          ) : undefined
-        }
-      />
+      <PageHeader title={t('contracts.register.title')} subtitle={t('contracts.register.intro')} />
       <FilterBar label={t('contracts.register.filters')} onClear={clearFilters} canClear={filtered}>
         <SearchField
           label={t('contracts.common.search')}

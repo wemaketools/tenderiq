@@ -5,7 +5,7 @@ Status: As-designed (pre-build). Updated to as-built at the end of Stage A and S
 Sources:
 - `docs/plan/architecture-plan.md` (revision 3): §0 delivery stages (real Supabase Auth in Stage A), §3 key architectural decisions (§3.8 `in_app` and `email` channels, §3.11 prototype mode), §4 repository layout and registries, §11 deviations from the brief and assumptions (owner review of 2026-09-29: every item ACCEPTED or DECIDED; final approval pending), "Other owner answers", §12 resilience.
 - `docs/plan/schema-blueprint.md`: §0 conventions, Migrations 01, 04, 09, 10, 13, 14, §P.
-- `docs/plan/design-decisions.md`: DD-01 to DD-45 (the decision log that amends the plan and the blueprint and wins on conflict; DD-38 is WITHDRAWN and superseded by DD-43), §D2 owner decisions recorded as design decisions (DD-43 real authentication from Stage A, DD-44 email channel, DD-45 Node 24), §E owner decisions (status after the owner review of 2026-09-29).
+- `docs/plan/design-decisions.md`: DD-01 to DD-46 (the decision log that amends the plan and the blueprint and wins on conflict; DD-38 is WITHDRAWN and superseded by DD-43), §D2 owner decisions recorded as design decisions (DD-43 real authentication from Stage A, DD-44 email channel, DD-45 Node 24), §E owner decisions (status after the owner review of 2026-09-29).
 - `docs/plan/email-delivery-options.md`: status (local development decided, hosted provider deferred), §4 options considered.
 - `docs/architecture-brief.md`: §1, §4.3, §5, §6, §9, §14.
 - `docs/PRD.md`: §2.1, §4, §7.9, §7.10, §9, §14, §16, BR-02, BR-17, BR-41, BR-42, BR-43.
@@ -80,7 +80,7 @@ ADR-0010 constrains ADR-0005 and ADR-0006 through the shared rule that no runtim
 
 ## How the design decision log refines the records
 
-`docs/plan/design-decisions.md` (DD-01 to DD-45) resolves the structural open points raised while this documentation was written. It is binding for both stages, and where it differs from the plan or the blueprint, the log wins (both were amended to match). DD-01 to DD-42 settle details the records left open, or tighten a mechanism a record describes. DD-43 to DD-45 record the owner decisions of 2026-09-29 (log §D2), and two of them change a recorded decision:
+`docs/plan/design-decisions.md` (DD-01 to DD-46) resolves the structural open points raised while this documentation was written. It is binding for both stages, and where it differs from the plan or the blueprint, the log wins (both were amended to match). DD-01 to DD-42 settle details the records left open, or tighten a mechanism a record describes. DD-43 to DD-45 record the owner decisions of 2026-09-29 (log §D2), and two of them change a recorded decision:
 - DD-43 replaces the mock-auth adapter of ADR-0006 with real Supabase Auth in local Docker from Stage A, and withdraws DD-38 (`VITE_AUTH_MODE`).
 - DD-44 extends ADR-0007 from in-app delivery only to an `in_app` and an `email` channel (SMTP with `nodemailer`, Mailpit locally, hosted provider deferred), and makes `nodemailer` the single exception to the dependency rule of ADR-0010.
 

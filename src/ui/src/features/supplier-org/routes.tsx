@@ -43,6 +43,11 @@ export const features: FeatureModule[] = [
         order: 92,
         icon: 'userCheck',
         tenantKinds: ['supplier'],
+        sectionAction: {
+          label: 'supplier-org.mine.newRequest',
+          path: '/register',
+          icon: 'plus',
+        },
       },
     ],
   },
@@ -102,6 +107,12 @@ export const features: FeatureModule[] = [
         order: 20,
         icon: 'folder',
         permission: EVIDENCE_READ,
+        sectionAction: {
+          label: 'supplier-org.evidence.add',
+          path: 'evidence/new',
+          icon: 'plus',
+          permission: 'supplier.evidence.manage',
+        },
       },
       {
         id: 'supplier.organization',

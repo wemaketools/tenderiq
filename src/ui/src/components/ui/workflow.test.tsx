@@ -39,6 +39,22 @@ describe('OfficialDeadline (BR-11, DD-33)', () => {
     expect(screen.queryByText(/Your time/)).not.toBeInTheDocument();
   });
 
+  it('names an inline deadline with its label, so a header never shows an unexplained date', () => {
+    renderWithProviders(
+      <OfficialDeadline
+        deadline={{ at: '2026-11-18T10:00:00Z', timeZone: 'Africa/Gaborone' }}
+        label="Submission deadline"
+        showLocal={false}
+      />,
+    );
+    const deadline = screen.getByTestId('official-deadline');
+    expect(deadline.textContent).toMatch(
+      /^Submission deadline: 18 Nov 2026, 12:00 \(UTC\+02:00\) Africa\/Gaborone/,
+    );
+    expect(screen.getByText('Submission deadline:')).toHaveClass('tiq-deadline-inline-label');
+    expect(deadline.querySelector('time')?.textContent).not.toMatch(/Submission/);
+  });
+
   it('adds local-time help for a user in another zone, secondary to the official line', () => {
     renderWithProviders(
       <OfficialDeadline deadline={{ at: '2026-10-14T10:00:00Z', timeZone: 'Africa/Gaborone' }} />,
@@ -172,42 +188,44 @@ describe('UnsavedChangesGuard', () => {
 });
 
 describe('PageHeader', () => {
-  it('portals the title and the primary action into the top bar slots', () => {
-    const title = document.createElement('h1');
-    const action = document.createElement('div');
-    document.body.append(title, action);
-    renderWithProviders(
-      <PageSlotsContext.Provider value={{ title, primaryAction: action }}>
-        <PageHeader
-          title="Tenders"
-          subtitle="All tenders"
-          primaryAction={<button type="button">New tender</button>}
-        />
-      </PageSlotsContext.Provider>,
-    );
-    expect(title).toHaveTextContent('Tenders');
-    expect(action).toHaveTextContent('New tender');
-    expect(screen.getByText('All tenders')).toBeInTheDocument();
-    expect(document.title).toBe('Tenders · TenderIQ');
-    title.remove();
-    action.remove();
-  });
-
-  it('renders the primary action in the page head when the top bar has no action slot (phone width)', () => {
+  it('portals only the title into the top bar and keeps the primary action last in the page head', () => {
     const title = document.createElement('h1');
     document.body.append(title);
     renderWithProviders(
-      <PageSlotsContext.Provider value={{ title, primaryAction: null }}>
+      <PageSlotsContext.Provider value={{ title }}>
         <PageHeader
-          title="Invitations"
-          primaryAction={<button type="button">Request document access</button>}
+          title="Water treatment chemicals framework"
+          subtitle="Overview and team"
+          actions={<button type="button">Save as template</button>}
+          primaryAction={<button type="button">Edit details</button>}
         />
       </PageSlotsContext.Provider>,
     );
-    expect(title).toHaveTextContent('Invitations');
-    const action = screen.getByRole('button', { name: 'Request document access' });
-    expect(action.closest('.tiq-page-actions')).not.toBeNull();
-    expect(screen.queryByRole('heading', { level: 1, name: 'Invitations' })).toBe(title);
+    expect(title).toHaveTextContent('Water treatment chemicals framework');
+    expect(title).not.toHaveTextContent('Edit details');
+    const actions = screen
+      .getByRole('button', { name: 'Edit details' })
+      .closest('.tiq-page-actions');
+    expect(actions).not.toBeNull();
+    expect([...(actions?.querySelectorAll('button') ?? [])].map((b) => b.textContent)).toEqual([
+      'Save as template',
+      'Edit details',
+    ]);
+    expect(screen.getByText('Overview and team')).toBeInTheDocument();
+    expect(document.title).toBe('Water treatment chemicals framework · TenderIQ');
+    title.remove();
+  });
+
+  it('renders no head row inside the shell when a page has only a title', () => {
+    const title = document.createElement('h1');
+    document.body.append(title);
+    renderWithProviders(
+      <PageSlotsContext.Provider value={{ title }}>
+        <PageHeader title="Tenders" />
+      </PageSlotsContext.Provider>,
+    );
+    expect(title).toHaveTextContent('Tenders');
+    expect(document.querySelector('.tiq-page-head')).toBeNull();
     title.remove();
   });
 

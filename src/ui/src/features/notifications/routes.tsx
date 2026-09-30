@@ -59,6 +59,12 @@ export const features: FeatureModule[] = [
         order: 60,
         icon: 'signal',
         permission: 'org.notifications.manage',
+        sectionAction: {
+          label: 'notifications.rules.new',
+          path: 'admin/notification-rules/new',
+          icon: 'plus',
+          permission: 'org.notifications.manage',
+        },
       },
     ],
   },

@@ -63,6 +63,12 @@ export const features: FeatureModule[] = [
         order: 10,
         icon: 'barChart',
         permission: REPORT_READ,
+        sectionAction: {
+          label: 'reports.catalog.newDefinition',
+          path: 'reports/definitions/new',
+          icon: 'plus',
+          permission: 'report.manage',
+        },
       },
       {
         id: 'buyer.admin.reports',
@@ -72,6 +78,12 @@ export const features: FeatureModule[] = [
         order: 20,
         icon: 'download',
         permission: ['report.manage', 'export.create', 'audit.view'],
+        sectionAction: {
+          label: 'reports.catalog.newDefinition',
+          path: 'reports/definitions/new',
+          icon: 'plus',
+          permission: 'report.manage',
+        },
       },
     ],
   },

@@ -38,6 +38,12 @@ export const features: FeatureModule[] = [
         order: 50,
         icon: 'clock',
         permission: 'org.calendars.manage',
+        sectionAction: {
+          label: 'calendars.list.new',
+          path: 'admin/calendars/new',
+          icon: 'plus',
+          permission: 'org.calendars.manage',
+        },
       },
     ],
   },

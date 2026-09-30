@@ -1,43 +1,45 @@
 /**
- * The top bar (64px, sticky; `overview.png`): page title (from PageHeader), global search → /me/search?q= (COM-08),
- * tasks with the open count (COM-04), the notifications bell with the unread count (COM-06), help → /me/help
- * (COM-09), and the slot for the page's ONE primary action. Counts cover all the user's memberships (DD-21).
+ * The top bar (64px, sticky; `overview.png`): page title (from PageHeader), the section action of the active sidebar
+ * destination (DD-46), global search → /me/search?q= (COM-08), tasks with the open count (COM-04), the notifications
+ * bell with the unread count (COM-06) and help → /me/help (COM-09). Counts cover all the user's memberships (DD-21).
+ *
+ * Search and the three icons are always the last items, so they never move between pages: the section action sits
+ * to the LEFT of the search box and, when a destination has none, the space stays empty. Pages never put actions
+ * here; their primary action renders in the page head (PageHeader).
  */
 import { useState } from 'react';
 import type { FormEvent, Ref } from 'react';
 import { useNavigate } from 'react-router';
 
+import type { ResolvedSectionAction } from '../../app/featureRegistry';
 import { useAppSelector } from '../../app/hooks';
 import { t } from '../../lib/i18n';
-import { IconButton, IconLink } from '../ui/Button';
+import { ButtonLink, IconButton, IconLink } from '../ui/Button';
 import { Icon } from '../ui/Icon';
 
 export interface TopbarProps {
   /** Receives the title slot element (PageHeader portals the page title into it). */
   readonly titleRef: (element: HTMLElement | null) => void;
-  /** Receives the primary action slot element. */
-  readonly actionRef: (element: HTMLElement | null) => void;
+  /** The action of the active sidebar destination (DD-46); `null` when it has none. */
+  readonly sectionAction?: ResolvedSectionAction | null;
   /** Shown below 768px: opens the navigation drawer. */
   readonly onOpenMenu: () => void;
   readonly menuOpen: boolean;
   readonly sidebarId: string;
   /** Receives the menu button, so the drawer can return focus to it. */
   readonly menuButtonRef?: Ref<HTMLButtonElement>;
-  /**
-   * False below 768px: the top bar has no room for the primary action, so no slot is rendered and PageHeader shows
-   * the action in the page head instead (default true).
-   */
-  readonly showPrimaryAction?: boolean;
+  /** True below 768px: the section action shows as an accent icon button so the top bar fits a phone. */
+  readonly compact?: boolean;
 }
 
 export function Topbar({
   titleRef,
-  actionRef,
+  sectionAction = null,
   onOpenMenu,
   menuOpen,
   sidebarId,
   menuButtonRef,
-  showPrimaryAction = true,
+  compact = false,
 }: TopbarProps) {
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
@@ -72,6 +74,24 @@ export function Topbar({
       />
       <h1 className="tiq-topbar-title" ref={titleRef} />
       <div className="tiq-topbar-spacer" />
+      {sectionAction !== null &&
+        (compact ? (
+          <IconLink
+            to={sectionAction.to}
+            icon={sectionAction.icon}
+            label={t(sectionAction.label)}
+            className="tiq-topbar-section-action"
+          />
+        ) : (
+          <ButtonLink
+            to={sectionAction.to}
+            variant="primary"
+            icon={sectionAction.icon}
+            className="tiq-topbar-section-action"
+          >
+            {t(sectionAction.label)}
+          </ButtonLink>
+        ))}
       <form role="search" className="tiq-searchbox" onSubmit={onSearch}>
         <Icon name="search" />
         <label htmlFor="tiq-global-search" className="tiq-visually-hidden">
@@ -89,7 +109,6 @@ export function Topbar({
         <IconLink to="/me/tasks" icon="checkSquare" label={tasksLabel} count={openTasks} />
         <IconLink to="/me/notifications" icon="bell" label={notificationsLabel} count={unread} />
         <IconLink to="/me/help" icon="help" label={t('shell.topbar.help')} />
-        {showPrimaryAction && <div className="tiq-topbar-actions" ref={actionRef} />}
       </div>
     </header>
   );

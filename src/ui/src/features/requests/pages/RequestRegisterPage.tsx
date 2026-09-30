@@ -17,7 +17,6 @@ import { useApiQuery, invalidateApiQueries } from '../../../api/hooks';
 import { useScreenFilters } from '../../../app/hooks';
 import { usePermission, usePermissions } from '../../../auth/permissions';
 import {
-  ButtonLink,
   Card,
   Checkbox,
   Chip,
@@ -95,7 +94,6 @@ const ONE_LINE = {
 export default function RequestRegisterPage() {
   const toast = useToast();
   const permissions: readonly string[] = usePermissions();
-  const canCreate = usePermission('request.create');
   const canReview = usePermission('request.review');
   const [filters, setFilters, clearFilters] = useScreenFilters('BUY-02', DEFAULT_FILTERS);
   const [dialog, setDialog] = useState<{ kind: RequestDialogKind; row: RequestRow } | null>(null);
@@ -176,17 +174,7 @@ export default function RequestRegisterPage() {
 
   return (
     <div className="tiq-page">
-      <PageHeader
-        title={t('requests.register.title')}
-        subtitle={t('requests.register.subtitle')}
-        primaryAction={
-          canCreate ? (
-            <ButtonLink to={requestPaths.create} variant="primary" icon="plus">
-              {t('requests.register.new')}
-            </ButtonLink>
-          ) : undefined
-        }
-      />
+      <PageHeader title={t('requests.register.title')} subtitle={t('requests.register.subtitle')} />
 
       <FilterBar onClear={clearFilters} canClear={canClear} label={t('requests.register.filters')}>
         <SearchField

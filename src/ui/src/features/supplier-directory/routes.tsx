@@ -32,6 +32,12 @@ export const features: FeatureModule[] = [
         order: 10,
         icon: 'briefcase',
         permission: 'supplier.directory.view',
+        sectionAction: {
+          label: 'supplier-directory.list.invite',
+          path: 'suppliers?new=1',
+          icon: 'userPlus',
+          permission: 'supplier.relationship.manage',
+        },
       },
     ],
   },

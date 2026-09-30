@@ -3,7 +3,6 @@
  * plan, account status and designated administrators. Principal actions: establish a customer relationship (buyers)
  * and manage it from the customer page. The operator never gains automatic visibility of customer tender content.
  */
-import { useState } from 'react';
 import { useNavigate } from 'react-router';
 
 import { PLAN_CODES, operationsEndpoints } from '@contracts/operations';
@@ -16,7 +15,6 @@ import { useActiveTenant, useScreenFilters } from '../../../app/hooks';
 import { usePermission } from '../../../auth/permissions';
 import {
   Banner,
-  Button,
   Card,
   DataTable,
   DateInput,
@@ -32,6 +30,7 @@ import {
 } from '../../../components/ui';
 import { formatCount, formatInstantDate } from '../../../lib/format';
 import { t } from '../../../lib/i18n';
+import { useCreateParam } from '../../../lib/useCreateParam';
 import { CreateCustomerDialog } from '../components/CreateCustomerDialog';
 import { opsOptions } from '../lib/labels';
 import { opsPaths } from '../lib/paths';
@@ -63,7 +62,8 @@ export default function CustomersPage() {
   const tenant = useActiveTenant();
   const timeZone = tenant?.officialTimeZone ?? 'UTC';
   const canManage = usePermission(CUSTOMERS_MANAGE);
-  const [creating, setCreating] = useState(false);
+  const [creatingRequested, setCreating] = useCreateParam();
+  const creating = canManage && creatingRequested;
   const [filters, setFilters, clearFilters] = useScreenFilters('OPS-01', DEFAULTS);
   const staff = useOperatorStaffOptions();
 
@@ -100,17 +100,7 @@ export default function CustomersPage() {
 
   return (
     <div className="tiq-page">
-      <PageHeader
-        title={t('ops.customers.title')}
-        subtitle={t('ops.customers.subtitle')}
-        primaryAction={
-          canManage ? (
-            <Button variant="primary" icon="plus" onClick={() => setCreating(true)}>
-              {t('ops.customers.create.open')}
-            </Button>
-          ) : undefined
-        }
-      />
+      <PageHeader title={t('ops.customers.title')} subtitle={t('ops.customers.subtitle')} />
       <Banner tone="info" title={t('ops.customers.noContentTitle')}>
         <p>{t('ops.customers.noContent')}</p>
       </Banner>

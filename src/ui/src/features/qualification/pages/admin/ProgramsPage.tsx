@@ -10,9 +10,7 @@ import { QUALIFICATION_PROGRAMS_STATUS } from '@contracts/enums';
 
 import { useApiQuery } from '../../../../api/hooks';
 import { useScreenFilters } from '../../../../app/hooks';
-import { usePermission } from '../../../../auth/permissions';
 import {
-  ButtonLink,
   Card,
   Chip,
   DataTable,
@@ -50,7 +48,6 @@ const DEFAULTS = {
 
 export default function ProgramsPage() {
   const timeZone = useOfficialTimeZone();
-  const canManage = usePermission('qualification.program.manage');
   const [filters, setFilters, clearFilters] = useScreenFilters('ADM-09', DEFAULTS);
   const query = useApiQuery(api.listPrograms, {
     query: compact({
@@ -186,13 +183,6 @@ export default function ProgramsPage() {
       <PageHeader
         title={t('qualification.programs.title')}
         subtitle={t('qualification.programs.intro')}
-        primaryAction={
-          canManage ? (
-            <ButtonLink to={buyerQualificationPaths.newProgram} variant="primary" icon="plus">
-              {t('qualification.programs.new')}
-            </ButtonLink>
-          ) : undefined
-        }
       />
       <FilterBar
         label={t('qualification.programs.filters')}

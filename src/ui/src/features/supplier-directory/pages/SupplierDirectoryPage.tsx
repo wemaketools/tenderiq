@@ -45,6 +45,7 @@ import {
 import type { DataTableColumn, MenuEntry } from '../../../components/ui';
 import { formatCalendarDate, formatCount } from '../../../lib/format';
 import { t, tEnum } from '../../../lib/i18n';
+import { useCreateParam } from '../../../lib/useCreateParam';
 import { CategoryChips, FreshnessChip } from '../../supplier-org/components/SupplierBits';
 import {
   booleanOf,
@@ -93,7 +94,6 @@ function firstSentence(text: string): string {
 }
 
 type Dialog =
-  | { readonly kind: 'invite' }
   | { readonly kind: 'qualify'; readonly supplier: SupplierRef }
   | { readonly kind: 'flag'; readonly supplier: SupplierRef }
   | null;
@@ -103,6 +103,8 @@ export default function SupplierDirectoryPage() {
   const canFlag = usePermission('supplier.duplicates.review');
   const [filters, setFilters, clearFilters] = useScreenFilters('BUY-31', DEFAULTS);
   const [dialog, setDialog] = useState<Dialog>(null);
+  const [inviteRequested, setInviting] = useCreateParam();
+  const inviting = canManage && inviteRequested;
   const [outcome, setOutcome] = useState<string | null>(null);
   const categories = useApiQuery(suppliersEndpoints.categoryOptions, {});
 
@@ -360,13 +362,6 @@ export default function SupplierDirectoryPage() {
       <PageHeader
         title={t('supplier-directory.list.title')}
         subtitle={t('supplier-directory.list.intro')}
-        primaryAction={
-          canManage ? (
-            <Button variant="primary" icon="userPlus" onClick={() => setDialog({ kind: 'invite' })}>
-              {t('supplier-directory.list.invite')}
-            </Button>
-          ) : undefined
-        }
       />
       <FilterBar
         onClear={clearFilters}
@@ -555,11 +550,11 @@ export default function SupplierDirectoryPage() {
         />
       </Card>
       <p className="tiq-text-muted">{t('supplier-directory.list.segregation')}</p>
-      {dialog?.kind === 'invite' && (
+      {inviting && (
         <InviteSupplierDialog
-          onClose={() => setDialog(null)}
+          onClose={() => setInviting(false)}
           onDone={(message) => {
-            setDialog(null);
+            setInviting(false);
             setOutcome(message);
           }}
         />

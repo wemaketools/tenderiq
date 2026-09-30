@@ -15,7 +15,9 @@ import type {
   NavItem,
   NavSection,
   PermissionRequirement,
+  SectionAction,
 } from './featureTypes';
+import type { IconName } from '../components/ui/Icon';
 
 export * from './featureTypes';
 
@@ -108,9 +110,32 @@ export function areaPath(area: FeatureArea, relative: string): string {
   return `${root}/${trimmed}`;
 }
 
-export interface ResolvedNavItem extends NavItem {
+/** A section action the active membership may use, with its absolute target. */
+export interface ResolvedSectionAction {
+  readonly label: string;
+  readonly icon: IconName;
+  readonly to: string;
+}
+
+export interface ResolvedNavItem extends Omit<NavItem, 'sectionAction'> {
   readonly area: FeatureArea;
   readonly to: string;
+  readonly sectionAction?: ResolvedSectionAction;
+}
+
+function resolveSectionAction(
+  action: SectionAction | undefined,
+  area: FeatureArea,
+  granted: ReadonlySet<string>,
+): ResolvedSectionAction | undefined {
+  if (action === undefined || !hasPermission(action.permission, granted)) {
+    return undefined;
+  }
+  return {
+    label: action.label,
+    icon: action.icon,
+    to: action.path.startsWith('/') ? action.path : areaPath(area, action.path),
+  };
 }
 
 export interface NavGroup {
@@ -143,7 +168,14 @@ export function navGroupsFor(
       if (!hasPermission(item.permission, granted)) {
         continue;
       }
-      items.push({ ...item, area: module.area, to: areaPath(module.area, item.path) });
+      const { sectionAction, ...rest } = item;
+      const action = resolveSectionAction(sectionAction, module.area, granted);
+      items.push({
+        ...rest,
+        area: module.area,
+        to: areaPath(module.area, item.path),
+        ...(action === undefined ? {} : { sectionAction: action }),
+      });
     }
   }
   return NAV_SECTIONS.map((section) => ({
@@ -152,6 +184,27 @@ export function navGroupsFor(
       .filter((item) => item.section === section)
       .sort((a, b) => a.order - b.order || a.id.localeCompare(b.id)),
   })).filter((group) => group.items.length > 0);
+}
+
+/**
+ * The destination a path belongs to: the item the sidebar highlights (its path, or below it unless `end`); the most
+ * specific one when several match (`/buyer/admin/reports` over `/buyer/admin`).
+ */
+export function activeNavItem(
+  groups: readonly NavGroup[],
+  pathname: string,
+): ResolvedNavItem | null {
+  let active: ResolvedNavItem | null = null;
+  for (const group of groups) {
+    for (const item of group.items) {
+      const matches =
+        pathname === item.to || (item.end !== true && pathname.startsWith(`${item.to}/`));
+      if (matches && (active === null || item.to.length > active.to.length)) {
+        active = item;
+      }
+    }
+  }
+  return active;
 }
 
 /** The first destination of the sidebar, used as the landing page of an area. */

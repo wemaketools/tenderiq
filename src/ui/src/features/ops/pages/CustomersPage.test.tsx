@@ -102,8 +102,8 @@ describe('CustomersPage (OPS-01)', () => {
         body: customerDetail({ tenantId: 10, name: 'Gaborone City Council' }),
       }),
     });
-    renderWithProviders(<CustomersPage />, { state: opsState(), route: '/ops/customers' });
-    await userEvent.click(await screen.findByRole('button', { name: 'Add customer' }));
+    // The top bar's "Add customer" section action opens the dialog through ?new=1 (DD-46).
+    renderWithProviders(<CustomersPage />, { state: opsState(), route: '/ops/customers?new=1' });
     const dialog = await screen.findByRole('dialog');
 
     await userEvent.click(within(dialog).getByRole('button', { name: 'Create customer' }));

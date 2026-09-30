@@ -116,8 +116,8 @@ describe('SupplierDirectoryPage (BUY-31)', () => {
         }),
       }),
     );
-    renderPage(<SupplierDirectoryPage />, PATH);
-    fireEvent.click(await screen.findByRole('button', { name: 'Invite supplier' }));
+    // The top bar's "Invite supplier" section action opens the dialog through ?new=1 (DD-46).
+    renderPage(<SupplierDirectoryPage />, { ...PATH, route: '/buyer/suppliers?new=1' });
     const dialog = await screen.findByRole('dialog');
     fireEvent.click(within(dialog).getByRole('button', { name: 'Create and invite' }));
     expect(await within(dialog).findByText('Enter the legal name.')).toBeInTheDocument();
@@ -177,8 +177,12 @@ describe('SupplierDirectoryPage (BUY-31)', () => {
       ...REFERENCE_HANDLERS,
       'buyer.suppliers.directory.list': () => directoryPage([]),
     });
-    renderPage(<SupplierDirectoryPage />, { ...PATH, permissions: BUYER_ASSESSOR });
+    renderPage(<SupplierDirectoryPage />, {
+      ...PATH,
+      route: '/buyer/suppliers?new=1',
+      permissions: BUYER_ASSESSOR,
+    });
     expect(await screen.findByText('No suppliers yet.')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Invite supplier' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 });

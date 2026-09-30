@@ -41,6 +41,11 @@ export const features: FeatureModule[] = [
         section: 'admin',
         order: 90,
         icon: 'switchOrg',
+        sectionAction: {
+          label: 'account.memberships.switch',
+          path: '/select-organization',
+          icon: 'switchOrg',
+        },
       },
     ],
   },

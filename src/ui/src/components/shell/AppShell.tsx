@@ -1,15 +1,17 @@
 /**
  * AppShell (docs/technical/09-frontend.md §5): sidebar + main column (top bar, prototype banner, page content).
  * Rendered for the signed-in areas (/buyer, /supplier, /ops, /me) once an organization is active (RouteGuard).
- * Pages portal their title and primary action into the top bar through the page slots. Below 768px the primary
- * action renders in the page head instead (the top bar has no room for it) and the sidebar is a drawer: closed, it is
+ * Pages portal their title into the top bar through the page slots; the top bar also shows the section action of
+ * the active sidebar destination (DD-46) on every page of that destination, except on the page it leads to. Below
+ * 768px the section action is an icon button and the sidebar is a drawer: closed, it is
  * hidden from focus and assistive technology (CSS visibility); opening it moves focus to the first nav link; Escape
  * or the scrim closes it and returns focus to the menu button.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Outlet } from 'react-router';
+import { Outlet, useLocation } from 'react-router';
 
-import type { FeatureModule } from '../../app/featureRegistry';
+import { activeNavItem, features, navGroupsFor } from '../../app/featureRegistry';
+import type { FeatureModule, ResolvedSectionAction } from '../../app/featureRegistry';
 import { useActiveTenant } from '../../app/hooks';
 import { t } from '../../lib/i18n';
 import { DRAWER_QUERY, useMediaQuery } from '../../lib/useMediaQuery';
@@ -23,12 +25,20 @@ import { useMeBadges } from './useMeBadges';
 
 const SIDEBAR_ID = 'tiq-sidebar';
 
-export function AppShell({ modules }: { readonly modules?: readonly FeatureModule[] }) {
+/** True when the address already is the action's target (the create page, or the list with its dialog open). */
+function isAt(action: ResolvedSectionAction, pathname: string, search: string): boolean {
+  const target = new URL(action.to, 'http://tiq.local');
+  if (target.pathname !== pathname) return false;
+  const current = new URLSearchParams(search);
+  return [...target.searchParams].every(([key, value]) => current.get(key) === value);
+}
+
+export function AppShell({ modules = features }: { readonly modules?: readonly FeatureModule[] }) {
   const tenant = useActiveTenant();
+  const location = useLocation();
   const drawerMode = useMediaQuery(DRAWER_QUERY);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [titleSlot, setTitleSlot] = useState<HTMLElement | null>(null);
-  const [actionSlot, setActionSlot] = useState<HTMLElement | null>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   useMeBadges();
 
@@ -48,14 +58,19 @@ export function AppShell({ modules }: { readonly modules?: readonly FeatureModul
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [open]);
 
-  const slots = useMemo<PageSlots>(
-    () => ({ title: titleSlot, primaryAction: actionSlot }),
-    [titleSlot, actionSlot],
-  );
+  const slots = useMemo<PageSlots>(() => ({ title: titleSlot }), [titleSlot]);
 
   if (tenant === null) {
     return null;
   }
+
+  const groups = navGroupsFor(modules, {
+    tenantKind: tenant.kind,
+    permissions: tenant.permissions,
+  });
+  const action = activeNavItem(groups, location.pathname)?.sectionAction ?? null;
+  const sectionAction =
+    action !== null && !isAt(action, location.pathname, location.search) ? action : null;
 
   const classes = ['tiq-app'];
   if (drawerMode) classes.push('tiq-app--drawer');
@@ -88,11 +103,11 @@ export function AppShell({ modules }: { readonly modules?: readonly FeatureModul
         <div className="tiq-main">
           <Topbar
             titleRef={setTitleSlot}
-            actionRef={setActionSlot}
+            sectionAction={sectionAction}
             onOpenMenu={() => setDrawerOpen((open) => !open)}
             menuOpen={open}
             menuButtonRef={menuButtonRef}
-            showPrimaryAction={!drawerMode}
+            compact={drawerMode}
             sidebarId={SIDEBAR_ID}
           />
           <PrototypeBanner />

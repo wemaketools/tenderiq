@@ -103,6 +103,12 @@ export const features: FeatureModule[] = [
         order: 10,
         icon: 'fileSignature',
         permission: CONTRACT_VIEW,
+        sectionAction: {
+          label: 'contracts.register.new',
+          path: 'contracts/new',
+          icon: 'plus',
+          permission: 'contract.prepare',
+        },
       },
     ],
   },

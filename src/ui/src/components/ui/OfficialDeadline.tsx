@@ -2,7 +2,9 @@
  * OfficialDeadline (BR-11, BR-12, DD-33; docs/technical/09-frontend.md §13): always the date, time, UTC offset and
  * IANA zone of the event's OFFICIAL time zone, for example `14 Oct 2026, 12:00 (UTC+02:00) Africa/Gaborone`, plus
  * the abbreviation when Intl provides one. Local-time help (the user's display zone) is secondary and only shown
- * when it differs. A time-remaining hint may accompany the official line, never replace it.
+ * when it differs. A time-remaining hint may accompany the official line, never replace it. The label always shows:
+ * above the date in the block variant, and as a muted "Label:" prefix on the official line in the inline variant, so a
+ * deadline in a header or a list never appears as an unexplained date.
  */
 import type { OfficialDeadline as OfficialDeadlineValue } from '@contracts/common';
 
@@ -13,7 +15,7 @@ import { useNow } from '../../lib/useNow';
 
 export interface OfficialDeadlineProps {
   readonly deadline: OfficialDeadlineValue;
-  /** Label of the block variant, for example "Submission deadline". */
+  /** What the deadline is, for example "Submission deadline" (shown in both variants). */
   readonly label?: string;
   readonly variant?: 'inline' | 'block';
   /** Show the user's local time when it differs from the official zone (default true). */
@@ -47,18 +49,31 @@ export function OfficialDeadline({
     else if (remaining < SOON_MS) classes.push('tiq-deadline--soon');
   }
 
+  const officialTime = (
+    <time className="tiq-deadline-official" dateTime={deadline.at}>
+      {official.dateTime}{' '}
+      <span className="tiq-deadline-zone">
+        ({official.offset}) {official.timeZone}
+        {official.abbreviation !== null && ` · ${official.abbreviation}`}
+      </span>
+    </time>
+  );
+
   return (
     <span className={classes.join(' ')} data-testid="official-deadline">
       {variant === 'block' && label !== undefined && (
         <span className="tiq-deadline-label">{label}</span>
       )}
-      <time className="tiq-deadline-official" dateTime={deadline.at}>
-        {official.dateTime}{' '}
-        <span className="tiq-deadline-zone">
-          ({official.offset}) {official.timeZone}
-          {official.abbreviation !== null && ` · ${official.abbreviation}`}
+      {variant === 'inline' && label !== undefined ? (
+        <span className="tiq-deadline-line">
+          <span className="tiq-deadline-inline-label">
+            {t('ui.deadline.inlineLabel', { label })}
+          </span>{' '}
+          {officialTime}
         </span>
-      </time>
+      ) : (
+        officialTime
+      )}
       {showRemaining && (
         <span
           className={remaining < 0 ? 'tiq-deadline-status tiq-text-muted' : 'tiq-deadline-status'}

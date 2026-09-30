@@ -36,6 +36,7 @@ import {
 import type { DataTableColumn } from '../../../components/ui';
 import { formatCount, formatDateTime, formatOfficialTime } from '../../../lib/format';
 import { t, tEnum } from '../../../lib/i18n';
+import { useCreateParam } from '../../../lib/useCreateParam';
 import {
   compact,
   dateOrUndefined,
@@ -71,7 +72,8 @@ export default function InvitationsPage() {
   const toast = useToast();
   const canAnswer = usePermission(NOTICES_ACKNOWLEDGE);
   const [filters, setFilters, clearFilters] = useScreenFilters('SUP-07', DEFAULTS);
-  const [chooseOpen, setChooseOpen] = useState(false);
+  const [chooseRequested, setChooseOpen] = useCreateParam();
+  const chooseOpen = canAnswer && chooseRequested;
   const [choice, setChoice] = useState('');
   const [requestFor, setRequestFor] = useState<{
     tenderId: number;
@@ -249,13 +251,6 @@ export default function InvitationsPage() {
       <PageHeader
         title={t('opportunities.invitations.title')}
         subtitle={t('opportunities.invitations.intro')}
-        primaryAction={
-          canAnswer ? (
-            <Button variant="primary" icon="key" onClick={() => setChooseOpen(true)}>
-              {t('opportunities.access.requestAction')}
-            </Button>
-          ) : undefined
-        }
       />
       <FilterBar
         label={t('opportunities.invitations.filters')}

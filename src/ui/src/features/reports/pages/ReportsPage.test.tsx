@@ -39,7 +39,6 @@ describe('ReportsPage (REP-01)', () => {
     ).toHaveAttribute('href', '/buyer/reports/participation');
     expect(within(card).getByText('No-bid reason')).toBeInTheDocument();
     expect(screen.getAllByRole('link', { name: /^Open report / })).toHaveLength(10);
-    expect(screen.getByRole('link', { name: 'New report definition' })).toBeInTheDocument();
     expect(await screen.findByRole('table', { name: 'Recent report exports' })).toBeInTheDocument();
   });
 
@@ -80,11 +79,10 @@ describe('ReportsPage (REP-01)', () => {
     expect(await within(dialog).findByText('Forbidden')).toBeInTheDocument();
   });
 
-  it('hides exports and definition management from a report viewer', async () => {
+  it('hides exports from a report viewer', async () => {
     routes();
     renderWithProviders(<ReportsPage />, { state: buyerState(['report.view']) });
     await screen.findByRole('region', { name: 'Procurement pipeline' });
     expect(screen.queryByRole('button', { name: /as CSV/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'New report definition' })).not.toBeInTheDocument();
   });
 });

@@ -197,39 +197,45 @@ export function TenderHeader({ context, section, primaryAction, actions }: Tende
         primaryAction={primaryAction}
         actions={actions}
         meta={
-          <span className="tiq-inline" data-testid="tender-meta">
-            <Reference value={tender.reference} />
-            <StatusChip enum="tenders.status" value={tender.status} />
-            <Chip tone="neutral" size="sm">
-              {versionChipText(tender)}
-            </Chip>
-            {approval === null ? (
-              <Chip tone="neutral-outlined" size="sm">
-                {t('tender-authoring.workspace.noApproval')}
+          <>
+            <span className="tiq-page-meta-row" data-testid="tender-meta">
+              <Reference value={tender.reference} />
+              <StatusChip enum="tenders.status" value={tender.status} />
+              <Chip tone="neutral" size="sm">
+                {versionChipText(tender)}
               </Chip>
-            ) : (
-              <span className="tiq-inline">
-                <span className="tiq-text-muted">
-                  {t('tender-authoring.workspace.approvalLabel')}
+              {approval === null ? (
+                <Chip tone="neutral-outlined" size="sm">
+                  {t('tender-authoring.workspace.noApproval')}
+                </Chip>
+              ) : (
+                <span className="tiq-inline">
+                  <span className="tiq-text-muted">
+                    {t('tender-authoring.workspace.approvalLabel')}
+                  </span>
+                  <StatusChip enum="approval_requests.status" value={approval.status} size="sm" />
                 </span>
-                <StatusChip enum="approval_requests.status" value={approval.status} size="sm" />
+              )}
+            </span>
+            {(submission !== undefined || nextAction !== null) && (
+              <span className="tiq-page-meta-row" data-testid="tender-meta-dates">
+                {submission !== undefined && (
+                  <OfficialDeadline
+                    deadline={submission.deadline}
+                    label={t('tender-authoring.workspace.submissionDeadline')}
+                  />
+                )}
+                {nextAction !== null && (
+                  <span>
+                    <span className="tiq-text-muted">
+                      {t('tender-authoring.workspace.nextAction')}{' '}
+                    </span>
+                    {nextAction}
+                  </span>
+                )}
               </span>
             )}
-            {submission !== undefined && (
-              <OfficialDeadline
-                deadline={submission.deadline}
-                label={t('tender-authoring.workspace.submissionDeadline')}
-              />
-            )}
-            {nextAction !== null && (
-              <span>
-                <span className="tiq-text-muted">
-                  {t('tender-authoring.workspace.nextAction')}{' '}
-                </span>
-                {nextAction}
-              </span>
-            )}
-          </span>
+          </>
         }
       />
       <LinkTabs label={t('tender-authoring.tabs.label')} tabs={tabs} />

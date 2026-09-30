@@ -10,9 +10,7 @@ import { COMPLAINTS_STATUS, COMPLAINTS_SUBJECT } from '@contracts/enums';
 
 import { useApiQuery } from '../../../api/hooks';
 import { useScreenFilters } from '../../../app/hooks';
-import { usePermission } from '../../../auth/permissions';
 import {
-  ButtonLink,
   Card,
   Chip,
   DataTable,
@@ -52,7 +50,6 @@ const DEFAULTS = {
 
 export default function SupplierComplaintsPage() {
   const timeZone = useOfficialTimeZone();
-  const canSubmit = usePermission('supplier.complaint.submit');
   const [filters, setFilters, clearFilters] = useScreenFilters('SUP-22', DEFAULTS);
 
   const query = useApiQuery(listSupplierComplaints, {
@@ -171,13 +168,6 @@ export default function SupplierComplaintsPage() {
       <PageHeader
         title={t('outcomes.complaints.title')}
         subtitle={t('outcomes.complaints.intro')}
-        primaryAction={
-          canSubmit ? (
-            <ButtonLink to={outcomePaths.newComplaint()} variant="primary" icon="plus">
-              {t('outcomes.complaints.new')}
-            </ButtonLink>
-          ) : undefined
-        }
       />
       <FilterBar
         label={t('outcomes.complaints.filters')}

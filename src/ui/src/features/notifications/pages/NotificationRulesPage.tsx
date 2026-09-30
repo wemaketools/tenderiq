@@ -9,7 +9,6 @@ import type { NotificationRulesEventType, NotificationsCategory } from '@contrac
 import {
   NOTIFICATION_RULE_SORT_FIELDS,
   listDeliveryExceptions,
-  listNotificationEvents,
   listNotificationRules,
 } from '@contracts/notification-rules';
 import type { NotificationRuleSummary } from '@contracts/notification-rules';
@@ -17,7 +16,6 @@ import type { NotificationRuleSummary } from '@contracts/notification-rules';
 import { useApiQuery } from '../../../api/hooks';
 import { useScreenFilters } from '../../../app/hooks';
 import {
-  ButtonLink,
   Card,
   Checkbox,
   Chip,
@@ -70,7 +68,6 @@ export default function NotificationRulesPage() {
   const timeZone = useDisplayTimeZone();
   const [filters, setFilters, clearFilters] = useScreenFilters('ADM-12', DEFAULTS);
   const view = filters.view === 'exceptions' ? 'exceptions' : 'rules';
-  const events = useApiQuery(listNotificationEvents, {});
   const overview = useApiQuery(listNotificationRules, { query: { pageSize: 100 } });
   const openExceptions = useApiQuery(listDeliveryExceptions, {
     query: { state: ['open'], pageSize: 1 },
@@ -96,7 +93,6 @@ export default function NotificationRulesPage() {
   const all = overview.data?.items ?? [];
   const count = (predicate: (row: NotificationRuleSummary) => boolean): string =>
     overview.data === undefined ? '…' : formatCount(all.filter(predicate).length);
-  const eventsWithoutRule = (events.data?.items ?? []).filter((item) => item.ruleId === null);
   const filtered =
     filters.reminders ||
     filters.escalation ||
@@ -288,13 +284,6 @@ export default function NotificationRulesPage() {
       <PageHeader
         title={t('notifications.rules.title')}
         subtitle={t('notifications.rules.intro')}
-        primaryAction={
-          eventsWithoutRule.length > 0 ? (
-            <ButtonLink to={notificationPaths.newRule} variant="primary" icon="plus">
-              {t('notifications.rules.new')}
-            </ButtonLink>
-          ) : undefined
-        }
       />
       <KpiGrid>
         <KpiCard

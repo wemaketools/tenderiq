@@ -52,8 +52,8 @@ describe('IncidentsPage (OPS-05)', () => {
       [`GET ${O}/incidents`]: () => ({ body: pageOf([]) }),
       [`GET ${O}/customers`]: () => ({ body: pageOf([]) }),
     });
-    renderWithProviders(<IncidentsPage />, { state: opsState(), route: '/ops/incidents' });
-    await userEvent.click(await screen.findByRole('button', { name: 'Declare incident' }));
+    // The top bar's section action opens the dialog through ?new=1 (DD-46).
+    renderWithProviders(<IncidentsPage />, { state: opsState(), route: '/ops/incidents?new=1' });
     const dialog = await screen.findByRole('dialog');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Declare incident' }));
 

@@ -41,13 +41,6 @@ export default function PlanningPage() {
       <PageHeader
         title={t('planning.plan.title')}
         subtitle={t('planning.plan.subtitle')}
-        primaryAction={
-          canManage ? (
-            <ButtonLink to={planningPaths.newItem} variant="primary" icon="plus">
-              {t('planning.plan.newItem')}
-            </ButtonLink>
-          ) : undefined
-        }
         actions={
           canManage ? (
             <ButtonLink to={planningPaths.newNotice()} icon="megaphone">

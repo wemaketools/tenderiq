@@ -3,7 +3,6 @@
  * customer-authorized access grant is active. Actions: log a case, open a case to assist within the grant. Support
  * never impersonates a customer and is never a bid-submission channel.
  */
-import { useState } from 'react';
 import { useNavigate } from 'react-router';
 
 import { operationsEndpoints } from '@contracts/operations';
@@ -16,7 +15,6 @@ import { useActiveTenant, useScreenFilters } from '../../../app/hooks';
 import { usePermission } from '../../../auth/permissions';
 import {
   Banner,
-  Button,
   Card,
   Chip,
   DataTable,
@@ -33,6 +31,7 @@ import {
 } from '../../../components/ui';
 import { formatCount, formatDateTime } from '../../../lib/format';
 import { t } from '../../../lib/i18n';
+import { useCreateParam } from '../../../lib/useCreateParam';
 import { LogCaseDialog } from '../components/LogCaseDialog';
 import { SupportTabs } from '../components/SupportTabs';
 import { opsPaths } from '../lib/paths';
@@ -62,7 +61,8 @@ export default function SupportCasesPage() {
   const tenant = useActiveTenant();
   const timeZone = tenant?.officialTimeZone ?? 'UTC';
   const canManage = usePermission(SUPPORT_MANAGE);
-  const [logging, setLogging] = useState(false);
+  const [loggingRequested, setLogging] = useCreateParam();
+  const logging = canManage && loggingRequested;
   const [filters, setFilters, clearFilters] = useScreenFilters('OPS-04', DEFAULTS);
   const staff = useOperatorStaffOptions();
   const customers = useApiQuery(operationsEndpoints.listCustomers, {
@@ -97,17 +97,7 @@ export default function SupportCasesPage() {
 
   return (
     <div className="tiq-page">
-      <PageHeader
-        title={t('ops.support.title')}
-        subtitle={t('ops.support.subtitle')}
-        primaryAction={
-          canManage ? (
-            <Button variant="primary" icon="plus" onClick={() => setLogging(true)}>
-              {t('ops.support.log.open')}
-            </Button>
-          ) : undefined
-        }
-      />
+      <PageHeader title={t('ops.support.title')} subtitle={t('ops.support.subtitle')} />
       <SupportTabs />
       <Banner tone="info" title={t('ops.support.ruleTitle')}>
         <p>{t('ops.support.rule')}</p>

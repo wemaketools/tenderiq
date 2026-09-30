@@ -19,11 +19,9 @@ import { TENDERS_STATUS } from '@contracts/enums';
 
 import { useApiQuery } from '../../../api/hooks';
 import { useActiveTenant, useScreenFilters } from '../../../app/hooks';
-import { usePermission } from '../../../auth/permissions';
 import { BarList, StackedBarChart } from '../../../components/charts';
 import {
   Banner,
-  ButtonLink,
   Card,
   CardLink,
   Chip,
@@ -55,14 +53,7 @@ import {
 } from '../../../lib/format';
 import { clockDate } from '../../../lib/clock';
 import { t, tEnum } from '../../../lib/i18n';
-import {
-  QUICK_RANGES,
-  REPORT_READ,
-  compact,
-  idOf,
-  oneOf,
-  quickRangeDates,
-} from '../../reports/lib/shared';
+import { QUICK_RANGES, compact, idOf, oneOf, quickRangeDates } from '../../reports/lib/shared';
 import { SavedViewsMenu } from '../../search/components/SavedViews';
 import { AttentionList } from '../components/AttentionList';
 import { DeadlineList } from '../components/DeadlineList';
@@ -115,7 +106,6 @@ function filtersOfView(view: SavedView): Partial<Filters> {
 
 export default function BuyerDashboardPage() {
   const tenant = useActiveTenant();
-  const canReport = usePermission(REPORT_READ);
   const [filters, setFilters, clearFilters] = useScreenFilters('BUY-01', DEFAULTS);
 
   const stage = oneOf(filters.stage, TENDERS_STATUS);
@@ -142,13 +132,6 @@ export default function BuyerDashboardPage() {
       <PageHeader
         title={t('dashboard.buyer.title')}
         subtitle={t('dashboard.buyer.intro', { organization: tenant?.name ?? '' })}
-        primaryAction={
-          canReport ? (
-            <ButtonLink to="/buyer/reports" variant="primary" icon="barChart">
-              {t('dashboard.buyer.openReports')}
-            </ButtonLink>
-          ) : undefined
-        }
         actions={
           <SavedViewsMenu
             scope="BUY-01"

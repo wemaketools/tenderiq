@@ -30,6 +30,11 @@ export const features: FeatureModule[] = [
         section: 'admin',
         order: 95,
         icon: 'help',
+        sectionAction: {
+          label: 'help.cases.open.open',
+          path: 'help?new=1',
+          icon: 'lifeBuoy',
+        },
       },
     ],
   },

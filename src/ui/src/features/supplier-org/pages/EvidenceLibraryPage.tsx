@@ -18,7 +18,6 @@ import { useScreenFilters } from '../../../app/hooks';
 import { usePermission } from '../../../auth/permissions';
 import {
   Banner,
-  ButtonLink,
   Card,
   Checkbox,
   DataTable,
@@ -40,7 +39,7 @@ import { t, tEnum } from '../../../lib/i18n';
 import { FreshnessChip } from '../components/SupplierBits';
 import { compact, dateOf, directionOf, idOf, oneOf, sortOf, tableSort } from '../lib/lists';
 import { supplierOrgPaths } from '../lib/paths';
-import { EVIDENCE_MANAGE, PROFILE_READ } from '../lib/permissions';
+import { PROFILE_READ } from '../lib/permissions';
 
 const DEFAULTS = {
   q: '',
@@ -60,7 +59,6 @@ const DEFAULTS = {
 };
 
 export default function EvidenceLibraryPage() {
-  const canManage = usePermission(EVIDENCE_MANAGE);
   const canReadProfile = usePermission(PROFILE_READ);
   const [filters, setFilters, clearFilters] = useScreenFilters('SUP-05', DEFAULTS);
   const buyers = useApiQuery(suppliersEndpoints.sharingBuyers, {});
@@ -198,13 +196,6 @@ export default function EvidenceLibraryPage() {
       <PageHeader
         title={t('supplier-org.evidence.title')}
         subtitle={t('supplier-org.evidence.intro')}
-        primaryAction={
-          canManage ? (
-            <ButtonLink to={supplierOrgPaths.newEvidence} variant="primary" icon="plus">
-              {t('supplier-org.evidence.add')}
-            </ButtonLink>
-          ) : undefined
-        }
       />
       <FilterBar
         onClear={clearFilters}

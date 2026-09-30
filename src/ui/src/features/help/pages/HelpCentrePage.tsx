@@ -33,6 +33,7 @@ import {
 } from '../../../components/ui';
 import { formatCount, formatDateTime } from '../../../lib/format';
 import { t } from '../../../lib/i18n';
+import { useCreateParam } from '../../../lib/useCreateParam';
 import { AccommodationDialog } from '../components/AccommodationDialog';
 import { ContactsCard, GlossaryCard } from '../components/ContactsCard';
 import { OpenCaseDialog } from '../components/OpenCaseDialog';
@@ -54,7 +55,8 @@ export default function HelpCentrePage() {
   const tenant = useActiveTenant();
   const timeZone = tenant?.officialTimeZone ?? 'UTC';
   const [tab, setTab] = useState<Tab>('guidance');
-  const [dialog, setDialog] = useState<'case' | 'accommodation' | null>(null);
+  const [accommodating, setAccommodating] = useState(false);
+  const [caseRequested, setOpeningCase] = useCreateParam();
   const [filters, setFilters, clearFilters] = useScreenFilters('COM-09', {
     q: '',
     topic: '',
@@ -105,13 +107,8 @@ export default function HelpCentrePage() {
         title={t('help.title')}
         subtitle={t('help.subtitle')}
         actions={
-          <Button icon="users" onClick={() => setDialog('accommodation')}>
+          <Button icon="users" onClick={() => setAccommodating(true)}>
             {t('help.accommodation.open')}
-          </Button>
-        }
-        primaryAction={
-          <Button variant="primary" icon="lifeBuoy" onClick={() => setDialog('case')}>
-            {t('help.cases.open.open')}
           </Button>
         }
       />
@@ -344,21 +341,21 @@ export default function HelpCentrePage() {
         )}
       </Tabs>
 
-      {dialog === 'case' && (
+      {caseRequested && (
         <OpenCaseDialog
-          onClose={() => setDialog(null)}
+          onClose={() => setOpeningCase(false)}
           onOpened={(created) => {
-            setDialog(null);
+            setOpeningCase(false);
             toast.show(t('help.cases.open.done', { reference: created.reference }), 'success');
             navigate(helpPaths.myCase(created.id));
           }}
         />
       )}
-      {dialog === 'accommodation' && (
+      {accommodating && (
         <AccommodationDialog
-          onClose={() => setDialog(null)}
+          onClose={() => setAccommodating(false)}
           onRequested={(created) => {
-            setDialog(null);
+            setAccommodating(false);
             toast.show(t('help.accommodation.done', { reference: created.reference }), 'success');
             navigate(helpPaths.myCase(created.id));
           }}

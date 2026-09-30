@@ -52,7 +52,6 @@ describe('NotificationRulesPage (ADM-12)', () => {
     expect(await screen.findByText('7 days, 2 days before')).toBeInTheDocument();
     expect(screen.getByText('Mandatory notice')).toBeInTheDocument();
     expect(screen.getAllByText('Interested supplier users').length).toBeGreaterThan(0);
-    expect(screen.getByRole('link', { name: 'New rule' })).toBeInTheDocument();
   });
 
   it('shows delivery exceptions with the unchanged deadline and the owner’s task', async () => {
