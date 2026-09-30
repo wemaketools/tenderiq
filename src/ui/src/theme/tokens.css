@@ -1,0 +1,171 @@
+/*
+ * TenderIQ design tokens (architecture-plan §7, docs/technical/09-frontend.md §3; ported from docs/css/theme/tokens.css).
+ *
+ * Every colour and spacing value the components use comes from these --tiq-* custom properties. Components never
+ * contain a raw hex value or a literal pixel gap.
+ *
+ * Port changes (DD-34):
+ * - --qiq-* → --tiq-*.
+ * - The QuoteIQ-only series-* and quadrant-* tokens are dropped. Charts use the --tiq-chart-* palette, which is
+ *   built from the semantic tokens so it follows the theme.
+ * - --tiq-sidebar-text-strong is the sidebar-legible text colour for the brand name, the user name and hovered nav
+ *   items. The source used accent-contrast there, which is almost invisible on the dark-theme sidebar.
+ * - Half-step spacing tokens (space-0-5, space-1-5, space-2-5) replace the source's literal 2px, 6px and 10px gaps.
+ *
+ * Theme selection: the data-theme attribute on <html> (light | dark), stored in users.theme through PUT /me/theme.
+ */
+
+:root,
+html[data-theme='light'] {
+  color-scheme: light;
+
+  /* Surfaces and shell */
+  --tiq-surface-sidebar: #0f2a3f;
+  --tiq-surface-app: #f4f6f8;
+  --tiq-surface-card: #ffffff;
+  --tiq-surface-raised: #ffffff;
+  --tiq-surface-hover: #f8fafb;
+  --tiq-surface-inset: #eef2f5;
+  --tiq-border-subtle: #e3e8ee;
+  --tiq-border-strong: #d0d9e0;
+  --tiq-text-primary: #1b2733;
+  --tiq-text-secondary: #5b6b7a;
+  --tiq-text-on-sidebar: #d7e3ec;
+  --tiq-sidebar-text-strong: #ffffff;
+  --tiq-sidebar-hover: rgba(255, 255, 255, 0.07);
+  --tiq-sidebar-separator: rgba(255, 255, 255, 0.1);
+
+  /* Brand and accent */
+  --tiq-accent: #159aa6;
+  --tiq-accent-strong: #0f7d87;
+  --tiq-accent-contrast: #ffffff;
+  --tiq-accent-soft: #e3f4f5;
+  /* Solid accent fill behind --tiq-on-solid text (primary buttons, active nav pill, avatar): WCAG AA. */
+  --tiq-accent-fill: #10808a;
+  --tiq-accent-fill-hover: #0c6b74;
+  /* Accent text on accent-soft (chips, active vertical tab): WCAG AA. */
+  --tiq-accent-text: #0d727b;
+
+  /* Effects */
+  --tiq-shadow-card: 0 1px 2px rgba(20, 40, 50, 0.04), 0 6px 18px rgba(20, 40, 50, 0.06);
+  --tiq-shadow-raised: 0 8px 30px rgba(20, 40, 50, 0.14);
+  --tiq-scrim: rgba(15, 30, 35, 0.42);
+  --tiq-focus-ring: 0 0 0 2px var(--tiq-surface-card), 0 0 0 4px var(--tiq-accent);
+  /* A data URI cannot read CSS variables, so the chevron stroke (text-secondary) is baked per theme. */
+  --tiq-select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235b6b7a' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+
+  /* Semantic colours */
+  --tiq-success: #1e8e5a;
+  --tiq-success-soft: #e1f3ea;
+  --tiq-warning: #c9820a;
+  --tiq-warning-soft: #faf0dc;
+  --tiq-danger: #c0392b;
+  --tiq-danger-soft: #f8e2df;
+  --tiq-info: #2a6fb0;
+  --tiq-info-soft: #e2ecf5;
+  --tiq-neutral: #6b7a88;
+  --tiq-neutral-soft: #e9edf0;
+  /* Text on the matching -soft background (chips, banners, deltas): WCAG AA 4.5:1 (the base colours stay for
+     icons, bars and borders). */
+  --tiq-success-text: #17774b;
+  --tiq-warning-text: #8f5c04;
+  --tiq-danger-text: #ab3326;
+  --tiq-info-text: #25649f;
+  --tiq-neutral-text: #56636f;
+
+  /* Text on a solid semantic or accent fill (buttons, count badges) */
+  --tiq-on-solid: #ffffff;
+}
+
+html[data-theme='dark'] {
+  color-scheme: dark;
+
+  --tiq-surface-sidebar: #0b1e2e;
+  --tiq-surface-app: #0e1621;
+  --tiq-surface-card: #16232f;
+  --tiq-surface-raised: #1c2b39;
+  --tiq-surface-hover: #1b2a37;
+  --tiq-surface-inset: #101c27;
+  --tiq-border-subtle: #263644;
+  --tiq-border-strong: #35485a;
+  --tiq-text-primary: #eaf0f5;
+  --tiq-text-secondary: #9db0bf;
+  --tiq-text-on-sidebar: #d7e3ec;
+  --tiq-sidebar-text-strong: #ffffff;
+  --tiq-sidebar-hover: rgba(255, 255, 255, 0.07);
+  --tiq-sidebar-separator: rgba(255, 255, 255, 0.1);
+
+  --tiq-accent: #2fb6c2;
+  --tiq-accent-strong: #49c5d0;
+  --tiq-accent-contrast: #08202a;
+  --tiq-accent-soft: #123b41;
+  --tiq-accent-fill: #2fb6c2;
+  --tiq-accent-fill-hover: #49c5d0;
+  --tiq-accent-text: #49c5d0;
+
+  --tiq-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.35);
+  --tiq-shadow-raised: 0 12px 40px rgba(0, 0, 0, 0.55);
+  --tiq-scrim: rgba(2, 8, 12, 0.6);
+  --tiq-focus-ring: 0 0 0 2px var(--tiq-surface-card), 0 0 0 4px var(--tiq-accent);
+  --tiq-select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239db0bf' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+
+  --tiq-success: #3fbf86;
+  --tiq-success-soft: #163429;
+  --tiq-warning: #e3a93c;
+  --tiq-warning-soft: #3a2e14;
+  --tiq-danger: #e56b5d;
+  --tiq-danger-soft: #3a1f1a;
+  --tiq-info: #5aa0dd;
+  --tiq-info-soft: #17293a;
+  --tiq-neutral: #8497a5;
+  --tiq-neutral-soft: #24313c;
+  --tiq-success-text: #3fbf86;
+  --tiq-warning-text: #e3a93c;
+  --tiq-danger-text: #e56b5d;
+  --tiq-info-text: #5aa0dd;
+  --tiq-neutral-text: #93a6b4;
+
+  --tiq-on-solid: #08202a;
+}
+
+:root {
+  /* Typography (fonts are self-hosted, DD-35) */
+  --tiq-font-sans: Inter, 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --tiq-font-mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
+
+  /* Spacing: 4px base scale plus the half steps used by dense controls */
+  --tiq-space-0-5: 2px;
+  --tiq-space-1: 4px;
+  --tiq-space-1-5: 6px;
+  --tiq-space-2: 8px;
+  --tiq-space-2-5: 10px;
+  --tiq-space-3: 12px;
+  --tiq-space-4: 16px;
+  --tiq-space-5: 24px;
+  --tiq-space-6: 32px;
+  --tiq-space-7: 48px;
+
+  --tiq-radius-sm: 6px;
+  --tiq-radius-control: 10px;
+  --tiq-radius-card: 10px;
+  --tiq-radius-menu: 12px;
+  --tiq-radius-dialog: 16px;
+  --tiq-radius-chip: 999px;
+
+  /* Shell layout (DD-36 breakpoints: rail below 1280px, drawer below 768px) */
+  --tiq-sidebar-width: 244px;
+  --tiq-sidebar-rail-width: 72px;
+  --tiq-topbar-height: 64px;
+  --tiq-content-max-width: 1680px;
+
+  /* Chart palette, derived from the semantic tokens so it follows the theme */
+  --tiq-chart-1: var(--tiq-accent);
+  --tiq-chart-2: var(--tiq-info);
+  --tiq-chart-3: var(--tiq-success);
+  --tiq-chart-4: var(--tiq-warning);
+  --tiq-chart-5: var(--tiq-neutral);
+  --tiq-chart-6: var(--tiq-danger);
+  --tiq-chart-grid: var(--tiq-border-subtle);
+  --tiq-chart-axis: var(--tiq-text-secondary);
+  --tiq-chart-track: var(--tiq-surface-inset);
+}

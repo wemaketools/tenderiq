@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- DD-30: vite.config.ts replaces the content token with the policy for the dev server or the build. -->
+    <meta http-equiv="Content-Security-Policy" content="__TENDERIQ_CONTENT_SECURITY_POLICY__" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="description" content="TenderIQ: tender management for buyers and suppliers." />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>TenderIQ</title>
+  </head>
+  <body>
+    <noscript>TenderIQ needs JavaScript. Enable it in your browser and reload the page.</noscript>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

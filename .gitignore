@@ -1,0 +1,52 @@
+# Dependencies
+node_modules/
+
+# Environment files: only the two placeholder catalogs are committed (brief §8.2)
+.env
+.env.*
+!.env.example
+!.env.local.example
+
+# Build output
+dist/
+*.tsbuildinfo
+
+# Vercel CLI state
+.vercel/
+
+# Supabase local state (supabase/.gitignore repeats these for the CLI's own files).
+# The wildcard also covers temporary files of an interrupted key write (they hold private key material).
+supabase/signing_keys.json*
+supabase/.branches/
+supabase/.temp/
+
+# Generated schema dumps (the committed snapshot supabase/schema.expected.sql is NOT ignored)
+*.dump.sql
+
+# Throwaway TypeScript files
+*.tmp.ts
+
+# Test output
+.test-results/
+coverage/
+e2e_tests/test-results/
+e2e_tests/playwright-report/
+e2e_tests/blob-report/
+e2e_tests/.cache/
+# Playwright storage-state files hold live session tokens
+e2e_tests/.auth/
+
+# Agent scratch space (screenshots, probes); the build progress markers in .build/ ARE committed
+.qa-scratch/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/*
+!.vscode/extensions.json

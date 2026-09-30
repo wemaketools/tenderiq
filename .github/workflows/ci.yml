@@ -1,0 +1,164 @@
+# TenderIQ CI (architecture brief §12, technical docs 10-deployment-environments §9).
+#
+# Stage A (UI prototype): one `verify` job. The local Supabase stack runs for AUTHENTICATION ONLY (DD-43): the
+# mock API tests and the Playwright prototype project sign in with real ES256 tokens from it. There is no
+# application schema, so there is no reset, integration suite or db:validate yet.
+# Stage B extends `verify` to the full brief §12 step list and enables the `migrate` job reserved at the end.
+# App deploys are not a CI step: Vercel's Git integration builds on push (brief §12).
+
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  # Suppresses Supabase CLI telemetry (and its timeouts) on runners.
+  DO_NOT_TRACK: '1'
+
+concurrency:
+  group: ci-${{ github.ref }}
+  # Never cancel on main/dev: from Stage B a cancelled `db push` could leave a hosted schema half-migrated.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/dev' }}
+
+jobs:
+  verify:
+    name: verify (Stage A prototype)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Check out
+        uses: actions/checkout@v5
+
+      - name: Set up Node 24 (DD-45)
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Print toolchain versions
+        run: |
+          node --version
+          npm --version
+          npx tsc --version
+          npx vitest --version
+          npx eslint --version
+          npx supabase --version
+          npx playwright --version
+
+      - name: Start the local Supabase stack (Auth for real sign-in, DD-43)
+        run: npm run supabase:start
+
+      - name: Write a throwaway .env.local from supabase status
+        run: |
+          eval "$(npx supabase status -o env | grep -E '^(API_URL|ANON_KEY|SERVICE_ROLE_KEY)=')"
+          test -n "$API_URL" && test -n "$ANON_KEY" && test -n "$SERVICE_ROLE_KEY"
+          echo "::add-mask::$SERVICE_ROLE_KEY"
+          {
+            echo "APP_ENV=local"
+            echo "LOG_LEVEL=info"
+            echo "SUPABASE_URL=$API_URL"
+            echo "SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+            echo "VITE_SUPABASE_URL=$API_URL"
+            echo "VITE_SUPABASE_ANON_KEY=$ANON_KEY"
+          } > .env.local
+
+      - name: Create the demo accounts in local Supabase Auth
+        run: npm run auth:personas
+
+      - name: Typecheck (backend, contracts, mock API, scripts)
+        run: npm run typecheck
+
+      - name: Typecheck (SPA)
+        run: npm run typecheck:ui
+
+      - name: Lint (backend, contracts, mock API, scripts)
+        run: npm run lint
+
+      - name: Lint (SPA, including Prettier)
+        run: npm run lint:ui
+
+      - name: Unit tests (contracts, mock API with real JWT verification, scripts)
+        run: npm run test:unit
+
+      - name: SPA tests (fail on skipped tests, enforce the count floor)
+        run: npm run ci:test:ui
+
+      - name: Build (backend typecheck + SPA production build, as on Vercel)
+        run: npm run build
+
+      - name: Security scans (tracked-file secrets, production bundle leaks)
+        run: npm run ci:security
+
+      - name: Install the Playwright browser
+        working-directory: e2e_tests
+        run: npx playwright install --with-deps chromium
+
+      - name: E2E (Playwright prototype project, axe)
+        run: npm run test:e2e:prototype
+
+      - name: Upload the Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: e2e_tests/playwright-report
+          retention-days: 7
+
+      - name: Stop the local Supabase stack
+        if: always()
+        run: npm run supabase:stop
+
+  # ── Reserved for Stage B (brief §12) ─────────────────────────────────────────────────────────────────────────
+  # The schema deploy job needs supabase/migrations, which exist only from Stage B. Stage B's scaffold step enables
+  # it (and the Stage B verify steps: supabase:reset, ci:test, db:validate). Secrets come from the GitHub
+  # environments `dev` and `Production`, synced from Doppler (brief §8.3).
+  #
+  # migrate:
+  #   name: migrate (schema deploy)
+  #   needs: verify
+  #   if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
+  #   runs-on: ubuntu-latest
+  #   environment: ${{ github.ref_name == 'main' && 'Production' || 'dev' }}
+  #   concurrency:
+  #     group: migrate-${{ github.ref }}
+  #     cancel-in-progress: false
+  #   env:
+  #     APP_ENV: ${{ github.ref_name == 'main' && 'production' || 'dev' }}
+  #     SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+  #     SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+  #     SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+  #     SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+  #     SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+  #     SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+  #     SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+  #     SUPABASE_DIRECT_DATABASE_URL: ${{ secrets.SUPABASE_DIRECT_DATABASE_URL }}
+  #     CRON_SECRET: ${{ secrets.CRON_SECRET }}
+  #     INTERNAL_JOB_SECRET: ${{ secrets.INTERNAL_JOB_SECRET }}
+  #     JOB_CRON_BASE_URL: ${{ secrets.JOB_CRON_BASE_URL }}
+  #   steps:
+  #     - uses: actions/checkout@v5
+  #     - uses: actions/setup-node@v5
+  #       with:
+  #         node-version: 24
+  #         cache: npm
+  #     - run: npm ci
+  #     - name: Generate a local signing key (only to satisfy CLI config parsing)
+  #       run: node scripts/db/ensure-signing-keys.mjs
+  #     - run: npx supabase link --project-ref "$SUPABASE_PROJECT_REF"
+  #     - name: Pending migrations (audit trail)
+  #       run: npx supabase db push --dry-run
+  #     - run: npx supabase db push --yes
+  #     - run: npm run db:seed -- --baseline --env="$APP_ENV"
+  #     - name: Configure pg_cron callbacks (skipped when JOB_CRON_BASE_URL is unset)
+  #       if: env.JOB_CRON_BASE_URL != ''
+  #       run: npm run db:cron:configure -- --env="$APP_ENV"

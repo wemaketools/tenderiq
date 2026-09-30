@@ -1,0 +1,5 @@
+# Local-only files of the Supabase CLI (brief §8.2).
+# signing_keys.json* also covers temporary files of an interrupted key write (private key material).
+signing_keys.json*
+.branches
+.temp

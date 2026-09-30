@@ -1,0 +1,25 @@
+ultracode: I need you to execute a dynamic workflow to build a fully functioning production application directly in this workspace, based strictly on the Product Requirements Document (PRD). 
+
+Do not just write code sequentially. Plan and execute this via a multi-agent, parallelized orchestration pipeline.
+
+<tech_stack>
+All tech stack details, including architecture and repo structure is in docs\architecture-brief.md
+</tech_stack>
+
+<prd_specification>
+The PRD is in docs\PRD.md
+</prd_specification>
+
+<ui_style_guidance>
+The files in docs\screenshots and docs\css provide a style guide to make the application look similar in style to another application in our product suite. Please try to produce an application that looks like the one in the screenshots, using the CSS provided as guidance.
+</ui_style_guidance>
+
+<workflow_execution_instructions>
+1. RECON & PLANNING PHASE: Read the entire PRD. Initialize a fresh Git repository. Generate a database schema blueprint for Supabase and a folder structure plan for the app. Show me this architectural plan before writing core application files.
+2. ENVIRONMENT & CORE SETUP: Spin up a sub-agent to scaffold the app and set up the Supabase client configuration.
+3. CONCURRENT MODULE GENERATION: Fan out multiple parallel sub-agents to implement separate logical features (e.g., Auth & Middleware, Core Database views/triggers, Feature Module A, Feature Module B). Intermediate code drafts must happen in background workers to keep the session context clean.
+4. INTEGRATION & ADVERSARIAL TESTING: Once modules are compiled, initiate a verification pipeline. Have a dedicated QA sub-agent look over the TypeScript types, check edge cases against the PRD requirements, and run local build checks (`npm run build`). 
+5. ABSOLUTE CONSTRAINTS: No placeholder code or "lorem ipsum." If a component or function is defined, write it to completion. Do not stop and ask for step-by-step human permission for every file write; execute autonomously until the verification phase.
+</workflow_execution_instructions>
+
+Please output your proposed multi-phase workflow script and wait for my approval to launch.

@@ -1,0 +1,299 @@
+import { screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { describe, expect, it } from 'vitest';
+
+import type { FeatureModule } from '../../app/featureRegistry';
+import { notificationCountsLoaded, navBadgeSet, taskCountsLoaded } from '../../app/slices/badges';
+import { initialSessionState } from '../../app/slices/session';
+import { installFetch, problem } from '../../test/fetchMock';
+import { makeContext, makeMembership, makeTenant, signedInSession } from '../../test/fixtures';
+import { LocationProbe, renderWithProviders, stubAuth } from '../../test/render';
+import { AppShell } from './AppShell';
+import { PrototypeBanner } from './PrototypeBanner';
+import { PublicShell } from './PublicShell';
+import { SelectOrganizationPage } from './SelectOrganizationPage';
+import { Sidebar } from './Sidebar';
+import { Topbar } from './Topbar';
+
+const modules: FeatureModule[] = [
+  {
+    id: 'demo',
+    area: 'buyer',
+    routes: [],
+    nav: [
+      {
+        id: 'buyer.overview',
+        label: 'shell.brand.sub',
+        path: 'overview',
+        section: 'home',
+        order: 1,
+        icon: 'dashboard',
+      },
+      {
+        id: 'buyer.clarifications',
+        label: 'shell.topbar.help',
+        path: 'clarifications',
+        section: 'sourcing',
+        order: 1,
+        icon: 'messageQuestion',
+        badge: { navBadgeId: 'clar' },
+      },
+      {
+        id: 'buyer.settings',
+        label: 'shell.user.profile',
+        path: 'settings',
+        section: 'admin',
+        order: 1,
+        icon: 'settings',
+      },
+      {
+        id: 'buyer.hidden',
+        label: 'shell.user.menu',
+        path: 'secret',
+        section: 'sourcing',
+        order: 2,
+        icon: 'lock',
+        permission: 'evaluation.chair',
+      },
+    ],
+  },
+  {
+    id: 'supplier-only',
+    area: 'supplier',
+    routes: [],
+    nav: [
+      {
+        id: 'supplier.x',
+        label: 'shell.public.register',
+        path: 'x',
+        section: 'home',
+        order: 1,
+        icon: 'send',
+      },
+    ],
+  },
+];
+
+describe('Sidebar', () => {
+  it('shows the tenant label, wordmark and nav for the active kind and permissions, with the admin group last', async () => {
+    const { store } = renderWithProviders(<Sidebar tenant={makeTenant()} modules={modules} />, {
+      state: { session: signedInSession() },
+      route: '/buyer/overview',
+    });
+    store.dispatch(navBadgeSet({ id: 'clar', count: 4 }));
+    expect(
+      screen.getByText('Kalahari Water Utilities (Pilot)', { selector: '.tiq-brand-tenant' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Tender Intelligence', { selector: '.tiq-brand-sub' }),
+    ).toBeInTheDocument();
+    const nav = screen.getByRole('navigation', { name: 'Main navigation' });
+    const links = within(nav).getAllByRole('link');
+    expect(links.map((link) => link.getAttribute('href'))).toEqual([
+      '/buyer/overview',
+      '/buyer/clarifications',
+      '/buyer/settings',
+    ]);
+    expect(links[0]).toHaveClass('tiq-nav-item--active');
+    expect(nav.querySelector('hr.tiq-sidebar-sep')?.nextElementSibling).toHaveAttribute(
+      'aria-label',
+      'Administration',
+    );
+    expect(
+      await within(nav).findByRole('link', { name: 'Help and support, 4 waiting' }),
+    ).toBeInTheDocument();
+  });
+});
+
+describe('Topbar', () => {
+  it('searches across /me/search and shows the personal counts', async () => {
+    const { store } = renderWithProviders(
+      <Topbar
+        titleRef={() => undefined}
+        actionRef={() => undefined}
+        onOpenMenu={() => undefined}
+        menuOpen={false}
+        sidebarId="s"
+      />,
+      {
+        state: { session: signedInSession() },
+        routes: [{ path: '/me/search', element: <LocationProbe label="search page" /> }],
+      },
+    );
+    store.dispatch(notificationCountsLoaded({ unread: 3, requiresAcknowledgment: 1 }));
+    store.dispatch(taskCountsLoaded({ open: 7, overdue: 2 }));
+    expect(await screen.findByRole('link', { name: 'Notifications, 3 unread' })).toHaveAttribute(
+      'href',
+      '/me/notifications',
+    );
+    expect(screen.getByRole('link', { name: 'My tasks, 7 open' })).toHaveAttribute(
+      'href',
+      '/me/tasks',
+    );
+    expect(screen.getByRole('link', { name: 'Help and support' })).toHaveAttribute(
+      'href',
+      '/me/help',
+    );
+    await userEvent.type(screen.getByRole('searchbox'), 'pump valves{Enter}');
+    expect(screen.getByTestId('location-probe')).toHaveTextContent('search page');
+  });
+});
+
+describe('PrototypeBanner', () => {
+  it('shows only when /me/context reports the prototype mode', () => {
+    const { unmount } = renderWithProviders(<PrototypeBanner />, {
+      state: { session: signedInSession() },
+    });
+    expect(screen.getByRole('note')).toHaveTextContent('Prototype — static demo data');
+    unmount();
+    renderWithProviders(<PrototypeBanner />, {
+      state: { session: signedInSession({ environment: { mode: 'live', appEnv: 'production' } }) },
+    });
+    expect(screen.queryByRole('note')).not.toBeInTheDocument();
+  });
+});
+
+describe('AppShell and user card', () => {
+  it('renders the shell, loads badges tolerating missing summaries, and offers the account menu', async () => {
+    installFetch({ 'GET /api/v1/me/notification-summary': () => problem(404, 'Not Found') });
+    const auth = stubAuth();
+    renderWithProviders(<AppShell modules={modules} />, {
+      state: { session: signedInSession() },
+      auth,
+      route: '/buyer/overview',
+      routes: [{ path: '/select-organization', element: <LocationProbe label="select" /> }],
+    });
+    expect(screen.getByRole('main')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Notifications' })).not.toHaveTextContent(/\d/);
+    await userEvent.click(screen.getByRole('button', { name: /Account menu for Tebogo Molefe/ }));
+    const menu = screen.getByRole('menu', { name: 'Account menu' });
+    expect(menu).toHaveTextContent(
+      'Acting as Procurement Officer for Kalahari Water Utilities (Pilot)',
+    );
+    expect(within(menu).getByRole('menuitem', { name: 'Profile and preferences' })).toHaveAttribute(
+      'href',
+      '/me/profile',
+    );
+    await userEvent.click(within(menu).getByRole('menuitem', { name: 'Sign out' }));
+    expect(auth.signOut).toHaveBeenCalledTimes(1);
+  });
+
+  it('switches the theme and stores it through the API', async () => {
+    const { requests } = installFetch({
+      'PUT /api/v1/me/theme': () => ({ body: { theme: 'dark' } }),
+    });
+    const { store } = renderWithProviders(<AppShell modules={modules} />, {
+      state: { session: signedInSession() },
+      route: '/buyer/overview',
+    });
+    await userEvent.click(screen.getByRole('button', { name: /Account menu for/ }));
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Use dark theme' }));
+    expect(store.getState().session.user?.theme).toBe('dark');
+    await waitFor(() =>
+      expect(requests.some((request) => request.path === '/api/v1/me/theme')).toBe(true),
+    );
+  });
+});
+
+describe('SelectOrganizationPage (COM-02)', () => {
+  const memberships = [
+    makeMembership(),
+    makeMembership({
+      membershipId: 12,
+      tenantId: 5,
+      tenantKind: 'supplier',
+      tenantName: 'Tsodilo Engineering',
+      tenantSlug: 'tsodilo',
+      capacity: 'Technical Contributor',
+    }),
+    makeMembership({
+      membershipId: 13,
+      tenantId: 7,
+      tenantKind: 'supplier',
+      tenantName: 'Serowe ICT Solutions',
+      tenantSlug: 'serowe-ict',
+      status: 'pending_approval',
+    }),
+  ];
+
+  it('lists the organizations, explains the pending one and enters the chosen one', async () => {
+    installFetch({
+      'GET /api/v1/me/context': () => ({
+        body: makeContext({
+          memberships,
+          activeTenant: makeTenant({
+            tenantId: 5,
+            kind: 'supplier',
+            name: 'Tsodilo Engineering',
+            slug: 'tsodilo',
+          }),
+        }),
+      }),
+    });
+    const { store } = renderWithProviders(<SelectOrganizationPage />, {
+      state: {
+        session: signedInSession({ memberships, activeTenant: null, tenantStatus: 'none' }),
+      },
+      route: '/select-organization',
+      path: '/select-organization',
+      routes: [{ path: '/supplier', element: <LocationProbe label="supplier home" /> }],
+    });
+    const list = screen.getByRole('list', { name: 'Your organizations' });
+    expect(
+      within(list).getByText("Waiting for the organization administrator's approval."),
+    ).toBeInTheDocument();
+    expect(within(list).queryByRole('button', { name: /Serowe/ })).not.toBeInTheDocument();
+    await userEvent.click(within(list).getByRole('button', { name: /Tsodilo Engineering/ }));
+    expect(await screen.findByTestId('location-probe')).toHaveTextContent('supplier home');
+    expect(store.getState().session.activeTenant?.name).toBe('Tsodilo Engineering');
+  });
+
+  it('shows the current context and a failure to enter', async () => {
+    installFetch({ 'GET /api/v1/me/context': () => problem(403, 'Forbidden') });
+    renderWithProviders(<SelectOrganizationPage />, {
+      state: { session: signedInSession({ memberships }) },
+    });
+    expect(
+      screen.getByText(
+        'You are acting as Procurement Officer for Kalahari Water Utilities (Pilot)',
+      ),
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /Tsodilo Engineering/ }));
+    expect(await screen.findByText(/could not be entered/)).toBeInTheDocument();
+  });
+
+  it('explains when the account has no organization', () => {
+    renderWithProviders(<SelectOrganizationPage />, {
+      state: { session: signedInSession({ memberships: [], activeTenant: null }) },
+    });
+    expect(screen.getByText('No organizations yet')).toBeInTheDocument();
+    expect(screen.getByRole('note')).toHaveTextContent('Prototype — static demo data');
+  });
+});
+
+describe('PublicShell', () => {
+  it('offers the public destinations, sign in and registration', () => {
+    renderWithProviders(<PublicShell />, {
+      state: { session: { ...initialSessionState, authStatus: 'signedOut' } },
+    });
+    const nav = screen.getByRole('navigation', { name: 'Public portal' });
+    expect(
+      within(nav)
+        .getAllByRole('link')
+        .map((link) => link.getAttribute('href')),
+    ).toEqual(['/opportunities', '/awards', '/plans', '/guidance']);
+    expect(screen.getByRole('link', { name: 'Sign in' })).toHaveAttribute('href', '/signin');
+    expect(screen.getByRole('link', { name: 'Register as a supplier' })).toHaveAttribute(
+      'href',
+      '/register',
+    );
+  });
+
+  it('offers the workspace to a signed-in user', () => {
+    renderWithProviders(<PublicShell />, { state: { session: signedInSession() } });
+    expect(screen.getByRole('link', { name: 'Go to my workspace' })).toHaveAttribute(
+      'href',
+      '/buyer',
+    );
+  });
+});
