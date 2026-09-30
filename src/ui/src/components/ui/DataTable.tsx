@@ -166,7 +166,7 @@ export function DataTable<T>({
   }
 
   return (
-    <div>
+    <div className="tiq-datatable">
       {selection !== undefined && selection.selected.size > 0 && (
         <div className="tiq-table-toolbar" role="status">
           <span>{t('ui.table.selected', { count: selection.selected.size })}</span>

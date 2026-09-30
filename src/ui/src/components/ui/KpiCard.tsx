@@ -2,6 +2,7 @@
  * KPI cards (`overview.png`): icon halo, label, value, optional delta and hint. Restricted metrics show an
  * explanation instead of a number (BR-43: never a misleading zero). `KpiGrid` lays them out responsively.
  */
+import { useLayoutEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 
@@ -49,6 +50,22 @@ export function KpiCard({
       : deltaGood
         ? 'tiq-kpi-delta tiq-kpi-delta--up'
         : 'tiq-kpi-delta tiq-kpi-delta--down';
+  const valueRef = useRef<HTMLSpanElement>(null);
+  // Long values (for example "BWP 1,920,000" in a narrow card) shrink to fit instead of overflowing; short ones
+  // keep the full size. The class is toggled on the element directly, so no re-render is needed.
+  useLayoutEffect(() => {
+    const element = valueRef.current;
+    if (element === null) return undefined;
+    const fit = (): void => {
+      element.classList.remove('tiq-kpi-value--fit');
+      if (element.scrollWidth > element.clientWidth) element.classList.add('tiq-kpi-value--fit');
+    };
+    fit();
+    if (typeof ResizeObserver === 'undefined') return undefined;
+    const observer = new ResizeObserver(fit);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [value, restricted]);
   const body = (
     <div className="tiq-kpi">
       <div className="tiq-kpi-head">
@@ -60,7 +77,7 @@ export function KpiCard({
       {restricted ? (
         <span className="tiq-kpi-hint">{t('ui.kpi.restricted')}</span>
       ) : (
-        <span className="tiq-kpi-value">
+        <span className="tiq-kpi-value" ref={valueRef}>
           {value === null || value === undefined ? EMPTY_VALUE : value}
         </span>
       )}

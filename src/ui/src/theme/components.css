@@ -936,6 +936,19 @@ button:disabled {
 .tiq-card--flush > .tiq-card-head {
   padding: var(--tiq-space-4) var(--tiq-space-4) 0;
 }
+/*
+ * A flush card keeps its tables edge to edge; every other block (detail lists, notes, empty states, footers)
+ * keeps the card gutter so text never touches the card border.
+ */
+.tiq-card--flush > :not(.tiq-card-head):not(.tiq-datatable) {
+  padding-inline: var(--tiq-space-4);
+}
+.tiq-card--flush > :not(.tiq-card-head):not(.tiq-datatable):last-child {
+  padding-bottom: var(--tiq-space-4);
+}
+.tiq-card--flush > :not(.tiq-card-head) + :not(.tiq-card-head) {
+  margin-top: var(--tiq-space-4);
+}
 .tiq-card-head {
   display: flex;
   align-items: flex-start;
@@ -1004,6 +1017,9 @@ button:disabled {
   display: flex;
   flex-direction: column;
   gap: var(--tiq-space-2);
+  min-width: 0;
+  /* The value scales with the card width (container query units), so long amounts never overflow. */
+  container-type: inline-size;
 }
 .tiq-kpi-head {
   display: flex;
@@ -1047,11 +1063,18 @@ button:disabled {
 }
 .tiq-kpi-value {
   font-size: 28px;
+  white-space: nowrap;
   font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1.1;
   color: var(--tiq-text-primary);
   font-variant-numeric: tabular-nums;
+}
+/* Set by KpiCard only when the value does not fit at full size: scale with the card width, then wrap. */
+.tiq-kpi-value--fit {
+  font-size: clamp(16px, 11cqi, 28px);
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 .tiq-kpi-delta {
   font-size: 12px;
