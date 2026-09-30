@@ -227,6 +227,29 @@ function StrategyForm({
   const set = <K extends keyof FormState>(key: K, value: FormState[K]): void => {
     setForm((previous) => ({ ...previous, [key]: value }));
   };
+  /** The event type drives the procedure: an RFI always uses the RFI procedure, and only an RFI does. */
+  const setEventType = (eventType: ProcurementStrategiesEventType): void => {
+    setForm((previous) => {
+      if (eventType === 'rfi') {
+        return {
+          ...previous,
+          eventType,
+          procedure: 'rfi',
+          awardModel: 'single',
+          negotiationPermitted: false,
+        };
+      }
+      return {
+        ...previous,
+        eventType,
+        procedure: previous.procedure === 'rfi' ? 'open' : previous.procedure,
+      };
+    });
+  };
+  const isRfi = form.eventType === 'rfi';
+  const procedureChoices = PROCUREMENT_STRATEGIES_PROCEDURE_WRITE.filter((value) =>
+    isRfi ? value === 'rfi' : value !== 'rfi',
+  );
   const errorOf = (field: string): string | undefined =>
     serverErrors.forField(field) ?? (tried ? local[field] : undefined);
 
@@ -415,31 +438,58 @@ function StrategyForm({
             label={t('requests.strategies.eventType')}
             required
             value={form.eventType}
-            onChange={(value) => set('eventType', value as ProcurementStrategiesEventType)}
+            onChange={(value) => setEventType(value as ProcurementStrategiesEventType)}
             options={enumOptions('procurement_strategies.event_type')}
+            hint={
+              <>
+                {t(`requests.eventTypes.${form.eventType}`)}{' '}
+                {t('requests.strategyForm.eventTypeHint')}
+              </>
+            }
             error={errorOf('eventType')}
           />
-          <Select
-            label={t('requests.strategyFields.awardModel')}
-            required
-            value={form.awardModel}
-            onChange={(value) => set('awardModel', value as ProcurementStrategiesAwardModel)}
-            options={enumOptions('procurement_strategies.award_model')}
-            error={errorOf('awardModel')}
-          />
+          {!isRfi && (
+            <Select
+              label={t('requests.strategyFields.awardModel')}
+              required
+              value={form.awardModel}
+              onChange={(value) => set('awardModel', value as ProcurementStrategiesAwardModel)}
+              options={enumOptions('procurement_strategies.award_model')}
+              error={errorOf('awardModel')}
+            />
+          )}
+          {isRfi && (
+            <div className="tiq-form-full">
+              <Banner tone="info" title={t('requests.strategyForm.rfiTitle')}>
+                <p>{t('requests.strategyForm.rfiBody')}</p>
+              </Banner>
+            </div>
+          )}
           <RadioGroup
             label={t('requests.strategyFields.procedure')}
             required
             fieldClassName="tiq-form-full"
+            hint={
+              isRfi
+                ? t('requests.strategyForm.rfiProcedureHint')
+                : t('requests.strategyForm.procedureHint')
+            }
             value={form.procedure}
             onChange={(value) => set('procedure', value as ProcurementStrategiesProcedureWrite)}
-            options={PROCUREMENT_STRATEGIES_PROCEDURE_WRITE.map((value) => ({
+            options={procedureChoices.map((value) => ({
               value,
               label: tEnum('procurement_strategies.procedure', value),
               hint: t(`requests.procedures.${value}`),
             }))}
             error={errorOf('procedure')}
           />
+          {form.procedure === 'direct' && (
+            <div className="tiq-form-full">
+              <Banner tone="warning" title={t('requests.strategyForm.directTitle')}>
+                <p>{t('requests.strategyForm.directBody')}</p>
+              </Banner>
+            </div>
+          )}
           {form.procedure === 'direct' && (
             <TextArea
               label={t('requests.strategyFields.directAwardGrounds')}
@@ -453,12 +503,14 @@ function StrategyForm({
             />
           )}
           {TEXT_FIELDS.slice(0, 5).map(textArea)}
-          <Checkbox
-            label={t('requests.strategyFields.negotiationPermitted')}
-            checked={form.negotiationPermitted}
-            onChange={(checked) => set('negotiationPermitted', checked)}
-            error={errorOf('negotiationPermitted')}
-          />
+          {!isRfi && (
+            <Checkbox
+              label={t('requests.strategyFields.negotiationPermitted')}
+              checked={form.negotiationPermitted}
+              onChange={(checked) => set('negotiationPermitted', checked)}
+              error={errorOf('negotiationPermitted')}
+            />
+          )}
           {TEXT_FIELDS.slice(5).map(textArea)}
         </div>
       </Card>

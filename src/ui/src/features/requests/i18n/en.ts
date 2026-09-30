@@ -755,6 +755,25 @@ export default {
     project: 'Project',
     serves: 'Serves',
     groundsHint: 'The approved exception grounds, approver and justification.',
+    eventTypeHint:
+      'What you ask suppliers for. The procedure below decides who may take part and how the competition runs.',
+    procedureHint:
+      'Who may take part and how the competition runs. The same kinds of request can be open to everyone, limited to invited suppliers, or sent to one supplier.',
+    rfiProcedureHint:
+      'An RFI only gathers information, so it always uses the RFI procedure. Choose another event type to run a competition.',
+    rfiTitle: 'Information only: no award',
+    rfiBody:
+      'An RFI collects market information. It never leads to an award or a contract by itself, so the award model and negotiation do not apply. A later RFQ, RFP or tender is created as a separate, linked event.',
+    directTitle: 'Direct procurement skips competition',
+    directBody:
+      'Only one supplier is approached. This needs an approved exception: state the grounds, and the strategy approval will review them.',
+    notApplicableRfi: 'Not applicable (RFI)',
+  },
+  eventTypes: {
+    rfi: 'Request for information: learn what the market offers. No purchase is promised.',
+    rfq: 'Request for quotation: you know exactly what you need and ask for prices.',
+    rfp: 'Request for proposal: you describe the problem and suppliers propose a solution and a price.',
+    tender: 'Formal tender: a fully rule-bound competition, usual for large or public purchases.',
   },
   errors: {
     REFERENCE_NOT_FOUND: 'A selected record no longer exists. Reload the page and choose again.',

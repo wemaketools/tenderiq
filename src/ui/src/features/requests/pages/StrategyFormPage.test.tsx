@@ -49,15 +49,50 @@ describe('StrategyFormPage (BUY-06 form)', () => {
     expect(requests.some((item) => item.method === 'POST')).toBe(false);
   });
 
-  it('refuses an RFI procedure for a tender event', async () => {
+  it('does not offer the RFI procedure when the event type is a competition', async () => {
     render();
 
-    await userEvent.click(await screen.findByRole('radio', { name: /^RFI/ }));
-    await userEvent.click(screen.getAllByRole('button', { name: 'Save draft' })[0] as HTMLElement);
+    expect(await screen.findByRole('radio', { name: /^Open/ })).toBeInTheDocument();
+    expect(screen.queryByRole('radio', { name: /^RFI/ })).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/^Award model/)).toBeInTheDocument();
+  });
 
-    expect(
-      await screen.findAllByText('An RFI uses the RFI procedure, and only an RFI does.'),
-    ).not.toHaveLength(0);
+  it('locks the procedure to RFI and hides award and negotiation when the event type is RFI', async () => {
+    const { requests } = render();
+
+    await userEvent.selectOptions(await screen.findByLabelText(/^Event type/), 'rfi');
+
+    for (const other of [/^Open/, /^Restricted/, /^Invitation only/, /^Multi-stage/, /^Direct/]) {
+      expect(screen.queryByRole('radio', { name: other })).not.toBeInTheDocument();
+    }
+    expect(screen.getByRole('radio', { name: /^RFI/ })).toBeChecked();
+    expect(screen.queryByLabelText(/^Award model/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Negotiation/)).not.toBeInTheDocument();
+    expect(screen.getByText('Information only: no award')).toBeInTheDocument();
+
+    await userEvent.click(screen.getAllByRole('button', { name: 'Save draft' })[0] as HTMLElement);
+    await waitFor(() => expect(requests.find((item) => item.method === 'POST')).toBeDefined());
+    const body = requests.find((item) => item.method === 'POST')?.body as Record<string, unknown>;
+    expect(body).toMatchObject({ eventType: 'rfi', procedure: 'rfi', negotiationPermitted: false });
+  });
+
+  it('moves an RFI procedure back to open when the event type changes to a competition', async () => {
+    render();
+
+    const eventType = await screen.findByLabelText(/^Event type/);
+    await userEvent.selectOptions(eventType, 'rfi');
+    await userEvent.selectOptions(eventType, 'rfq');
+
+    expect(screen.getByRole('radio', { name: /^Open/ })).toBeChecked();
+    expect(screen.queryByRole('radio', { name: /^RFI/ })).not.toBeInTheDocument();
+  });
+
+  it('warns that a direct procurement skips competition', async () => {
+    render();
+
+    await userEvent.click(await screen.findByRole('radio', { name: /^Direct/ }));
+
+    expect(screen.getByText('Direct procurement skips competition')).toBeInTheDocument();
   });
 
   it('creates a draft strategy for the approved request given in the link', async () => {

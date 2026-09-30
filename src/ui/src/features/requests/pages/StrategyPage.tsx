@@ -277,7 +277,10 @@ function StrategyWorkspace({
                 { label: t('requests.strategyFields.lotStrategy'), value: strategy.lotStrategy },
                 {
                   label: t('requests.strategyFields.awardModel'),
-                  value: tEnum('procurement_strategies.award_model', strategy.awardModel),
+                  value:
+                    strategy.eventType === 'rfi'
+                      ? t('requests.strategyForm.notApplicableRfi')
+                      : tEnum('procurement_strategies.award_model', strategy.awardModel),
                 },
                 {
                   label: t('requests.strategyFields.qualificationApproach'),
@@ -289,9 +292,12 @@ function StrategyWorkspace({
                 },
                 {
                   label: t('requests.strategyFields.negotiationPermitted'),
-                  value: strategy.negotiationPermitted
-                    ? t('requests.common.yes')
-                    : t('requests.common.no'),
+                  value:
+                    strategy.eventType === 'rfi'
+                      ? t('requests.strategyForm.notApplicableRfi')
+                      : strategy.negotiationPermitted
+                        ? t('requests.common.yes')
+                        : t('requests.common.no'),
                 },
                 { label: t('requests.strategyFields.risks'), value: strategy.risks },
                 {
