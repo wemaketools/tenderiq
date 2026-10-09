@@ -15,7 +15,7 @@ import type {
 } from '@contracts/selection';
 
 import { useApiMutation, useApiQuery } from '../../../../api/hooks';
-import { usePermission } from '../../../../auth/permissions';
+import { useCanCall, usePermission } from '../../../../auth/permissions';
 import { ApprovalStatusPanel } from '../../../../components/approvals';
 import {
   Button,
@@ -31,7 +31,6 @@ import {
   PageHeader,
   QueryView,
   Reference,
-  RestrictedState,
   StatusChip,
   useToast,
 } from '../../../../components/ui';
@@ -84,9 +83,10 @@ export default function FinalOfferPage() {
     roundId === null ? null : { params: { roundId } },
   );
   const view = latest ?? query.data;
+  const canReadDecisions = useCanCall(selectionEndpoints.listProcessDecisions);
   const decisions = useApiQuery(
     selectionEndpoints.listProcessDecisions,
-    view === undefined
+    view === undefined || !canReadDecisions
       ? null
       : {
           query: { tenderId: view.tender.tenderId, pageSize: 100, sort: 'createdAt', dir: 'desc' },
@@ -303,18 +303,18 @@ export default function FinalOfferPage() {
                   empty={<EmptyState compact title={t('selection.finalOffer.noInvitees')} />}
                 />
               </Card>
-              <Card title={t('selection.tender.decisions')} flush>
-                {decisions.error?.kind === 'forbidden' ? (
-                  <RestrictedState compact />
-                ) : decisions.error !== null ? (
-                  <ErrorState error={decisions.error} onRetry={decisions.reload} />
-                ) : (
-                  <ProcessDecisionTable
-                    decisions={[...proposed, ...(decisions.data?.items ?? [])]}
-                    timeZone={zone}
-                  />
-                )}
-              </Card>
+              {canReadDecisions && decisions.error?.kind !== 'forbidden' && (
+                <Card title={t('selection.tender.decisions')} flush>
+                  {decisions.error !== null ? (
+                    <ErrorState error={decisions.error} onRetry={decisions.reload} />
+                  ) : (
+                    <ProcessDecisionTable
+                      decisions={[...proposed, ...(decisions.data?.items ?? [])]}
+                      timeZone={zone}
+                    />
+                  )}
+                </Card>
+              )}
               <ProcessDecisionDialog
                 open={dialog === 'decision'}
                 onClose={close}

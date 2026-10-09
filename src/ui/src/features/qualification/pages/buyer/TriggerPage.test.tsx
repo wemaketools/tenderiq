@@ -110,12 +110,19 @@ describe('TriggerPage (BUY-35, AC-09)', () => {
     expect(screen.getByRole('button', { name: 'Record the new decision' })).toBeInTheDocument();
   });
 
-  it('leaves the disposition to deciders', async () => {
+  it('leaves out the disposition card for a non-decider while the trigger is open', async () => {
     routes();
     renderPage(<TriggerPage />, { ...PATH, permissions: ASSESSOR });
-    expect(
-      await screen.findByText('Only a decider of this program records the disposition.'),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'What happened' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Disposition' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Only a decider/)).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Record disposition' })).not.toBeInTheDocument();
+  });
+
+  it('shows the disposition card to a decider while the trigger is open', async () => {
+    routes();
+    renderPage(<TriggerPage />, { ...PATH, permissions: MANAGER });
+    expect(await screen.findByRole('heading', { name: 'Disposition' })).toBeInTheDocument();
+    expect(screen.getByLabelText(/^Disposition/)).toBeInTheDocument();
   });
 });

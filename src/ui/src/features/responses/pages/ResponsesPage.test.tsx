@@ -225,6 +225,35 @@ describe('ResponsesPage start response (SUP-08 hand-off into SUP-12)', () => {
     ).toBeInTheDocument();
   });
 
+  it('leaves out, without a role notice, an offer the membership may not start', async () => {
+    // Arrange
+    routeCalls({
+      'supplier.bids.list': () => bidPage([]),
+      'supplier.bids.startOptions': () =>
+        startOptions({
+          options: [
+            {
+              isAlternative: false,
+              canStart: false,
+              blockedBy: 'NOT_PERMITTED',
+              existingBidId: null,
+            },
+          ],
+        }),
+    });
+
+    // Act
+    renderWithProviders(<ResponsesPage />, {
+      state: supplierState(BID_MANAGER),
+      route: '/supplier/responses?tenderId=8',
+    });
+
+    // Assert
+    expect(await screen.findByText('Start a response')).toBeInTheDocument();
+    expect(screen.queryByText(/cannot be started/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Start response' })).not.toBeInTheDocument();
+  });
+
   it('shows the business refusal inside the confirmation when the start is rejected', async () => {
     // Arrange
     const user = userEvent.setup();

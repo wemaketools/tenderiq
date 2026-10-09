@@ -268,6 +268,11 @@ function SubmitContent({
     .map((person) => person.fullName)
     .join(', ');
   const representative = preview.representative;
+  // DD-49: a missing submit permission is not announced (the submit action is simply absent); the reasons that
+  // are about the response or the deadline still are.
+  const stateBlocks = preview.authority.blockReasons.filter(
+    (reason) => reason !== 'SUBMIT_PERMISSION_MISSING',
+  );
 
   const confirm = async (): Promise<void> => {
     if (revision === null || acting === null) return;
@@ -359,16 +364,13 @@ function SubmitContent({
           <p>{t('responses.submit.approvedNotSubmittedDetail')}</p>
         </Banner>
       )}
-      {!preview.authority.canSubmit && (
+      {!preview.authority.canSubmit && stateBlocks.length > 0 && (
         <Banner tone="warning" title={t('responses.submit.cannotSubmitTitle')}>
           <ul>
-            {preview.authority.blockReasons.map((reason) => (
+            {stateBlocks.map((reason) => (
               <li key={reason}>{t(`responses.submit.block.${reason}`)}</li>
             ))}
           </ul>
-          {preview.authority.authorizedSubmitters.length > 0 && (
-            <p>{t('responses.submit.whoCan', { names: submitterNames })}</p>
-          )}
         </Banner>
       )}
       {preview.authority.canSubmit && readinessBlocked && (

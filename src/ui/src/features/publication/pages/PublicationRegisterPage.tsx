@@ -13,6 +13,7 @@ import type { TenderRow } from '@contracts/tenders';
 
 import { useApiQuery } from '../../../api/hooks';
 import { useScreenFilters } from '../../../app/hooks';
+import { useCanCall } from '../../../auth/permissions';
 import {
   ButtonLink,
   Card,
@@ -97,7 +98,10 @@ export default function PublicationRegisterPage() {
   const overview = useApiQuery(publicationEndpoints.listPublications, {
     query: { pageSize: 100 },
   });
-  const tenders = useApiQuery(listTenders, { query: { pageSize: 100 } });
+  // DD-49: the publication queue and the tender filter need the tender register; without it they are left out.
+  const canListTenders = useCanCall(listTenders);
+  const tenders = useApiQuery(listTenders, canListTenders ? { query: { pageSize: 100 } } : null);
+  const showQueue = canListTenders && tenders.error?.kind !== 'forbidden';
 
   const all = overview.data?.items ?? [];
   const kpi = (value: number): string => (overview.data === undefined ? '…' : formatCount(value));
@@ -312,13 +316,15 @@ export default function PublicationRegisterPage() {
           value={filters.q}
           onChange={(q) => setFilters({ q, page: 1 })}
         />
-        <Select
-          label={t('publication.register.filter.tender')}
-          placeholder={t('publication.common.allTenders')}
-          value={filters.tenderId}
-          options={tenderOptions}
-          onChange={(tenderId) => setFilters({ tenderId, page: 1 })}
-        />
+        {showQueue && (
+          <Select
+            label={t('publication.register.filter.tender')}
+            placeholder={t('publication.common.allTenders')}
+            value={filters.tenderId}
+            options={tenderOptions}
+            onChange={(tenderId) => setFilters({ tenderId, page: 1 })}
+          />
+        )}
         <Select
           label={t('publication.register.filter.channel')}
           placeholder={t('publication.common.all')}
@@ -388,27 +394,26 @@ export default function PublicationRegisterPage() {
           restricted={restricted}
         />
       </KpiGrid>
-      <Card
-        flush
-        title={t('publication.register.queueTitle')}
-        subtitle={t('publication.register.queueIntro')}
-      >
-        <DataTable
-          caption={t('publication.register.queueCaption')}
-          columns={queueColumns}
-          rows={tenders.status === 'success' ? queue : undefined}
-          rowKey={(row) => String(row.id)}
-          loading={tenders.isFetching}
-          error={tenders.error}
-          onRetry={tenders.reload}
-          restricted={
-            tenders.error?.kind === 'forbidden' ? t('publication.register.queueRestricted') : false
-          }
-          empty={
-            <EmptyState compact icon="checkCircle" title={t('publication.register.queueEmpty')} />
-          }
-        />
-      </Card>
+      {showQueue && (
+        <Card
+          flush
+          title={t('publication.register.queueTitle')}
+          subtitle={t('publication.register.queueIntro')}
+        >
+          <DataTable
+            caption={t('publication.register.queueCaption')}
+            columns={queueColumns}
+            rows={tenders.status === 'success' ? queue : undefined}
+            rowKey={(row) => String(row.id)}
+            loading={tenders.isFetching}
+            error={tenders.error}
+            onRetry={tenders.reload}
+            empty={
+              <EmptyState compact icon="checkCircle" title={t('publication.register.queueEmpty')} />
+            }
+          />
+        </Card>
+      )}
       <Card flush title={t('publication.register.tableTitle')}>
         <DataTable
           caption={t('publication.register.caption')}

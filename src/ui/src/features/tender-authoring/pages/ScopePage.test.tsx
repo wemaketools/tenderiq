@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 
@@ -50,6 +50,38 @@ describe('ScopePage (BUY-09)', () => {
       ),
     ).toBeInTheDocument();
     expect(within(table).queryByText(/· Lot \d$/)).not.toBeInTheDocument();
+  });
+
+  it('leaves out the lots and requirements panels, without querying them, for a membership that cannot read them', async () => {
+    const { requests } = installFetch(routes());
+
+    renderPage(<ScopePage />, { route: ROUTE, path: PATH, permissions: ['tender.edit'] });
+
+    await screen.findByTestId('tender-meta');
+    expect(screen.queryByRole('table', { name: 'Lots' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('table', { name: 'Requirements of the tender' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Every requirement needs an owner')).not.toBeInTheDocument();
+    expect(requests.some((request) => request.path.endsWith('/lots'))).toBe(false);
+    expect(requests.some((request) => request.path.endsWith('/requirements'))).toBe(false);
+  });
+
+  it('leaves out the lots panel when the server refuses the lots', async () => {
+    installFetch({
+      ...routes(),
+      [`GET ${API}/5/lots`]: () => problem(403, 'Forbidden', { code: 'FORBIDDEN' }),
+    });
+
+    renderPage(<ScopePage />, { route: ROUTE, path: PATH });
+
+    expect(
+      await screen.findByRole('table', { name: 'Requirements of the tender' }),
+    ).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByRole('table', { name: 'Lots' })).not.toBeInTheDocument(),
+    );
+    expect(screen.queryByText(/restricted/i)).not.toBeInTheDocument();
   });
 
   it('filters on contradictions when the issue filter is chosen', async () => {

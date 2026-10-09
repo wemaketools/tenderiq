@@ -196,7 +196,7 @@ describe('ResultsPage (EVA-06)', () => {
     expect(within(table).queryByText('highest_non_price')).not.toBeInTheDocument();
   });
 
-  it('shows a tender-team observer totals only: no criterion points and no readiness', async () => {
+  it('shows a tender-team observer totals only: no criterion points, no readiness and no role notice', async () => {
     const base = ranking();
     routeCalls({
       'buyer.evaluation.results.get': () =>
@@ -210,14 +210,14 @@ describe('ResultsPage (EVA-06)', () => {
     });
     renderPage(<ResultsPage />, { ...PATH, persona: OFFICER });
 
-    expect(await screen.findByText('Totals only until sign-off')).toBeInTheDocument();
-    const table = screen.getByRole('table', { name: 'Ranking' });
+    const table = await screen.findByRole('table', { name: 'Ranking' });
+    expect(screen.queryByText('Totals only until sign-off')).not.toBeInTheDocument();
     expect(within(table).getByText('88.00')).toBeInTheDocument();
     expect(within(table).queryByText('31.50')).not.toBeInTheDocument();
     expect(screen.queryByText('Sign-off readiness')).not.toBeInTheDocument();
   });
 
-  it('shows an award approver outside the tender team only the signed-off report versions', async () => {
+  it('shows an award approver outside the tender team only the signed-off report versions, without a role notice', async () => {
     const signedOff = ranking().report;
     if (signedOff === null) throw new Error('fixture');
     routeCalls({
@@ -241,8 +241,8 @@ describe('ResultsPage (EVA-06)', () => {
     });
     renderPage(<ResultsPage />, { ...PATH, persona: OFFICER });
 
-    expect(await screen.findByText('Signed-off reports only')).toBeInTheDocument();
-    expect(screen.getByText('Earlier report version')).toBeInTheDocument();
+    expect(await screen.findByText('Earlier report version')).toBeInTheDocument();
+    expect(screen.queryByText('Signed-off reports only')).not.toBeInTheDocument();
     expect(screen.queryByRole('table', { name: 'Ranking' })).not.toBeInTheDocument();
     expect(
       screen.queryByText('Validate the results to prepare the report.'),

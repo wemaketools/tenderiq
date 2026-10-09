@@ -57,7 +57,7 @@ describe('SupplierNegotiationPage', () => {
     );
   });
 
-  it('explains that an approver responds when the member may only read', async () => {
+  it('shows no respond action and no role hint when the member may only read', async () => {
     installFetch({
       'GET /api/v1/supplier/selection/negotiations/2': () => ({
         body: supplierNegotiationDetail(),
@@ -69,9 +69,8 @@ describe('SupplierNegotiationPage', () => {
       supplier: true,
       permissions: ['supplier.pricing.edit'],
     });
-    expect(
-      await screen.findByText('An authorized approver of your organization sends the response.'),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/other suppliers’ records stay hidden/)).toBeInTheDocument();
+    expect(screen.queryByText(/authorized approver/)).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Respond to round' })).not.toBeInTheDocument();
   });
 
@@ -91,9 +90,8 @@ describe('SupplierNegotiationPage', () => {
         'supplier.pricing.edit',
       ],
     });
-    expect(
-      await screen.findByText('An authorized approver of your organization sends the response.'),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/other suppliers’ records stay hidden/)).toBeInTheDocument();
+    expect(screen.queryByText(/authorized approver/)).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Respond to round' })).not.toBeInTheDocument();
   });
 });

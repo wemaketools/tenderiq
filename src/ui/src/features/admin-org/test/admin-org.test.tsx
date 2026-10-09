@@ -124,9 +124,9 @@ describe('OrganizationPage (ADM-01)', () => {
     });
 
     // Assert
-    expect(
-      await screen.findByText(/changing them needs the organization settings permission/),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Settings' })).toBeInTheDocument();
+    expect(screen.queryByText(/organization settings permission/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Changes are reviewed for their effect/)).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Review changes/ })).not.toBeInTheDocument();
   });
 
@@ -174,6 +174,21 @@ describe('StructurePage (ADM-02)', () => {
     ).toBeInTheDocument();
   });
 
+  it('shows no read-only banner and no add action to a settings manager without the structure permission', async () => {
+    // Arrange
+    installFetch({ [`GET ${BUYER}/departments`]: () => ({ body: page([departmentRow()]) }) });
+
+    // Act
+    renderWithProviders(<StructurePage />, {
+      state: { session: buyerAdminSession(['org.settings.manage']) },
+    });
+
+    // Assert
+    expect(await screen.findByText('Onalenna Tau')).toBeInTheDocument();
+    expect(screen.queryByText('Read only')).not.toBeInTheDocument();
+    expect(screen.queryByText(/organization structure permission/)).not.toBeInTheDocument();
+  });
+
   it('validates the code before adding a cost center', async () => {
     // Arrange
     const { requests } = installFetch({
@@ -209,6 +224,40 @@ describe('AuthorityPage (ADM-05)', () => {
     // Assert
     expect(await screen.findByText('Mpho Dikgang')).toBeInTheDocument();
     expect(screen.getByText('BWP 2,000,000')).toBeInTheDocument();
+  });
+
+  it('shows only the committees tab to a structure manager without the authority permissions', async () => {
+    // Arrange
+    installFetch({ [`GET ${BUYER}/committees`]: () => ({ body: page([]) }) });
+
+    // Act
+    renderWithProviders(<AuthorityPage />, {
+      state: { session: buyerAdminSession(['org.structure.manage']) },
+    });
+
+    // Assert
+    expect(await screen.findByRole('tab', { name: 'Committees' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    expect(screen.getAllByRole('tab')).toHaveLength(1);
+    expect(screen.queryByText(/authority or access review permission/)).not.toBeInTheDocument();
+  });
+
+  it('leaves out the committees tab for an access reviewer without the committee permission', async () => {
+    // Arrange
+    installFetch({ [`GET ${BUYER}/authority-limits`]: () => ({ body: page([limitRow()]) }) });
+
+    // Act
+    renderWithProviders(<AuthorityPage />, {
+      state: { session: buyerAdminSession(['org.access.review']) },
+    });
+
+    // Assert
+    expect(await screen.findByText('Mpho Dikgang')).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Delegations' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Incompatibilities' })).toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'Committees' })).not.toBeInTheDocument();
   });
 
   it('refuses a delegation beyond the delegator’s own limit (BR-06)', async () => {
@@ -348,6 +397,22 @@ describe('organization navigation', () => {
     await waitFor(() =>
       expect(router.state.location.pathname).toBe('/buyer/admin/organization/authority'),
     );
+  });
+
+  it('explains the forbidden page with its heading when the membership holds no organization permission', () => {
+    // Arrange
+    installFetch({});
+
+    // Act
+    renderWithProviders(<OrgIndexPage />, {
+      state: { session: buyerAdminSession(['org.users.view']) },
+    });
+
+    // Assert
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Not available in your role' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Switch organization' })).toBeInTheDocument();
   });
 
   it('shows the organization entry to administrators only', () => {

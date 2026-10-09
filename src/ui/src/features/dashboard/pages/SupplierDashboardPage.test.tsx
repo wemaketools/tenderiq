@@ -9,6 +9,18 @@ import { supplierState } from '../../reports/testSession';
 import { SUPPLIER_DASHBOARD } from '../testData';
 import SupplierDashboardPage from './SupplierDashboardPage';
 
+/** The same dashboard for a capacity that may read the evidence library and contract delivery. */
+const READABLE = {
+  ...SUPPLIER_DASHBOARD,
+  kpis: SUPPLIER_DASHBOARD.kpis.map((kpi) => ({
+    ...kpi,
+    value: kpi.value ?? 0,
+    restricted: false,
+  })),
+  expiringEvidence: { restricted: false, items: [] },
+  contractTasks: { restricted: false, items: [] },
+};
+
 afterEach(() => {
   vi.unstubAllGlobals();
 });
@@ -52,8 +64,8 @@ describe('SupplierDashboardPage (SUP-01)', () => {
     expect(within(row as HTMLElement).queryByText(/^Receipt /)).toBeNull();
   });
 
-  it('states the expiring-evidence window the service applies', async () => {
-    installFetch({ 'GET /api/v1/supplier/dashboard': () => ({ body: SUPPLIER_DASHBOARD }) });
+  it('states the expiring-evidence window the service applies to a capacity that reads evidence', async () => {
+    installFetch({ 'GET /api/v1/supplier/dashboard': () => ({ body: READABLE }) });
     renderWithProviders(<SupplierDashboardPage />, {
       state: supplierState(['supplier.dashboard.view']),
     });
@@ -65,17 +77,31 @@ describe('SupplierDashboardPage (SUP-01)', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows restricted panels without counts when the capacity may not read them', async () => {
+  it('leaves out the panels and KPIs the capacity may not read, with no placeholder in their place', async () => {
     installFetch({ 'GET /api/v1/supplier/dashboard': () => ({ body: SUPPLIER_DASHBOARD }) });
     renderWithProviders(<SupplierDashboardPage />, {
       state: supplierState(['supplier.dashboard.view']),
     });
 
-    expect(
-      await screen.findByText('Your role does not manage the evidence library.'),
-    ).toBeInTheDocument();
-    expect(screen.getByText('Your role does not include contract delivery.')).toBeInTheDocument();
-    const evidence = screen.getAllByRole('region', { name: 'Expiring evidence' })[0];
-    expect(within(evidence!).getByText('Not available in your role')).toBeInTheDocument();
+    expect(await screen.findByRole('list', { name: 'Outcomes' })).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Expiring evidence' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Open contract tasks' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Expiring evidence' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Contract tasks' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Not available in your role')).not.toBeInTheDocument();
+    expect(screen.queryByText(/your role/i)).not.toBeInTheDocument();
+  });
+
+  it('shows the evidence and contract task panels and KPIs when the capacity may read them', async () => {
+    installFetch({ 'GET /api/v1/supplier/dashboard': () => ({ body: READABLE }) });
+    renderWithProviders(<SupplierDashboardPage />, {
+      state: supplierState(['supplier.dashboard.view']),
+    });
+
+    expect(await screen.findByRole('heading', { name: 'Expiring evidence' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Contract tasks' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Expiring evidence' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Open contract tasks' })).toBeInTheDocument();
+    expect(screen.getByText('No evidence expires soon')).toBeInTheDocument();
   });
 });

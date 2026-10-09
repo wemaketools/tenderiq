@@ -13,7 +13,7 @@ import type {
 } from '@contracts/selection';
 
 import { useApiQuery } from '../../../../api/hooks';
-import { usePermission } from '../../../../auth/permissions';
+import { useCanCall, usePermission } from '../../../../auth/permissions';
 import {
   Button,
   ButtonLink,
@@ -24,7 +24,6 @@ import {
   ErrorState,
   PageHeader,
   QueryView,
-  RestrictedState,
   StatusChip,
 } from '../../../../components/ui';
 import { formatDecimalString } from '../../../../lib/format';
@@ -84,9 +83,10 @@ export default function TenderSelectionPage() {
     selectionEndpoints.getTender,
     tenderId === null ? null : { params: { tenderId } },
   );
+  const canReadDecisions = useCanCall(selectionEndpoints.listProcessDecisions);
   const decisions = useApiQuery(
     selectionEndpoints.listProcessDecisions,
-    tenderId === null
+    tenderId === null || !canReadDecisions
       ? null
       : { query: { tenderId, pageSize: 100, sort: 'createdAt', dir: 'desc' } },
   );
@@ -242,21 +242,21 @@ export default function TenderSelectionPage() {
                 )}
               </Card>
             </div>
-            <Card title={t('selection.tender.decisions')} flush>
-              {decisions.error?.kind === 'forbidden' ? (
-                <RestrictedState compact />
-              ) : decisions.error !== null ? (
-                <ErrorState error={decisions.error} onRetry={decisions.reload} />
-              ) : (
-                <ProcessDecisionTable
-                  decisions={[
-                    ...proposed.filter((item) => item.tender.tenderId === tenderId),
-                    ...(decisions.data?.items ?? []),
-                  ]}
-                  timeZone={timeZone}
-                />
-              )}
-            </Card>
+            {canReadDecisions && decisions.error?.kind !== 'forbidden' && (
+              <Card title={t('selection.tender.decisions')} flush>
+                {decisions.error !== null ? (
+                  <ErrorState error={decisions.error} onRetry={decisions.reload} />
+                ) : (
+                  <ProcessDecisionTable
+                    decisions={[
+                      ...proposed.filter((item) => item.tender.tenderId === tenderId),
+                      ...(decisions.data?.items ?? []),
+                    ]}
+                    timeZone={timeZone}
+                  />
+                )}
+              </Card>
+            )}
             <ProcessDecisionDialog
               open={proposing}
               onClose={() => setProposing(false)}

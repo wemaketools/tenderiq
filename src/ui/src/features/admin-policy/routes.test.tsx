@@ -74,8 +74,11 @@ describe('PolicyIndexPage', () => {
     expect(router.state.location.pathname).toBe('/buyer/admin/policy/portal');
   });
 
-  it('explains the restriction when no screen is available', () => {
+  it('explains the forbidden page with its heading when no screen is available', () => {
     renderIndex(['tender.view']);
-    expect(screen.getByText('Restricted')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Not available in your role' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Switch organization' })).toBeInTheDocument();
   });
 });

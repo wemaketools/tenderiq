@@ -6,7 +6,10 @@
 import type { ReactNode } from 'react';
 
 import type { OfficialDeadline as OfficialDeadlineValue } from '@contracts/common';
+import { publicationEndpoints } from '@contracts/publication';
 import type { TenderLabel } from '@contracts/publication';
+
+import { useCanCall } from '../../../auth/permissions';
 
 import {
   Chip,
@@ -36,6 +39,8 @@ export function TenderPublicationHeader({
   actions,
   counts,
 }: TenderPublicationHeaderProps) {
+  // DD-49: a membership that cannot read participants has no Participants tab (the page still explains a URL visit).
+  const canReadParticipants = useCanCall(publicationEndpoints.participantSummary);
   const title =
     section === 'publication'
       ? t('publication.tender.title', { reference: tender.reference })
@@ -79,11 +84,15 @@ export function TenderPublicationHeader({
             to: publicationPaths.tender(tender.tenderId),
             label: t('publication.tabs.publication'),
           },
-          {
-            to: publicationPaths.participants(tender.tenderId),
-            label: t('publication.tabs.participants'),
-            count: counts?.participants,
-          },
+          ...(canReadParticipants
+            ? [
+                {
+                  to: publicationPaths.participants(tender.tenderId),
+                  label: t('publication.tabs.participants'),
+                  count: counts?.participants,
+                },
+              ]
+            : []),
         ]}
       />
     </>

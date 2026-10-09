@@ -41,7 +41,6 @@ import {
   MoneyText,
   PageHeader,
   QueryView,
-  RestrictedState,
   SearchField,
   Select,
   Tabs,
@@ -768,7 +767,6 @@ export default function AuthorityPage() {
         : tab === 'committees'
           ? { label: t('admin-org.committees.create'), open: 'committee' as const }
           : undefined;
-  const restricted = <RestrictedState description={t('admin-org.authority.restricted')} />;
   return (
     <OrgLayout>
       <PageHeader
@@ -787,18 +785,24 @@ export default function AuthorityPage() {
         selected={tab}
         onSelect={(id) => setTab(id as Tab)}
         tabs={[
-          { id: 'limits', label: t('admin-org.authority.tab.limits') },
-          { id: 'delegations', label: t('admin-org.authority.tab.delegations') },
-          { id: 'committees', label: t('admin-org.authority.tab.committees') },
-          { id: 'sod', label: t('admin-org.authority.tab.sod') },
+          ...(canRead
+            ? [
+                { id: 'limits', label: t('admin-org.authority.tab.limits') },
+                { id: 'delegations', label: t('admin-org.authority.tab.delegations') },
+              ]
+            : []),
+          ...(canCommittees
+            ? [{ id: 'committees', label: t('admin-org.authority.tab.committees') }]
+            : []),
+          ...(canRead ? [{ id: 'sod', label: t('admin-org.authority.tab.sod') }] : []),
         ]}
       >
-        {tab === 'limits' &&
-          (canRead ? <LimitsTab created={limits} onEnd={setEnding} /> : restricted)}
-        {tab === 'delegations' &&
-          (canRead ? <DelegationsTab created={delegations} onRevoke={setRevoking} /> : restricted)}
-        {tab === 'committees' && (canCommittees ? <CommitteesTab /> : restricted)}
-        {tab === 'sod' && (canRead ? <SodTab /> : restricted)}
+        {tab === 'limits' && canRead && <LimitsTab created={limits} onEnd={setEnding} />}
+        {tab === 'delegations' && canRead && (
+          <DelegationsTab created={delegations} onRevoke={setRevoking} />
+        )}
+        {tab === 'committees' && canCommittees && <CommitteesTab />}
+        {tab === 'sod' && canRead && <SodTab />}
       </Tabs>
       {open === 'limit' && (
         <CreateLimitDialog

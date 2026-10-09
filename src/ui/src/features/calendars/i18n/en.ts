@@ -110,7 +110,6 @@ export default {
       not_draft: 'Only a draft calendar can be approved.',
       self_approval:
         'You drafted this calendar, so another administrator must approve it (independent review, BR-07).',
-      permission_missing: 'You do not hold the permission to approve calendars.',
     },
     settings: 'Settings',
     name: 'Name',

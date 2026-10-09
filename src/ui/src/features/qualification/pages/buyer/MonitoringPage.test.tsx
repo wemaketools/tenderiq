@@ -182,13 +182,36 @@ describe('MonitoringPage (BUY-35)', () => {
     });
   });
 
-  it('shows the restricted state when the statuses are refused', async () => {
+  it('renders no restricted table when the statuses are refused', async () => {
     routes({
       'buyer.qualification.statuses.list': () => {
         throw businessError('buyer.qualification.statuses.list', 'FORBIDDEN', 403);
       },
     });
     renderPage(<MonitoringPage />, { ...PATH, permissions: MANAGER });
-    expect((await screen.findAllByText('Restricted')).length).toBeGreaterThan(0);
+    expect(await screen.findByText('Decisions pending')).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole('table')).not.toBeInTheDocument());
+    expect(screen.queryByText('Restricted')).not.toBeInTheDocument();
+  });
+
+  it('shows only the eligibility tab, without tiles or summary, to a directory viewer', async () => {
+    const calls = routes();
+    renderPage(<MonitoringPage />, { ...PATH, permissions: ['supplier.directory.view'] });
+    expect(await screen.findByRole('tab', { name: 'Eligibility check' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    expect(screen.getAllByRole('tab')).toHaveLength(1);
+    expect(screen.queryByText('Decisions pending')).not.toBeInTheDocument();
+    expect(calls.some((item) => item.id === 'buyer.qualification.summary')).toBe(false);
+    expect(calls.some((item) => item.id === 'buyer.qualification.statuses.list')).toBe(false);
+  });
+
+  it('leaves out the screening actions column for a membership that cannot review flags', async () => {
+    routes();
+    renderPage(<MonitoringPage />, { ...PATH, permissions: MANAGER });
+    fireEvent.click(await screen.findByRole('tab', { name: /Screenings/ }));
+    expect(await screen.findByText('Makgadikgadi Civil Works')).toBeInTheDocument();
+    expect(screen.queryByRole('columnheader', { name: 'Actions' })).not.toBeInTheDocument();
   });
 });

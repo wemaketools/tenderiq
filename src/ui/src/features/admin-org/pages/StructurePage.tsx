@@ -7,8 +7,7 @@
 import { useState } from 'react';
 
 import { useActiveTenant } from '../../../app/hooks';
-import { usePermission } from '../../../auth/permissions';
-import { Banner, PageHeader, Tabs } from '../../../components/ui';
+import { PageHeader, Tabs } from '../../../components/ui';
 import { t } from '../../../lib/i18n';
 import { OrgLayout } from '../components/OrgLayout';
 import { StructureRegister } from '../components/StructureRegister';
@@ -19,13 +18,11 @@ import {
   fundingSourceKind,
   locationKind,
 } from '../lib/structureKinds';
-import { STRUCTURE_MANAGE } from '../lib/permissions';
 
 type Tab = 'departments' | 'locations' | 'categories' | 'costCenters' | 'fundingSources';
 
 export default function StructurePage() {
   const tenant = useActiveTenant();
-  const canManage = usePermission(STRUCTURE_MANAGE);
   const [tab, setTab] = useState<Tab>('departments');
   return (
     <OrgLayout>
@@ -33,11 +30,6 @@ export default function StructurePage() {
         title={t('admin-org.structure.title')}
         subtitle={t('admin-org.structure.intro', { organization: tenant?.name ?? '' })}
       />
-      {!canManage && (
-        <Banner tone="info" title={t('admin-org.structure.readOnlyTitle')}>
-          <p>{t('admin-org.structure.readOnlyBody')}</p>
-        </Banner>
-      )}
       <Tabs
         label={t('admin-org.structure.tabs')}
         selected={tab}

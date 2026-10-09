@@ -158,6 +158,36 @@ function RequestView({ requestId }: { readonly requestId: number }) {
       {(fetched) => {
         const request = latest ?? fetched;
         const open = request.status === 'issued';
+        // Without submission authority an open request shows no response panel at all (DD-49).
+        const showResponse = request.responseText !== null || !open || canRespond;
+        const requestCard = (
+          <Card title={t('opening.supplier.request')}>
+            <DetailList
+              stacked
+              items={[
+                {
+                  key: 'question',
+                  label: t('opening.columns.question'),
+                  value: request.question,
+                },
+                {
+                  key: 'scope',
+                  label: t('opening.raise.scope'),
+                  value: request.permittedScope,
+                },
+                { key: 'buyer', label: t('opening.supplier.buyer'), value: request.buyer.name },
+                {
+                  key: 'due',
+                  label: t('opening.columns.due'),
+                  value:
+                    request.dueAt === null ? null : (
+                      <OfficialDeadline deadline={request.dueAt} variant="block" />
+                    ),
+                },
+              ]}
+            />
+          </Card>
+        );
         return (
           <div className="tiq-page">
             <PageHeader
@@ -189,72 +219,46 @@ function RequestView({ requestId }: { readonly requestId: number }) {
             <Banner tone="info" title={t('opening.br22.title')}>
               {t('opening.br22.supplier')}
             </Banner>
-            <div className="tiq-grid tiq-grid--2">
-              <Card title={t('opening.supplier.request')}>
-                <DetailList
-                  stacked
-                  items={[
-                    {
-                      key: 'question',
-                      label: t('opening.columns.question'),
-                      value: request.question,
-                    },
-                    {
-                      key: 'scope',
-                      label: t('opening.raise.scope'),
-                      value: request.permittedScope,
-                    },
-                    { key: 'buyer', label: t('opening.supplier.buyer'), value: request.buyer.name },
-                    {
-                      key: 'due',
-                      label: t('opening.columns.due'),
-                      value:
-                        request.dueAt === null ? null : (
-                          <OfficialDeadline deadline={request.dueAt} variant="block" />
-                        ),
-                    },
-                  ]}
-                />
-              </Card>
-              <Card title={t('opening.supplier.response')}>
-                {request.responseText !== null ? (
-                  <div className="tiq-stack">
-                    <Banner tone="success" title={t('opening.respond.submittedTitle')}>
-                      {request.respondedAt === null
-                        ? t('opening.respond.submitted')
-                        : t('opening.respond.submittedAt', {
-                            who: request.respondedBy?.fullName ?? '',
-                            at: formatOfficialTime(request.respondedAt, timeZone),
-                          })}
-                    </Banner>
-                    <p>{request.responseText}</p>
-                    {request.attachments.length > 0 && (
-                      <ul className="tiq-stack">
-                        {request.attachments.map((file) => (
-                          <li key={file.versionId} className="tiq-inline">
-                            <span>{file.title}</span>
-                            <DownloadVersionButton
-                              documentId={file.documentId}
-                              versionId={file.versionId}
-                              fileName={file.fileName}
-                            />
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                ) : open && canRespond ? (
-                  <ResponseForm request={request} onSubmitted={setLatest} />
-                ) : (
-                  <EmptyState
-                    compact
-                    icon={open ? 'lock' : 'clock'}
-                    title={open ? t('opening.respond.noPermission') : t('opening.respond.closed')}
-                    description={open ? t('opening.respond.noPermissionHint') : undefined}
-                  />
-                )}
-              </Card>
-            </div>
+            {showResponse ? (
+              <div className="tiq-grid tiq-grid--2">
+                {requestCard}
+                <Card title={t('opening.supplier.response')}>
+                  {request.responseText !== null ? (
+                    <div className="tiq-stack">
+                      <Banner tone="success" title={t('opening.respond.submittedTitle')}>
+                        {request.respondedAt === null
+                          ? t('opening.respond.submitted')
+                          : t('opening.respond.submittedAt', {
+                              who: request.respondedBy?.fullName ?? '',
+                              at: formatOfficialTime(request.respondedAt, timeZone),
+                            })}
+                      </Banner>
+                      <p>{request.responseText}</p>
+                      {request.attachments.length > 0 && (
+                        <ul className="tiq-stack">
+                          {request.attachments.map((file) => (
+                            <li key={file.versionId} className="tiq-inline">
+                              <span>{file.title}</span>
+                              <DownloadVersionButton
+                                documentId={file.documentId}
+                                versionId={file.versionId}
+                                fileName={file.fileName}
+                              />
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  ) : open ? (
+                    <ResponseForm request={request} onSubmitted={setLatest} />
+                  ) : (
+                    <EmptyState compact icon="clock" title={t('opening.respond.closed')} />
+                  )}
+                </Card>
+              </div>
+            ) : (
+              requestCard
+            )}
           </div>
         );
       }}

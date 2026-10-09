@@ -41,12 +41,15 @@ function routes(
 }
 
 describe('ReferenceChecksPage', () => {
-  it('shows consent, restricted confidential feedback and a consent requirement per referee', async () => {
+  it('shows consent, a dash with the confidential chip for unreadable feedback and a consent requirement', async () => {
     installFetch(routes());
     renderSelection(<ReferenceChecksPage />, { path: PATH, route: PATH, permissions: OFFICER });
     const table = await screen.findByRole('table', { name: 'Reference checks' });
     expect(within(table).getByText('Consent required')).toBeInTheDocument();
-    expect(within(table).getByText('Confidential: restricted')).toBeInTheDocument();
+    const confidential = within(table).getByRole('row', { name: /Kabo Seane/ });
+    expect(within(confidential).getByText('Confidential')).toBeInTheDocument();
+    expect(within(confidential).getAllByText('—').length).toBeGreaterThan(0);
+    expect(within(table).queryByText(/restricted/i)).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Add referee' })).toBeDisabled();
   });
 

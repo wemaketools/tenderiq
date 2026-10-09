@@ -336,7 +336,12 @@ function CalendarView({
                 time: formatOfficialTime(calendar.approvedAt, timeZone),
                 name: calendar.approvedBy.fullName,
               });
-  const approveBlocked = capabilities.approveBlockedReason ?? null;
+  // A missing approval permission is not explained: the approve action is simply absent (DD-49). The business
+  // rules (not a draft, independent review of one's own draft) stay explained.
+  const approveBlocked =
+    capabilities.approveBlockedReason === 'permission_missing'
+      ? null
+      : (capabilities.approveBlockedReason ?? null);
 
   return (
     <div className="tiq-page">

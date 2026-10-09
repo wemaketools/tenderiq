@@ -39,6 +39,40 @@ describe('DiscoveryPage (SUP-06)', () => {
     expect(screen.getByText(/never guarantees eligibility/)).toBeInTheDocument();
   });
 
+  it('shows the Watched tile and the Watchlist tab to a member who may read the watchlist', async () => {
+    discoveryRoutes();
+    renderWithProviders(<DiscoveryPage />, { state: supplierState() });
+    expect(await screen.findByRole('tab', { name: /Watchlist/ })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Watched' })).toBeInTheDocument();
+  });
+
+  it('leaves out the Watched tile and the Watchlist tab when the server refuses the watchlist', async () => {
+    routes({
+      [`GET ${S}/opportunities`]: data.opportunities(),
+      [`GET ${S}/opportunity-filters`]: data.opportunityFilters(),
+      [`GET ${S}/saved-searches`]: data.savedSearches(),
+      [`GET ${S}/watchlist`]: () => problem(403, 'Forbidden', { code: 'FORBIDDEN' }),
+      [`GET ${S}/notice-subscriptions`]: data.subscriptions(),
+    });
+    renderWithProviders(<DiscoveryPage />, {
+      state: supplierState(),
+      route: '/supplier/opportunities?tab=watchlist',
+    });
+    expect(await screen.findByRole('table', { name: 'Opportunities' })).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByRole('tab', { name: /Watchlist/ })).not.toBeInTheDocument(),
+    );
+    expect(screen.queryByRole('region', { name: 'Watched' })).not.toBeInTheDocument();
+  });
+
+  it('does not query the watchlist for a member without opportunity access', async () => {
+    const { requests } = discoveryRoutes();
+    renderWithProviders(<DiscoveryPage />, { state: supplierState(['supplier.pursuit.manage']) });
+    expect(await screen.findByRole('tablist')).toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: /Watchlist/ })).not.toBeInTheDocument();
+    expect(requests.some((request) => request.path === `${S}/watchlist`)).toBe(false);
+  });
+
   it('watches an opportunity through the API', async () => {
     const { requests } = routes({
       [`GET ${S}/opportunities`]: data.opportunities(),
@@ -285,15 +319,18 @@ describe('InvitationsPage and InvitationPage (SUP-07)', () => {
     );
   });
 
-  it('tells a member without authority that a representative must answer', async () => {
+  it('shows a member without authority to answer neither the answer actions nor a role notice', async () => {
     routes({ [`GET ${S}/invitations/206`]: data.invitation206() });
     renderWithProviders(<InvitationPage />, {
       state: supplierState(['supplier.opportunities.view']),
       route: '/supplier/invitations/206',
       path: '/supplier/invitations/:participantId',
     });
-    expect(await screen.findByText('An authorized representative must answer')).toBeInTheDocument();
+    expect(await screen.findAllByText(data.invitation206().buyer.name)).not.toHaveLength(0);
+    expect(screen.queryByText(/representative must answer/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Your role cannot/)).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Accept invitation' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Decline invitation' })).not.toBeInTheDocument();
   });
 });
 
@@ -555,12 +592,11 @@ describe('PursuitPage and PursuitsPage (SUP-09)', () => {
     expect(await screen.findByText('Pursuit assessment saved (private).')).toBeInTheDocument();
   });
 
-  it('is read-only without supplier.pursuit.manage', async () => {
+  it('shows no change actions and no role notice without supplier.pursuit.manage', async () => {
     routes({ [`GET ${S}/opportunities/6/pursuit`]: data.pursuit6() });
     render(['supplier.opportunities.view']);
-    expect(
-      await screen.findByText('Your role can read this pursuit but not change it.'),
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Private to your organization')).toBeInTheDocument();
+    expect(screen.queryByText(/Your role can read/)).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Tell the buyer' })).not.toBeInTheDocument();
   });
 

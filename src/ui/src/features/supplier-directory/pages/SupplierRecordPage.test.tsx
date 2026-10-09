@@ -35,14 +35,35 @@ describe('SupplierRecordPage (BUY-32)', () => {
     expect(screen.getByRole('button', { name: 'Update relationship' })).toBeInTheDocument();
   });
 
-  it('shows shared evidence with restricted financial rows withheld', async () => {
+  it('lists only the shared evidence the role may read, with no withheld row, banner or count', async () => {
     routeCalls({ 'buyer.suppliers.directory.get': () => relationshipRecord() });
     renderPage(<SupplierRecordPage />, { ...PATH, route: '/buyer/suppliers/5?tab=evidence' });
-    expect(await screen.findByText('Some financial evidence is withheld')).toBeInTheDocument();
+    expect(await screen.findByText('Public-liability.pdf')).toBeInTheDocument();
     expect(
-      screen.getByText('Financial evidence (restricted to financial reviewers)'),
-    ).toBeInTheDocument();
-    expect(screen.getByText('Public-liability.pdf')).toBeInTheDocument();
+      screen.queryByText('Financial evidence (restricted to financial reviewers)'),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Some financial evidence is withheld')).not.toBeInTheDocument();
+    expect(screen.queryByText('Restricted')).not.toBeInTheDocument();
+    const shared = screen.getByRole('region', { name: 'Shared items' });
+    expect(within(shared).getByText('1')).toBeInTheDocument();
+  });
+
+  it('lists financial evidence the role may read', async () => {
+    const record = relationshipRecord();
+    routeCalls({
+      'buyer.suppliers.directory.get': () => ({
+        ...record,
+        sharedEvidence: record.sharedEvidence.map((row) => ({
+          ...row,
+          restricted: false,
+          title: row.restricted ? 'Audited financial statements 2025' : row.title,
+        })),
+      }),
+    });
+    renderPage(<SupplierRecordPage />, { ...PATH, route: '/buyer/suppliers/5?tab=evidence' });
+    expect(await screen.findByText('Audited financial statements 2025')).toBeInTheDocument();
+    const shared = screen.getByRole('region', { name: 'Shared items' });
+    expect(within(shared).getByText('2')).toBeInTheDocument();
   });
 
   it('requires a restriction note before restricting the relationship, then saves it', async () => {

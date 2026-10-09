@@ -187,6 +187,57 @@ describe('AwardOverviewPage (BUY-26)', () => {
     );
   });
 
+  describe('final-award approval panel (DD-49)', () => {
+    const SUBJECT = 'GET /api/v1/buyer/approvals/subjects/final_award/71';
+    const requestable = () => {
+      const base = overview({ holds: [], nextStep: 'final_award' });
+      const lot = base.lots[0];
+      if (lot === undefined) throw new Error('test data');
+      return {
+        ...base,
+        lots: [
+          {
+            ...lot,
+            finalAwardApproval: finalApproval({ requestable: true, unavailableReason: null }),
+          },
+        ],
+      };
+    };
+    const subject = () => ({
+      body: {
+        subjectType: 'final_award',
+        subjectId: 71,
+        current: null,
+        history: [],
+        canRequest: true,
+      },
+    });
+
+    it('leaves the panel out and does not load it when the membership may not read approvals', async () => {
+      const { requests } = installFetch({
+        [GET]: () => ({ body: requestable() }),
+        [SUBJECT]: subject,
+      });
+      renderBuyer(<AwardOverviewPage />, { ...OPTIONS, permissions: ['notice.issue'] });
+
+      await screen.findByRole('heading', { name: 'Lot outcomes' });
+      expect(
+        screen.queryByRole('heading', { name: 'Final-award approval' }),
+      ).not.toBeInTheDocument();
+      expect(document.querySelector('[data-state="restricted"]')).toBeNull();
+      expect(requests.some((request) => request.url.includes('/approvals/subjects/'))).toBe(false);
+    });
+
+    it('shows the panel when the membership may read approvals', async () => {
+      installFetch({ [GET]: () => ({ body: requestable() }), [SUBJECT]: subject });
+      renderBuyer(<AwardOverviewPage />, OPTIONS);
+
+      expect(
+        await screen.findByRole('heading', { name: 'Final-award approval' }),
+      ).toBeInTheDocument();
+    });
+  });
+
   it('hides award commands from a read-only auditor', async () => {
     installFetch({ [GET]: () => ({ body: overview() }) });
     renderBuyer(<AwardOverviewPage />, { ...OPTIONS, permissions: ['audit.view'] });

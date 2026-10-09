@@ -47,6 +47,32 @@ describe('IncidentsPage (OPS-05)', () => {
     expect(screen.getByText('The buyer decides deadlines')).toBeInTheDocument();
   });
 
+  it('offers the affected-customer filter to a member who may list customers', async () => {
+    installFetch({
+      [`GET ${O}/incidents`]: () => ({ body: pageOf([row()]) }),
+      [`GET ${O}/customers`]: () => ({ body: pageOf([customerRow()]) }),
+    });
+    renderWithProviders(<IncidentsPage />, { state: opsState(), route: '/ops/incidents' });
+
+    await screen.findByRole('table', { name: 'Incidents' });
+    expect(screen.getByLabelText('Affected customer')).toBeInTheDocument();
+  });
+
+  it('leaves out the affected-customer filter, without listing customers, for a member who may not list them', async () => {
+    const { requests } = installFetch({
+      [`GET ${O}/incidents`]: () => ({ body: pageOf([row()]) }),
+      [`GET ${O}/customers`]: () => ({ body: pageOf([customerRow()]) }),
+    });
+    renderWithProviders(<IncidentsPage />, {
+      state: opsState(['ops.incidents.manage']),
+      route: '/ops/incidents',
+    });
+
+    await screen.findByRole('table', { name: 'Incidents' });
+    expect(screen.queryByLabelText('Affected customer')).not.toBeInTheDocument();
+    expect(requests.some((request) => request.path === `${O}/customers`)).toBe(false);
+  });
+
   it('refuses to declare an incident without its title, severity and start', async () => {
     const { requests } = installFetch({
       [`GET ${O}/incidents`]: () => ({ body: pageOf([]) }),

@@ -118,7 +118,6 @@ export default {
       ROUND_NOT_OPEN: 'this round is not open.',
       BID_ALREADY_EXISTS: 'a response to this round already exists.',
       ALTERNATIVES_NOT_ALLOWED: 'the tender does not accept alternative offers.',
-      NOT_PERMITTED: 'your role does not allow you to edit responses.',
     },
     scope: '{reference} {title}, {round}, {variant}',
     consequence:
@@ -261,7 +260,6 @@ export default {
     readOnlyTitle: 'Read only',
     readOnlyRevision:
       'Revision {no} is no longer an editable draft. Prepare a replacement from Receipts & history to change the offer.',
-    noEditPermission: 'Your capacity in this organization cannot edit response content.',
     notAssignedTitle: 'Not assigned to you',
     assignedToOther: 'This answer is assigned to {name}. Ask the bid manager to reassign it.',
     unassigned: 'This answer is not assigned to you. Ask the bid manager to assign it.',
@@ -424,7 +422,6 @@ export default {
       'Prices are visible only to pricing contributors and internal approvers. You can see whether pricing is complete.',
     completenessTitle: 'Pricing completeness',
     readOnlyTitle: 'Read only',
-    readOnlyPermission: 'Your capacity may review prices but not change them.',
     readOnlyRevision:
       'Revision {no} is no longer an editable draft. Prepare a replacement to change prices.',
     allLots: 'All lots',
@@ -674,7 +671,6 @@ export default {
       exceptions: 'Contract exceptions',
       deviations: 'Deviations',
       subcontracted: 'Subcontracted share',
-      restricted: 'Prices are restricted to pricing contributors and approvers.',
     },
     issuesTitle: 'Unresolved issues',
     materialChangeTitle: 'The content changed after approval',
@@ -694,13 +690,10 @@ export default {
       'This revision is approved internally and ready, but it is not submitted until an official receipt is issued.',
     cannotSubmitTitle: 'You cannot submit this response',
     block: {
-      SUBMIT_PERMISSION_MISSING:
-        'Your capacity in this organization does not include authority to submit responses.',
       READINESS_BLOCKING: 'Blocking readiness errors must be resolved first.',
       SUBMISSION_WINDOW_CLOSED: 'The official submission deadline has passed.',
       NO_WORKING_REVISION: 'There is no prepared revision to submit.',
     },
-    whoCan: 'People who can submit: {names}.',
     blockedTitle: 'Submission is blocked',
     blockedDetail_one: '{count} blocking error must be resolved before submission.',
     blockedDetail_other: '{count} blocking errors must be resolved before submission.',

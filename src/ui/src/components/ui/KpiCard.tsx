@@ -1,13 +1,13 @@
 /**
- * KPI cards (`overview.png`): icon halo, label, value, optional delta and hint. Restricted metrics show an
- * explanation instead of a number (BR-43: never a misleading zero). `KpiGrid` lays them out responsively.
+ * KPI cards (`overview.png`): icon halo, label, value, optional delta and hint. A metric the caller may not see is
+ * not rendered at all (DD-49): no locked tile, and never a misleading zero (BR-43). `KpiGrid` lays the cards out
+ * responsively and disappears when none of them renders.
  */
 import { useLayoutEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 
 import { EMPTY_VALUE } from '../../lib/format';
-import { t } from '../../lib/i18n';
 import { Icon } from './Icon';
 import type { IconName } from './Icon';
 
@@ -29,7 +29,7 @@ export interface KpiCardProps {
   readonly hint?: ReactNode;
   /** Makes the card a link to the underlying list. */
   readonly to?: string;
-  /** The caller may not see this metric: explain instead of showing a number. */
+  /** The caller may not see this metric: the card is not rendered (DD-49). */
   readonly restricted?: boolean;
 }
 
@@ -66,22 +66,21 @@ export function KpiCard({
     observer.observe(element);
     return () => observer.disconnect();
   }, [value, restricted]);
+  if (restricted) {
+    return null;
+  }
   const body = (
     <div className="tiq-kpi">
       <div className="tiq-kpi-head">
         <span className={tone === 'accent' ? 'tiq-kpi-halo' : `tiq-kpi-halo tiq-kpi-halo--${tone}`}>
-          <Icon name={restricted ? 'lock' : icon} />
+          <Icon name={icon} />
         </span>
         <span className="tiq-kpi-label">{label}</span>
       </div>
-      {restricted ? (
-        <span className="tiq-kpi-hint">{t('ui.kpi.restricted')}</span>
-      ) : (
-        <span className="tiq-kpi-value" ref={valueRef}>
-          {value === null || value === undefined ? EMPTY_VALUE : value}
-        </span>
-      )}
-      {!restricted && delta !== undefined && (
+      <span className="tiq-kpi-value" ref={valueRef}>
+        {value === null || value === undefined ? EMPTY_VALUE : value}
+      </span>
+      {delta !== undefined && (
         <span className={deltaClass}>
           <Icon
             name={
@@ -100,7 +99,7 @@ export function KpiCard({
   );
   return (
     <section className="tiq-card" aria-label={label}>
-      {to !== undefined && !restricted ? (
+      {to !== undefined ? (
         <Link to={to} className="tiq-kpi-link">
           {body}
         </Link>

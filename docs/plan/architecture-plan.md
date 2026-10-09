@@ -2,7 +2,7 @@
 
 Status: APPROVED by the owner on 2026-09-29 (revision 3: prototype-first delivery; owner decisions of 2026-09-29 applied — real Supabase Auth in Stage A, Node 24, SMTP email channel via Mailpit locally). Awaiting owner approval before any application code is written.
 Inputs: `docs/PRD.md` (business), `docs/architecture-brief.md` (technical, followed literally), `docs/css` + `docs/screenshots` (visual style).
-Companions: `docs/plan/design-decisions.md` (decision log DD-01 … DD-48 (DD-38 withdrawn, superseded by DD-43); it amends this plan and the blueprint and wins on conflict), `docs/plan/schema-blueprint.md` (database), `docs/plan/demo-storyline.md` (demo dataset), `docs/technical/` (technical documentation), `docs/plan/tenderiq-prototype.workflow.js` (Stage A), `docs/plan/tenderiq-backend.workflow.js` (Stage B, draft).
+Companions: `docs/plan/design-decisions.md` (decision log DD-01 … DD-49 (DD-38 withdrawn, superseded by DD-43); it amends this plan and the blueprint and wins on conflict), `docs/plan/schema-blueprint.md` (database), `docs/plan/demo-storyline.md` (demo dataset), `docs/technical/` (technical documentation), `docs/plan/tenderiq-prototype.workflow.js` (Stage A), `docs/plan/tenderiq-backend.workflow.js` (Stage B, draft).
 
 Every build agent reads this file first. Where this plan and the architecture brief disagree, the brief wins unless §11 lists an approved deviation.
 

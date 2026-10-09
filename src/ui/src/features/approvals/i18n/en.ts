@@ -142,7 +142,6 @@ export default {
     sufficient: 'Sufficient',
     insufficient: 'Insufficient',
     notApplicable: 'No value-based authority applies to this decision.',
-    notYours: 'You are not a decider of this approval.',
     basisValue: {
       authority_limit: 'Your approval limit',
       delegation: 'A delegation',

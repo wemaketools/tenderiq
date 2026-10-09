@@ -57,15 +57,27 @@ describe('PublicationRegisterPage (BUY-14 register)', () => {
     expect(await screen.findByText('No tender is waiting for publication')).toBeInTheDocument();
   });
 
-  it('explains a restricted tender register without hiding the publications', async () => {
+  it('leaves out the publication queue and the tender filter, without querying tenders, for a membership without tender view', async () => {
+    const { requests } = routes({ [LIST]: data.publications(), [TENDERS]: data.tenders() });
+    renderWithProviders(<PublicationRegisterPage />, { state: buyerState(['tender.publish']) });
+
+    expect(await screen.findAllByText('T-2026-0002')).not.toHaveLength(0);
+    expect(screen.queryByText('Release queue')).not.toBeInTheDocument();
+    expect(screen.queryByText('Tenders awaiting publication')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Tender')).not.toBeInTheDocument();
+    expect(screen.queryByText(/cannot view/i)).not.toBeInTheDocument();
+    expect(requests.some((request) => request.path === '/api/v1/buyer/tenders')).toBe(false);
+  });
+
+  it('leaves out the publication queue when the server refuses the tender register', async () => {
     routes({
       [LIST]: data.publications(),
       [TENDERS]: () => problem(403, 'Forbidden', { code: 'FORBIDDEN' }),
     });
-    renderWithProviders(<PublicationRegisterPage />, { state: buyerState(['tender.publish']) });
-    expect(
-      await screen.findByText('Your role cannot view the tender register.'),
-    ).toBeInTheDocument();
+    renderWithProviders(<PublicationRegisterPage />, { state: buyerState() });
+
     expect(await screen.findAllByText('T-2026-0002')).not.toHaveLength(0);
+    await waitFor(() => expect(screen.queryByText('Release queue')).not.toBeInTheDocument());
+    expect(screen.queryByText('Tenders awaiting publication')).not.toBeInTheDocument();
   });
 });

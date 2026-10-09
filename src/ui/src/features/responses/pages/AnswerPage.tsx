@@ -817,11 +817,6 @@ function AnswerContent({ bid }: { readonly bid: BidDetail }) {
           </p>
         </Banner>
       )}
-      {answer.editable && !bid.viewer.canEditResponse && (
-        <Banner tone="info" title={t('responses.answer.readOnlyTitle')}>
-          <p>{t('responses.answer.noEditPermission')}</p>
-        </Banner>
-      )}
       {answer.editable &&
         bid.viewer.canEditResponse &&
         (assignedToOther || unassignedForContributor) && (

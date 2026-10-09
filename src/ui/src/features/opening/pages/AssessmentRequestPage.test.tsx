@@ -56,17 +56,22 @@ describe('AssessmentRequestPage (SUP-18, BR-22)', () => {
   it.each([
     ['a bid manager or contributor without submission authority', ['supplier.response.edit'], 29],
     ['a capacity with read access only', ['supplier.outcomes.view'], 40],
-  ] as const)('shows the request read-only to %s (AC-03)', async (_label, permissions, userId) => {
-    installFetch({
-      'GET /api/v1/supplier/assessment-requests/4109': () => ({ body: assessmentRequest() }),
-    });
-    renderWithProviders(<AssessmentRequestPage />, {
-      state: stateFor([...permissions], userId, 'supplier'),
-      path: PATH,
-      route: ROUTE,
-    });
+  ] as const)(
+    'shows the request without a response panel to %s (AC-03, DD-49)',
+    async (_label, permissions, userId) => {
+      installFetch({
+        'GET /api/v1/supplier/assessment-requests/4109': () => ({ body: assessmentRequest() }),
+      });
+      renderWithProviders(<AssessmentRequestPage />, {
+        state: stateFor([...permissions], userId, 'supplier'),
+        path: PATH,
+        route: ROUTE,
+      });
 
-    expect(await screen.findByText('Your capacity cannot respond')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Submit response' })).not.toBeInTheDocument();
-  });
+      expect(await screen.findByRole('heading', { name: 'Request' })).toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: 'Your response' })).not.toBeInTheDocument();
+      expect(screen.queryByText(/cannot respond/)).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Submit response' })).not.toBeInTheDocument();
+    },
+  );
 });

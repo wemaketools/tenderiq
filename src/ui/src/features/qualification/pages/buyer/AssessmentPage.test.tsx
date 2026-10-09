@@ -85,14 +85,15 @@ describe('AssessmentPage (BUY-34)', () => {
     });
   });
 
-  it('explains the restricted financial panel to an assessor without calling the API (AC-08)', async () => {
+  it('leaves out the financial review tab for an assessor and never calls its API (AC-08, DD-49)', async () => {
     const calls = routeCalls({
       'buyer.qualification.applications.get': () => applicationDetail(),
       'buyer.qualification.options': () => options(),
     });
     renderPage(<AssessmentPage />, { ...PATH, permissions: ASSESSOR });
-    fireEvent.click(await screen.findByRole('tab', { name: 'Financial review' }));
-    expect(await screen.findByText('Restricted financial review')).toBeInTheDocument();
+    expect(await screen.findByRole('tab', { name: /Criteria/ })).toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'Financial review' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Restricted financial review')).not.toBeInTheDocument();
     expect(
       calls.some((item) => item.id === 'buyer.qualification.applications.financialReview'),
     ).toBe(false);

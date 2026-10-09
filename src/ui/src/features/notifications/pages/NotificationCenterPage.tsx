@@ -347,15 +347,11 @@ export default function NotificationCenterPage() {
           )}
           {row.requiresAcknowledgment &&
             row.acknowledgedAt === null &&
-            (row.canAcknowledge === false ? (
-              <span className="tiq-text-muted">
-                {t('notifications.list.ackHandledByBidManager')}
-              </span>
-            ) : (
+            row.canAcknowledge !== false && (
               <Button size="sm" variant="primary" onClick={() => setAcknowledging(row)}>
                 {t('notifications.list.acknowledge')}
               </Button>
-            ))}
+            )}
         </div>
       ),
     },

@@ -4,7 +4,10 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { ApprovalDetail, ApprovalSummary } from '@contracts/approvals';
 import type { AuditEntry } from '@contracts/audit';
+import { listSupplierDocuments } from '@contracts/documents';
 import type { DocumentSummary, DocumentVersion } from '@contracts/documents';
+import type { EndpointPermission } from '@contracts/endpoint';
+import type { PermissionCode } from '@contracts/permissions';
 
 import { installFetch, problem } from '../test/fetchMock';
 import { makeTenant, makeUser, signedInSession } from '../test/fixtures';
@@ -14,6 +17,13 @@ import { HistoryTimeline } from './audit/HistoryTimeline';
 import { ClassificationBadge } from './documents/ClassificationBadge';
 import { DocumentList } from './documents/DocumentList';
 import { DocumentUploader } from './documents/DocumentUploader';
+
+/** The permissions an endpoint requires, as a membership that holds them all. */
+function permissionsOf(endpoint: { readonly permission?: EndpointPermission }): PermissionCode[] {
+  const permission = endpoint.permission;
+  if (permission === undefined) return [];
+  return typeof permission === 'string' ? [permission] : [...permission];
+}
 
 const HASH = 'b'.repeat(64);
 const me = makeUser();
@@ -296,14 +306,25 @@ describe('ApprovalStatusPanel', () => {
     expect(post?.headers['idempotency-key']).toBeTruthy();
   });
 
-  it('explains restricted access', async () => {
-    installFetch({
+  it('leaves the panel out when the approvals of the subject are forbidden (DD-49)', async () => {
+    const { requests } = installFetch({
       'GET /api/v1/buyer/approvals/subjects/tender_release/5': () => problem(403, 'Forbidden'),
     });
     renderWithProviders(<ApprovalStatusPanel {...panelProps} currentVersion={null} />, {
       state: { session: signedInSession() },
     });
-    expect(await screen.findByText('Restricted')).toBeInTheDocument();
+    await waitFor(() => expect(requests).toHaveLength(1));
+    await waitFor(() => expect(document.querySelector('.tiq-card')).toBeNull());
+    expect(screen.queryByText('Restricted')).not.toBeInTheDocument();
+  });
+
+  it('leaves the panel out without asking the API for a role that cannot read approvals (DD-49)', () => {
+    const { requests } = installFetch({});
+    renderWithProviders(<ApprovalStatusPanel {...panelProps} currentVersion={null} />, {
+      state: { session: signedInSession({ activeTenant: makeTenant({}, ['dashboard.view']) }) },
+    });
+    expect(document.querySelector('.tiq-card')).toBeNull();
+    expect(requests).toHaveLength(0);
   });
 });
 
@@ -397,7 +418,12 @@ describe('DocumentList', () => {
       <DocumentList audience="supplier" relatedType="bid_revision" relatedId={3} />,
       {
         state: {
-          session: signedInSession({ activeTenant: makeTenant({ tenantId: 5, kind: 'supplier' }) }),
+          session: signedInSession({
+            activeTenant: makeTenant(
+              { tenantId: 5, kind: 'supplier' },
+              permissionsOf(listSupplierDocuments),
+            ),
+          }),
         },
       },
     );
@@ -539,7 +565,7 @@ describe('HistoryTimeline', () => {
       }),
     });
     renderWithProviders(<HistoryTimeline entityType="tender" entityId={3} />, {
-      state: { session: signedInSession() },
+      state: { session: signedInSession({ activeTenant: makeTenant({}, ['audit.view']) }) },
     });
     const list = await screen.findByRole('list', { name: 'History' });
     expect(list).toHaveTextContent('Tender published');
@@ -549,11 +575,24 @@ describe('HistoryTimeline', () => {
     expect(within(list).getByText('Restricted: metadata only')).toBeInTheDocument();
   });
 
-  it('explains when the caller may not read the audit trail', async () => {
-    installFetch({ 'GET /api/v1/buyer/audit/entities/tender/3': () => problem(403, 'Forbidden') });
+  it('leaves the history out for a caller who may not read the audit trail (DD-49)', () => {
+    const { requests } = installFetch({});
     renderWithProviders(<HistoryTimeline entityType="tender" entityId={3} />, {
       state: { session: signedInSession() },
     });
-    expect(await screen.findByText('Restricted')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'History' })).not.toBeInTheDocument();
+    expect(requests).toHaveLength(0);
+  });
+
+  it('leaves the history out when the API refuses it (DD-49)', async () => {
+    const { requests } = installFetch({
+      'GET /api/v1/buyer/audit/entities/tender/3': () => problem(403, 'Forbidden'),
+    });
+    renderWithProviders(<HistoryTimeline entityType="tender" entityId={3} />, {
+      state: { session: signedInSession({ activeTenant: makeTenant({}, ['audit.view']) }) },
+    });
+    await waitFor(() => expect(requests).toHaveLength(1));
+    await waitFor(() => expect(document.querySelector('.tiq-card')).toBeNull());
+    expect(screen.queryByText('Restricted')).not.toBeInTheDocument();
   });
 });

@@ -72,19 +72,54 @@ describe('RecordsOverviewPage (ADM-14)', () => {
     expect(screen.getByRole('table', { name: 'Blocked by a hold' })).toBeInTheDocument();
   });
 
-  it('shows restricted blocks without counts and hides tabs the role may not open', async () => {
-    routes({
+  it('leaves out the blocks and tabs the role may not open, with no placeholder in their place', async () => {
+    const { requests } = routes({
       [`GET ${B}/summary`]: () => ({
         body: { ...SUMMARY, audit: null, retention: null, holds: null, disposals: null },
       }),
     });
     renderWithProviders(<RecordsOverviewPage />, { state: buyerState(['export.create']) });
 
-    const holds = await screen.findByRole('region', { name: 'Active holds' });
-    expect(within(holds).getByText('Not available in your role')).toBeInTheDocument();
+    expect(await screen.findByRole('region', { name: 'Evidence packs ready' })).toBeInTheDocument();
+    for (const name of [
+      'Active holds',
+      'Audit events (30 days)',
+      'Records past retention',
+      'Disposals blocked by a hold',
+    ]) {
+      expect(screen.queryByRole('region', { name })).not.toBeInTheDocument();
+    }
+    expect(screen.queryByText('Not available in your role')).not.toBeInTheDocument();
+    expect(screen.queryByRole('table', { name: 'Active holds' })).not.toBeInTheDocument();
+    expect(requests.some((request) => request.path.endsWith('/holds'))).toBe(false);
     expect(screen.queryByRole('link', { name: 'Audit events' })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Evidence packs' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Impose hold' })).not.toBeInTheDocument();
+  });
+});
+
+describe('EvidencePackDialog (ADM-14, DD-31)', () => {
+  async function openDialog(permissions: PermissionCode[]) {
+    routes();
+    renderWithProviders(<RecordsOverviewPage />, { state: buyerState(permissions) });
+    await userEvent.click(await screen.findByRole('button', { name: 'Authorize evidence pack' }));
+    return screen.findByRole('dialog', { name: 'Authorize an evidence pack' });
+  }
+
+  it('does not offer restricted audit rows to a member without audit.view', async () => {
+    const dialog = await openDialog(['export.create']);
+    expect(within(dialog).getByLabelText('Include the audit trail')).toBeInTheDocument();
+    expect(
+      within(dialog).queryByLabelText('Include restricted audit rows as metadata'),
+    ).not.toBeInTheDocument();
+    expect(within(dialog).queryByText(/Only auditors/)).not.toBeInTheDocument();
+  });
+
+  it('offers restricted audit rows to an auditor', async () => {
+    const dialog = await openDialog(MANAGER);
+    expect(
+      within(dialog).getByLabelText('Include restricted audit rows as metadata'),
+    ).toBeEnabled();
   });
 });
 

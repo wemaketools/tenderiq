@@ -1,6 +1,7 @@
 /**
  * BUY-35 screening flags: integrity screening results across suppliers. A possible match only prompts a human review
- * (BR-48); the reviewer records the disposition and effect and may raise a reassessment trigger.
+ * (BR-48); the reviewer records the disposition and effect and may raise a reassessment trigger. The caller leaves
+ * the table out for a membership that cannot list screenings; a refused list renders nothing (DD-49).
  */
 import { useState } from 'react';
 
@@ -95,17 +96,21 @@ export function ScreeningsTable({
           </>
         ),
     },
-    {
+  ];
+  if (canReview) {
+    columns.push({
       id: 'actions',
       header: t('qualification.common.actions'),
       cell: (row) =>
-        canReview && row.reviewedAt === null && row.result !== 'no_match' ? (
+        row.reviewedAt === null && row.result !== 'no_match' ? (
           <Button size="sm" icon="shieldCheck" onClick={() => setReviewing(row)}>
             {t('qualification.screening.reviewAction')}
           </Button>
         ) : null,
-    },
-  ];
+    });
+  }
+
+  if (list.error?.kind === 'forbidden') return null;
 
   return (
     <Card flush>
@@ -118,7 +123,6 @@ export function ScreeningsTable({
         loading={list.isFetching}
         error={list.error}
         onRetry={list.reload}
-        restricted={list.error?.kind === 'forbidden'}
         empty={<EmptyState compact title={t('qualification.screening.none')} />}
         pagination={
           list.data === undefined

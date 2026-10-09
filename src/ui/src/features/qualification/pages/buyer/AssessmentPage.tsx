@@ -460,7 +460,9 @@ function Workspace({ application }: { readonly application: BuyerApplicationDeta
             label: t('qualification.assessment.tab.requests'),
             count: openRequests.length,
           },
-          { id: 'financial', label: t('qualification.assessment.tab.financial') },
+          ...(actions.canViewFinancialReview
+            ? [{ id: 'financial', label: t('qualification.assessment.tab.financial') }]
+            : []),
           {
             id: 'screenings',
             label: t('qualification.assessment.tab.screenings'),
@@ -508,7 +510,7 @@ function Workspace({ application }: { readonly application: BuyerApplicationDeta
             />
           </Card>
         )}
-        {tab === 'financial' && (
+        {tab === 'financial' && actions.canViewFinancialReview && (
           <FinancialReviewSection
             applicationId={application.id}
             reference={application.reference}

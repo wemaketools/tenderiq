@@ -158,13 +158,15 @@ function DecideForm({
                 no: application.program.versionNo,
               })}
             </span>
-            <span>
-              {t('qualification.common.nextAction', {
-                action: canDecide
-                  ? t('qualification.next.decide')
-                  : t('qualification.decide.notPending'),
-              })}
-            </span>
+            {application.actions.canDecide && (
+              <span>
+                {t('qualification.common.nextAction', {
+                  action: canDecide
+                    ? t('qualification.next.decide')
+                    : t('qualification.decide.notPending'),
+                })}
+              </span>
+            )}
           </>
         }
         primaryAction={
@@ -188,13 +190,11 @@ function DecideForm({
           ) : undefined
         }
       />
-      {!canDecide && (
+      {application.actions.canDecide && !canDecide && (
         <Banner tone="warning" title={t('qualification.decide.cannotTitle')}>
-          {application.actions.canDecide
-            ? t('qualification.decide.notPendingDetail', {
-                status: tEnum('qualification_applications.status', application.status),
-              })
-            : t('qualification.decide.noAuthority')}
+          {t('qualification.decide.notPendingDetail', {
+            status: tEnum('qualification_applications.status', application.status),
+          })}
         </Banner>
       )}
       <Card title={t('qualification.decide.recommendationTitle')}>

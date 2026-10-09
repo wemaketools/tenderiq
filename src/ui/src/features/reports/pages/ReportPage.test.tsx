@@ -85,7 +85,7 @@ describe('ReportPage (REP-01, AC-34)', () => {
     );
   });
 
-  it('shows the restricted state when the role may not run the family', async () => {
+  it('explains a family the role may not run, with no filters, saved views, export or definition action', async () => {
     routes(() =>
       problem(403, 'Forbidden', {
         code: 'REPORT_FAMILY_RESTRICTED',
@@ -98,5 +98,83 @@ describe('ReportPage (REP-01, AC-34)', () => {
         'Your role may not run this report family. Ask a report manager for access.',
       ),
     ).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Report filters' })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Event or lot level')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Export' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Save as definition' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /saved views/i })).not.toBeInTheDocument();
+  });
+
+  it('shows the filters and actions when the role may run the family', async () => {
+    routes();
+    render();
+    await screen.findByRole('table', { name: 'Competition and participation rows' });
+    expect(screen.getByRole('region', { name: 'Report filters' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Export' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Save as definition' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /saved views/i })).toBeInTheDocument();
+  });
+
+  it('leaves out a column and a highlight the role may not read, with no lock or placeholder', async () => {
+    const hidden = { kind: 'restricted', reason: 'Requires report.manage.' } as const;
+    routes(() => ({
+      body: {
+        ...PARTICIPATION,
+        highlights: PARTICIPATION.highlights.map((highlight) =>
+          highlight.key === 'total_invited' ? { ...highlight, cell: hidden } : highlight,
+        ),
+        rows: PARTICIPATION.rows.map((row) => ({
+          ...row,
+          cells: { ...row.cells, registeredInterest: hidden },
+        })),
+        redactions: [{ field: 'Registered interest', reason: 'Requires report.manage.' }],
+      },
+    }));
+    render();
+
+    const table = await screen.findByRole('table', {
+      name: 'Competition and participation rows',
+    });
+    expect(
+      within(table).queryByRole('columnheader', { name: 'Registered interest' }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(table).getByRole('columnheader', { name: 'Invited organizations' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('region', { name: 'Total invited organizations' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Events' })).toBeInTheDocument();
+    expect(screen.queryByText('Restricted')).not.toBeInTheDocument();
+    expect(screen.queryByText('Requires report.manage.')).not.toBeInTheDocument();
+    expect(screen.queryByText('Fields hidden for your role and why')).not.toBeInTheDocument();
+  });
+
+  it('leaves a single restricted cell empty while the rest of its column stays readable', async () => {
+    const [first, ...others] = PARTICIPATION.rows;
+    routes(() => ({
+      body: {
+        ...PARTICIPATION,
+        rows: [
+          {
+            ...first!,
+            cells: {
+              ...first!.cells,
+              invited: { kind: 'restricted', reason: 'Requires report.manage.' },
+            },
+          },
+          ...others,
+        ],
+      },
+    }));
+    render();
+
+    const table = await screen.findByRole('table', {
+      name: 'Competition and participation rows',
+    });
+    expect(
+      within(table).getByRole('columnheader', { name: 'Invited organizations' }),
+    ).toBeInTheDocument();
+    expect(within(table).queryByText('Restricted')).not.toBeInTheDocument();
   });
 });

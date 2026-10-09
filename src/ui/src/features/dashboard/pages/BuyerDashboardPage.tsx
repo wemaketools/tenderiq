@@ -1,8 +1,8 @@
 /**
  * BUY-01 — Procurement dashboard (FR-21, PRD §12.1, modelled on `overview.png`). Pipeline, active events,
  * deadlines, workload, approvals, exceptions and upcoming renewals of the active buyer, filtered by authorized legal
- * entity, department, owner, category, value and stage. Every card links to the underlying records. A panel the
- * caller may not read shows the restricted state, never a zero or a count (BR-43).
+ * entity, department, owner, category, value and stage. Every card links to the underlying records. A panel, KPI or
+ * figure the caller may not read is left out entirely, never shown as a zero, a count or a placeholder (BR-43, DD-49).
  */
 import { Link } from 'react-router';
 
@@ -38,7 +38,6 @@ import {
   OverdueChip,
   PageHeader,
   QuickRanges,
-  RestrictedState,
   Select,
   SkeletonBlock,
   Reference,
@@ -57,6 +56,7 @@ import { QUICK_RANGES, compact, idOf, oneOf, quickRangeDates } from '../../repor
 import { SavedViewsMenu } from '../../search/components/SavedViews';
 import { AttentionList } from '../components/AttentionList';
 import { DeadlineList } from '../components/DeadlineList';
+import { PanelGrid } from '../components/PanelGrid';
 import { kpiDelta } from '../lib/kpi';
 
 const DEFAULTS = {
@@ -261,9 +261,9 @@ export default function BuyerDashboardPage() {
 }
 
 function DashboardBody({ data }: { readonly data: BuyerDashboard }) {
-  const kpis = BUYER_DASHBOARD_KPIS.map((key) => data.kpis.find((kpi) => kpi.key === key)).filter(
-    (kpi) => kpi !== undefined,
-  );
+  const kpis = BUYER_DASHBOARD_KPIS.map((key) => data.kpis.find((kpi) => kpi.key === key))
+    .filter((kpi) => kpi !== undefined)
+    .filter((kpi) => !kpi.restricted);
   const stageTotal = data.pipelineByStage.items.reduce((sum, item) => sum + item.count, 0);
 
   return (
@@ -281,7 +281,6 @@ function DashboardBody({ data }: { readonly data: BuyerDashboard }) {
             value={kpi.value === null ? null : formatCount(kpi.value)}
             icon={KPI_ICON[kpi.key]}
             tone={KPI_TONE[kpi.key]}
-            restricted={kpi.restricted}
             delta={kpiDelta(kpi.delta)}
             hint={
               kpi.delta !== null
@@ -294,30 +293,23 @@ function DashboardBody({ data }: { readonly data: BuyerDashboard }) {
             to={kpi.to ?? undefined}
           />
         ))}
-        <KpiCard
-          label={t('dashboard.kpi.pipeline_value')}
-          value={
-            data.pipelineValue === null ? null : formatMoney(data.pipelineValue, { compact: true })
-          }
-          icon="coins"
-          restricted={data.pipelineValue === null}
-          hint={t('dashboard.kpi.pipelineHint')}
-        />
+        {data.pipelineValue !== null && (
+          <KpiCard
+            label={t('dashboard.kpi.pipeline_value')}
+            value={formatMoney(data.pipelineValue, { compact: true })}
+            icon="coins"
+            hint={t('dashboard.kpi.pipelineHint')}
+          />
+        )}
       </KpiGrid>
 
-      <div className="tiq-grid tiq-grid--3">
-        <Card
-          title={t('dashboard.pipeline.title')}
-          subtitle={t('dashboard.pipeline.subtitle', { count: stageTotal })}
-          actions={
-            data.pipelineByStage.restricted ? undefined : (
-              <CardLink to="/buyer/tenders">{t('dashboard.pipeline.viewAll')}</CardLink>
-            )
-          }
-        >
-          {data.pipelineByStage.restricted ? (
-            <RestrictedState compact description={t('dashboard.restricted.pipeline')} />
-          ) : (
+      <PanelGrid>
+        {!data.pipelineByStage.restricted && (
+          <Card
+            title={t('dashboard.pipeline.title')}
+            subtitle={t('dashboard.pipeline.subtitle', { count: stageTotal })}
+            actions={<CardLink to="/buyer/tenders">{t('dashboard.pipeline.viewAll')}</CardLink>}
+          >
             <BarList
               label={t('dashboard.pipeline.title')}
               items={data.pipelineByStage.items.map((item) => ({
@@ -327,28 +319,20 @@ function DashboardBody({ data }: { readonly data: BuyerDashboard }) {
                 to: item.to,
               }))}
             />
-          )}
-          {!data.pipelineByStage.restricted && data.pipelineByStage.items.length > 0 && (
-            <p className="tiq-text-muted">
-              {t('dashboard.pipeline.valueNote', {
-                value: data.pipelineValue === null ? '—' : formatMoney(data.pipelineValue),
-              })}
-            </p>
-          )}
-        </Card>
+            {data.pipelineValue !== null && data.pipelineByStage.items.length > 0 && (
+              <p className="tiq-text-muted">
+                {t('dashboard.pipeline.valueNote', { value: formatMoney(data.pipelineValue) })}
+              </p>
+            )}
+          </Card>
+        )}
 
-        <Card
-          title={t('dashboard.deadlines.title')}
-          subtitle={t('dashboard.deadlines.subtitle')}
-          actions={
-            data.deadlines.restricted ? undefined : (
-              <CardLink to="/buyer/tenders">{t('dashboard.deadlines.viewAll')}</CardLink>
-            )
-          }
-        >
-          {data.deadlines.restricted ? (
-            <RestrictedState compact description={t('dashboard.restricted.deadlines')} />
-          ) : (
+        {!data.deadlines.restricted && (
+          <Card
+            title={t('dashboard.deadlines.title')}
+            subtitle={t('dashboard.deadlines.subtitle')}
+            actions={<CardLink to="/buyer/tenders">{t('dashboard.deadlines.viewAll')}</CardLink>}
+          >
             <DeadlineList
               label={t('dashboard.deadlines.title')}
               items={data.deadlines.items.slice(0, 5).map((item) => ({
@@ -362,54 +346,56 @@ function DashboardBody({ data }: { readonly data: BuyerDashboard }) {
                 to: item.to,
               }))}
             />
-          )}
-        </Card>
+          </Card>
+        )}
 
-        <Card title={t('dashboard.workload.title')} subtitle={t('dashboard.workload.subtitle')}>
-          {data.workload.restricted ? (
-            <RestrictedState compact description={t('dashboard.restricted.workload')} />
-          ) : data.workload.items.length === 0 ? (
-            <EmptyState compact icon="users" title={t('dashboard.workload.empty')} />
-          ) : (
-            <StackedBarChart
-              horizontal
-              height={Math.max(180, data.workload.items.length * 48)}
-              label={t('dashboard.workload.title')}
-              categoryLabel={t('dashboard.workload.owner')}
-              series={[
-                {
-                  key: 'activeEvents',
-                  label: t('dashboard.workload.activeEvents'),
-                  tone: 'accent',
-                },
-                { key: 'openTasks', label: t('dashboard.workload.openTasks'), tone: 'info' },
-                {
-                  key: 'overdueTasks',
-                  label: t('dashboard.workload.overdueTasks'),
-                  tone: 'danger',
-                },
-                {
-                  key: 'pendingApprovals',
-                  label: t('dashboard.workload.pendingApprovals'),
-                  tone: 'warning',
-                },
-              ]}
-              points={data.workload.items.map((item) => ({
-                x: item.owner.fullName,
-                values: {
-                  activeEvents: item.activeEvents,
-                  openTasks: item.openTasks,
-                  overdueTasks: item.overdueTasks,
-                  pendingApprovals: item.pendingApprovals,
-                },
-              }))}
-            />
-          )}
-        </Card>
-      </div>
+        {!data.workload.restricted && (
+          <Card title={t('dashboard.workload.title')} subtitle={t('dashboard.workload.subtitle')}>
+            {data.workload.items.length === 0 ? (
+              <EmptyState compact icon="users" title={t('dashboard.workload.empty')} />
+            ) : (
+              <StackedBarChart
+                horizontal
+                height={Math.max(180, data.workload.items.length * 48)}
+                label={t('dashboard.workload.title')}
+                categoryLabel={t('dashboard.workload.owner')}
+                series={[
+                  {
+                    key: 'activeEvents',
+                    label: t('dashboard.workload.activeEvents'),
+                    tone: 'accent',
+                  },
+                  { key: 'openTasks', label: t('dashboard.workload.openTasks'), tone: 'info' },
+                  {
+                    key: 'overdueTasks',
+                    label: t('dashboard.workload.overdueTasks'),
+                    tone: 'danger',
+                  },
+                  {
+                    key: 'pendingApprovals',
+                    label: t('dashboard.workload.pendingApprovals'),
+                    tone: 'warning',
+                  },
+                ]}
+                points={data.workload.items.map((item) => ({
+                  x: item.owner.fullName,
+                  values: {
+                    activeEvents: item.activeEvents,
+                    openTasks: item.openTasks,
+                    overdueTasks: item.overdueTasks,
+                    pendingApprovals: item.pendingApprovals,
+                  },
+                }))}
+              />
+            )}
+          </Card>
+        )}
+      </PanelGrid>
 
-      <div className="tiq-grid tiq-grid--sidebar">
-        <ApprovalsCard data={data} />
+      <PanelGrid variant="sidebar">
+        {!data.approvals.restricted && (
+          <ApprovalsCard approvals={data.approvals.items} timeZone={data.timeZone} />
+        )}
         <Card title={t('dashboard.attention.title')} subtitle={t('dashboard.attention.subtitle')}>
           <AttentionList
             label={t('dashboard.attention.title')}
@@ -424,14 +410,20 @@ function DashboardBody({ data }: { readonly data: BuyerDashboard }) {
             }))}
           />
         </Card>
-      </div>
+      </PanelGrid>
 
-      <RenewalsCard data={data} />
+      {!data.renewals.restricted && <RenewalsCard renewals={data.renewals.items} />}
     </>
   );
 }
 
-function ApprovalsCard({ data }: { readonly data: BuyerDashboard }) {
+function ApprovalsCard({
+  approvals,
+  timeZone,
+}: {
+  readonly approvals: readonly DashboardApproval[];
+  readonly timeZone: string;
+}) {
   const columns: DataTableColumn<DashboardApproval>[] = [
     {
       id: 'title',
@@ -457,7 +449,7 @@ function ApprovalsCard({ data }: { readonly data: BuyerDashboard }) {
       cell: (row) => (
         <>
           <span>{row.requestedBy.fullName}</span>
-          <span className="tiq-cell-sub">{formatInstantDate(row.requestedAt, data.timeZone)}</span>
+          <span className="tiq-cell-sub">{formatInstantDate(row.requestedAt, timeZone)}</span>
         </>
       ),
     },
@@ -468,7 +460,7 @@ function ApprovalsCard({ data }: { readonly data: BuyerDashboard }) {
         <span className="tiq-inline">
           {row.dueAt === null
             ? t('dashboard.approvals.noDue')
-            : formatInstantDate(row.dueAt, data.timeZone)}
+            : formatInstantDate(row.dueAt, timeZone)}
           {row.overdue && <OverdueChip />}
         </span>
       ),
@@ -479,31 +471,20 @@ function ApprovalsCard({ data }: { readonly data: BuyerDashboard }) {
       flush
       title={t('dashboard.approvals.title')}
       subtitle={t('dashboard.approvals.subtitle')}
-      actions={
-        data.approvals.restricted ? undefined : (
-          <CardLink to="/me/tasks">{t('dashboard.approvals.viewAll')}</CardLink>
-        )
-      }
+      actions={<CardLink to="/me/tasks">{t('dashboard.approvals.viewAll')}</CardLink>}
     >
       <DataTable
         caption={t('dashboard.approvals.title')}
         columns={columns}
-        rows={data.approvals.restricted ? [] : data.approvals.items}
+        rows={approvals}
         rowKey={(row) => String(row.approvalId)}
-        restricted={
-          data.approvals.restricted ? (
-            <RestrictedState compact description={t('dashboard.restricted.approvals')} />
-          ) : (
-            false
-          )
-        }
         empty={<EmptyState compact icon="checkSquare" title={t('dashboard.approvals.empty')} />}
       />
     </Card>
   );
 }
 
-function RenewalsCard({ data }: { readonly data: BuyerDashboard }) {
+function RenewalsCard({ renewals }: { readonly renewals: readonly DashboardRenewal[] }) {
   const columns: DataTableColumn<DashboardRenewal>[] = [
     {
       id: 'contract',
@@ -555,24 +536,13 @@ function RenewalsCard({ data }: { readonly data: BuyerDashboard }) {
       flush
       title={t('dashboard.renewals.title')}
       subtitle={t('dashboard.renewals.subtitle')}
-      actions={
-        data.renewals.restricted ? undefined : (
-          <CardLink to="/buyer/contracts">{t('dashboard.renewals.viewAll')}</CardLink>
-        )
-      }
+      actions={<CardLink to="/buyer/contracts">{t('dashboard.renewals.viewAll')}</CardLink>}
     >
       <DataTable
         caption={t('dashboard.renewals.title')}
         columns={columns}
-        rows={data.renewals.restricted ? [] : data.renewals.items}
+        rows={renewals}
         rowKey={(row) => `${row.contractId}-${row.optionType}-${row.decisionDueOn}`}
-        restricted={
-          data.renewals.restricted ? (
-            <RestrictedState compact description={t('dashboard.restricted.renewals')} />
-          ) : (
-            false
-          )
-        }
         empty={<EmptyState compact icon="repeat" title={t('dashboard.renewals.empty')} />}
       />
     </Card>

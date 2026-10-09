@@ -38,7 +38,7 @@ const renderPage = (permissions = SIGNATORY_PERMISSIONS) =>
 const attempts = { items: [], total: 0, page: 1, pageSize: 5 };
 
 describe('SubmitPage (SUP-16)', () => {
-  it('tells a contributor why they cannot submit and who can, without a submit action (AC-03)', async () => {
+  it('shows a contributor without submit authority no submit action and no role notice (AC-03, DD-49)', async () => {
     // Arrange
     routeCalls({
       'supplier.bids.get': () => bidDetail(),
@@ -57,14 +57,34 @@ describe('SubmitPage (SUP-16)', () => {
     renderPage(CONTRIBUTOR);
 
     // Assert
-    expect(await screen.findByText('You cannot submit this response')).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        'Your capacity in this organization does not include authority to submit responses.',
-      ),
-    ).toBeInTheDocument();
-    expect(screen.getByText('People who can submit: Motsamai Tsodilo.')).toBeInTheDocument();
+    expect(await screen.findByText('What would be submitted')).toBeInTheDocument();
+    expect(screen.queryByText('You cannot submit this response')).not.toBeInTheDocument();
+    expect(screen.queryByText(/authority to submit/)).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Submit response' })).not.toBeInTheDocument();
+  });
+
+  it('still explains a closed submission window to a member without submit authority', async () => {
+    // Arrange
+    routeCalls({
+      'supplier.bids.get': () => bidDetail(),
+      'supplier.bids.submissionPreview': () =>
+        submissionPreview({
+          authority: {
+            canSubmit: false,
+            blockReasons: ['SUBMIT_PERMISSION_MISSING', 'SUBMISSION_WINDOW_CLOSED'],
+            authorizedSubmitters: [{ userId: 27, fullName: 'Motsamai Tsodilo' }],
+          },
+        }),
+      'supplier.bids.attempts': () => attempts,
+    });
+
+    // Act
+    renderPage(CONTRIBUTOR);
+
+    // Assert
+    expect(await screen.findByText('You cannot submit this response')).toBeInTheDocument();
+    expect(screen.getByText('The official submission deadline has passed.')).toBeInTheDocument();
+    expect(screen.queryByText(/authority to submit/)).not.toBeInTheDocument();
   });
 
   it('never names a contributor as the authorized representative in the declaration (FR-11)', async () => {

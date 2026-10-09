@@ -29,6 +29,14 @@ describe('ServiceIndexPage', () => {
 
     expect(await screen.findByTestId('location-probe')).toHaveTextContent('exceptions');
   });
+
+  it('explains the forbidden page with its heading when no service screen is available', () => {
+    renderWithProviders(<ServiceIndexPage />, { state: buyerState(['tender.view']) });
+
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Not available in your role' }),
+    ).toBeInTheDocument();
+  });
 });
 
 describe('SubscriptionPage (ADM-17, AC-36)', () => {

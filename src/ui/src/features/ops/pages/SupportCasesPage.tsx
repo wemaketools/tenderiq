@@ -12,7 +12,7 @@ import type { SupportCasesCategory, SupportCasesStatus } from '@contracts/enums'
 
 import { useApiQuery } from '../../../api/hooks';
 import { useActiveTenant, useScreenFilters } from '../../../app/hooks';
-import { usePermission } from '../../../auth/permissions';
+import { useCanCall, usePermission } from '../../../auth/permissions';
 import {
   Banner,
   Card,
@@ -65,9 +65,12 @@ export default function SupportCasesPage() {
   const logging = canManage && loggingRequested;
   const [filters, setFilters, clearFilters] = useScreenFilters('OPS-04', DEFAULTS);
   const staff = useOperatorStaffOptions();
-  const customers = useApiQuery(operationsEndpoints.listCustomers, {
-    query: { pageSize: 100, sort: 'name' },
-  });
+  /** The customer filter is offered only to members who may list customers (DD-49). */
+  const canListCustomers = useCanCall(operationsEndpoints.listCustomers);
+  const customers = useApiQuery(
+    operationsEndpoints.listCustomers,
+    canListCustomers ? { query: { pageSize: 100, sort: 'name' } } : null,
+  );
   const query = {
     page: filters.page,
     pageSize: 25,
@@ -124,16 +127,18 @@ export default function SupportCasesPage() {
           onChange={(value) => update({ category: value })}
           options={enumOptions('support_cases.category')}
         />
-        <Select
-          label={t('ops.support.col.customer')}
-          placeholder={t('ops.common.all')}
-          value={filters.customer}
-          onChange={(value) => update({ customer: value })}
-          options={(customers.data?.items ?? []).map((row) => ({
-            value: String(row.tenantId),
-            label: row.name,
-          }))}
-        />
+        {canListCustomers && (
+          <Select
+            label={t('ops.support.col.customer')}
+            placeholder={t('ops.common.all')}
+            value={filters.customer}
+            onChange={(value) => update({ customer: value })}
+            options={(customers.data?.items ?? []).map((row) => ({
+              value: String(row.tenantId),
+              label: row.name,
+            }))}
+          />
+        )}
         <Select
           label={t('ops.support.col.assignee')}
           placeholder={t('ops.common.all')}

@@ -73,12 +73,25 @@ describe('SupplierQualificationPage (SUP-20)', () => {
     );
   });
 
-  it('shows outcomes read-only to a contributor who cannot apply', async () => {
+  it('shows only the outcomes, without tabs or a read-only banner, to a contributor who cannot apply', async () => {
     const calls = routes();
     renderPage(<SupplierQualificationPage />, { ...PATH, permissions: SUPPLIER_VIEW });
-    expect(await screen.findByText('Read-only access')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Makgadikgadi Civil Works is registered on TenderIQ'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Read-only access')).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'Programs' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'My applications' })).not.toBeInTheDocument();
     expect(calls.some((item) => item.id === 'supplier.qualification.applications.list')).toBe(
       false,
     );
+    expect(calls.some((item) => item.id === 'supplier.qualification.programs.list')).toBe(false);
+  });
+
+  it('shows the applications and programs tabs to a bid manager who can apply', async () => {
+    routes();
+    renderPage(<SupplierQualificationPage />, { ...PATH, permissions: SUPPLIER_APPLY });
+    expect(await screen.findByRole('tab', { name: 'My applications' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Programs' })).toBeInTheDocument();
   });
 });

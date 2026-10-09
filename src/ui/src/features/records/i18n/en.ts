@@ -388,7 +388,6 @@ export default {
     includeAuditHint: 'Who acted, when, on which version and why.',
     includeRestricted: 'Include restricted audit rows as metadata',
     includeRestrictedHint: 'Identifiers and hashes only; never sealed content or evaluator scores.',
-    restrictedNeedsAudit: 'Only auditors (audit.view) may include restricted metadata.',
     sealedNote:
       'Sealed content before its opening is never included; the manifest lists the omission.',
   },

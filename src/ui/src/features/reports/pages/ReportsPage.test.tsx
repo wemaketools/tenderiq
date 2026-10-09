@@ -42,7 +42,7 @@ describe('ReportsPage (REP-01)', () => {
     expect(await screen.findByRole('table', { name: 'Recent report exports' })).toBeInTheDocument();
   });
 
-  it('explains a family the role may not run instead of offering it', async () => {
+  it('leaves out a family the role may not run, with no card or explanation in its place', async () => {
     routes({
       ...FAMILIES,
       families: FAMILIES.families.map((family) =>
@@ -53,9 +53,23 @@ describe('ReportsPage (REP-01)', () => {
     });
     renderWithProviders(<ReportsPage />, { state: buyerState(MANAGER) });
 
-    const card = await screen.findByRole('region', { name: 'Audit and records' });
-    expect(within(card).getByText('Requires audit.view.')).toBeInTheDocument();
-    expect(within(card).queryByRole('link', { name: /Open report/ })).not.toBeInTheDocument();
+    expect(
+      await screen.findByRole('region', { name: 'Competition and participation' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Audit and records' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Requires audit.view.')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: /^Open report / })).toHaveLength(9);
+  });
+
+  it('shows the empty catalog when the role may run none of the families', async () => {
+    routes({
+      ...FAMILIES,
+      families: FAMILIES.families.map((family) => ({ ...family, restricted: true })),
+    });
+    renderWithProviders(<ReportsPage />, { state: buyerState(MANAGER) });
+
+    expect(await screen.findByText('No report families are available')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /^Open report / })).not.toBeInTheDocument();
   });
 
   it('confirms a CSV export with its purpose and shows a business error', async () => {

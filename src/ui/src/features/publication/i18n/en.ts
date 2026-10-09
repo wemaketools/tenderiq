@@ -93,7 +93,6 @@ export default {
     queueIntro: 'Tenders that are ready or awaiting their release approval.',
     queueCaption: 'Tenders awaiting publication',
     queueEmpty: 'No tender is waiting for publication',
-    queueRestricted: 'Your role cannot view the tender register.',
     openPublication: 'Open publication',
     tableTitle: 'Publications',
     caption: 'Publications by tender, version and channel',

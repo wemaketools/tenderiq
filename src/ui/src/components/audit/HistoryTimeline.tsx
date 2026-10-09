@@ -10,6 +10,7 @@ import { getEntityHistory } from '@contracts/audit';
 import type { AuditEntry } from '@contracts/audit';
 
 import { useApiQuery } from '../../api/hooks';
+import { useCanCall } from '../../auth/permissions';
 import { useActiveTenant } from '../../app/hooks';
 import { formatOfficialTime } from '../../lib/format';
 import { hasTranslation, t } from '../../lib/i18n';
@@ -65,10 +66,21 @@ export function HistoryTimeline({
   const tenant = useActiveTenant();
   const timeZone = tenant?.officialTimeZone ?? 'UTC';
   const [page, setPage] = useState(1);
-  const query = useApiQuery(getEntityHistory, {
-    params: { entityType, entityId },
-    query: { page, pageSize, sort: 'occurredAt', dir: 'desc' },
-  });
+  // A role that cannot read the audit history does not see the panel (DD-49).
+  const allowed = useCanCall(getEntityHistory);
+  const query = useApiQuery(
+    getEntityHistory,
+    allowed
+      ? {
+          params: { entityType, entityId },
+          query: { page, pageSize, sort: 'occurredAt', dir: 'desc' },
+        }
+      : null,
+  );
+
+  if (!allowed || query.error?.kind === 'forbidden') {
+    return null;
+  }
 
   return (
     <Card title={title ?? t('audit.title')}>

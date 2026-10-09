@@ -342,11 +342,6 @@ function PursuitViewPage({
       <Banner tone="info" title={t('opportunities.pursuit.privateTitle')}>
         <p>{t('opportunities.pursuit.private')}</p>
       </Banner>
-      {!canManage && (
-        <Banner tone="warning">
-          <p>{t('opportunities.pursuit.readOnly')}</p>
-        </Banner>
-      )}
 
       <div className="tiq-grid tiq-grid--3">
         <Card

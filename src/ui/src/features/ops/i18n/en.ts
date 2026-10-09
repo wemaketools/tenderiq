@@ -193,12 +193,6 @@ export default {
     contractsCaption: 'Live contracts',
     noEvents: 'No live events',
     noContracts: 'No live contracts',
-    withheldTitle: 'Title withheld',
-    withheldSupplier: 'Withheld',
-    withheldEventHint: 'Not a public event: operators see its reference, status and deadline only.',
-    withheldContractHint: 'Contract records need a customer-authorized support grant.',
-    withheldNote:
-      'Operators see public events in full. Invitation-only, restricted and unreleased events, and contract records, show reference, status and dates only.',
     col: {
       event: 'Event',
       contract: 'Contract',

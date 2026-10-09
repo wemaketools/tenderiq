@@ -187,7 +187,13 @@ function Editor({ existing }: { readonly existing: Announcement | null }) {
       )}
       <Card
         title={t('ops.announcement.content')}
-        subtitle={editable ? t('ops.announcement.contentHint') : t('ops.announcement.readOnly')}
+        subtitle={
+          editable
+            ? t('ops.announcement.contentHint')
+            : existing !== null && existing.status !== 'draft'
+              ? t('ops.announcement.readOnly')
+              : undefined
+        }
         footer={
           editable ? (
             <div className="tiq-inline">

@@ -10,6 +10,7 @@ import type { SupplierFinalOfferRound, SupplierNegotiationRow } from '@contracts
 
 import { useApiQuery } from '../../../../api/hooks';
 import { useScreenFilters } from '../../../../app/hooks';
+import { useCanCall } from '../../../../auth/permissions';
 import {
   Card,
   Chip,
@@ -59,14 +60,22 @@ export default function SupplierNegotiationsPage() {
   const overview = useApiQuery(selectionEndpoints.listSupplierNegotiations, {
     query: { pageSize: 100 },
   });
-  const rounds = useApiQuery(selectionEndpoints.listSupplierFinalOffers, {
-    query: compact({
-      status: oneOf(filters.roundStatus, FINAL_OFFER_ROUNDS_STATUS),
-      sort: 'deadline',
-      dir: 'asc',
-      pageSize: 100,
-    }),
-  });
+  const canReadRounds = useCanCall(selectionEndpoints.listSupplierFinalOffers);
+  const rounds = useApiQuery(
+    selectionEndpoints.listSupplierFinalOffers,
+    canReadRounds
+      ? {
+          query: compact({
+            status: oneOf(filters.roundStatus, FINAL_OFFER_ROUNDS_STATUS),
+            sort: 'deadline',
+            dir: 'asc',
+            pageSize: 100,
+          }),
+        }
+      : null,
+  );
+  // Final-offer rounds the membership cannot read are left out: tile, filter and card (DD-49).
+  const showRounds = canReadRounds && rounds.error?.kind !== 'forbidden';
   const all = overview.data?.items ?? [];
   const loadingValue = overview.data === undefined ? '…' : null;
   const kpiRestricted = overview.error?.kind === 'forbidden';
@@ -210,16 +219,18 @@ export default function SupplierNegotiationsPage() {
           ]}
           onChange={(awaiting) => setFilters({ awaiting, page: 1 })}
         />
-        <Select
-          label={t('selection.supplierNegotiations.roundStatus')}
-          placeholder={t('selection.common.allStatuses')}
-          value={filters.roundStatus}
-          options={FINAL_OFFER_ROUNDS_STATUS.map((value) => ({
-            value,
-            label: tEnum('final_offer_rounds.status', value),
-          }))}
-          onChange={(roundStatus) => setFilters({ roundStatus })}
-        />
+        {showRounds && (
+          <Select
+            label={t('selection.supplierNegotiations.roundStatus')}
+            placeholder={t('selection.common.allStatuses')}
+            value={filters.roundStatus}
+            options={FINAL_OFFER_ROUNDS_STATUS.map((value) => ({
+              value,
+              label: tEnum('final_offer_rounds.status', value),
+            }))}
+            onChange={(roundStatus) => setFilters({ roundStatus })}
+          />
+        )}
       </FilterBar>
       <KpiGrid>
         <KpiCard
@@ -247,7 +258,7 @@ export default function SupplierNegotiationsPage() {
               : formatCount(rounds.data.items.filter((row) => row.status === 'issued').length)
           }
           hint={t('selection.supplierNegotiations.kpi.roundsHint')}
-          restricted={rounds.error?.kind === 'forbidden'}
+          restricted={!showRounds}
         />
         <KpiCard
           label={t('selection.supplierNegotiations.kpi.concluded')}
@@ -297,24 +308,26 @@ export default function SupplierNegotiationsPage() {
           }
         />
       </Card>
-      <Card
-        title={t('selection.supplierNegotiations.finalOffers')}
-        subtitle={t('selection.supplierNegotiations.finalOffersHint')}
-        flush
-      >
-        <DataTable
-          caption={t('selection.supplierNegotiations.finalOffers')}
-          columns={roundColumns}
-          rows={rounds.data?.items}
-          rowKey={(row) => String(row.roundId)}
-          rowLabel={(row) => `${row.tender.reference} ${t('selection.finalOffers.round')}`}
-          rowHref={(row) => selectionPaths.supplierFinalOffer(row.roundId)}
-          loading={rounds.isFetching}
-          error={rounds.error}
-          onRetry={rounds.reload}
-          empty={<EmptyState compact title={t('selection.supplierNegotiations.noFinalOffers')} />}
-        />
-      </Card>
+      {showRounds && (
+        <Card
+          title={t('selection.supplierNegotiations.finalOffers')}
+          subtitle={t('selection.supplierNegotiations.finalOffersHint')}
+          flush
+        >
+          <DataTable
+            caption={t('selection.supplierNegotiations.finalOffers')}
+            columns={roundColumns}
+            rows={rounds.data?.items}
+            rowKey={(row) => String(row.roundId)}
+            rowLabel={(row) => `${row.tender.reference} ${t('selection.finalOffers.round')}`}
+            rowHref={(row) => selectionPaths.supplierFinalOffer(row.roundId)}
+            loading={rounds.isFetching}
+            error={rounds.error}
+            onRetry={rounds.reload}
+            empty={<EmptyState compact title={t('selection.supplierNegotiations.noFinalOffers')} />}
+          />
+        </Card>
+      )}
     </div>
   );
 }

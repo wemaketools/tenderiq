@@ -5,7 +5,7 @@
 import { Navigate } from 'react-router';
 
 import { usePermission } from '../../../auth/permissions';
-import { RestrictedState } from '../../../components/ui';
+import { ForbiddenPage } from '../../../pages/ForbiddenPage';
 import { useAdminKind } from '../lib/audience';
 import { accessPaths, buyerAccessPaths } from '../lib/paths';
 import {
@@ -36,6 +36,6 @@ export default function AccessIndexPage() {
   } else if (conflicts) {
     target = buyerAccessPaths.conflicts;
   }
-  if (target === null) return <RestrictedState />;
+  if (target === null) return <ForbiddenPage />;
   return <Navigate to={target} replace />;
 }

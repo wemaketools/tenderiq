@@ -49,7 +49,6 @@ export default {
     unreadChip: 'Unread',
     readChip: 'Read {time}',
     ackRequired: 'Acknowledgment required',
-    ackHandledByBidManager: 'Handled by your bid manager',
     acknowledged: 'Acknowledged {time}',
     acknowledgedBy: 'Acknowledged by {name}, {time}',
     termsPending: 'Terms not accepted',

@@ -184,7 +184,7 @@ describe('MonitoringTenderPage (BUY-19)', () => {
     ).toBeInTheDocument();
   });
 
-  it('tells a monitor without closing authority who must close', async () => {
+  it('shows a monitor without closing authority no close action and no role notice', async () => {
     // Arrange
     routeCalls({
       'buyer.submissions.get': () =>
@@ -196,7 +196,8 @@ describe('MonitoringTenderPage (BUY-19)', () => {
     renderPage(['bid.monitor']);
 
     // Assert
-    expect(await screen.findByText('Ready to close')).toBeInTheDocument();
+    expect(await screen.findAllByTestId('official-deadline')).not.toHaveLength(0);
+    expect(screen.queryByText(/authority to close/)).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Close submissions' })).not.toBeInTheDocument();
   });
 });

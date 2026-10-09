@@ -48,6 +48,24 @@ describe('SubscriptionsPage (OPS-03)', () => {
     expect(within(table).getByText('1 open service action')).toBeInTheDocument();
   });
 
+  it('leaves out the plan catalog, without requesting it, for a member who may not read plans', async () => {
+    const { requests } = installFetch({
+      [`GET ${O}/plans`]: () => ({ body: planCatalog() }),
+      [`GET ${O}/subscriptions`]: () => ({ body: pageOf([]) }),
+    });
+    renderWithProviders(<SubscriptionsPage />, {
+      state: opsState(['ops.support.manage']),
+      route: '/ops/subscriptions',
+    });
+
+    expect(await screen.findByText('No subscriptions match')).toBeInTheDocument();
+    expect(
+      screen.queryByText('Suppliers never pay to view notices or take part.'),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Not available in your role')).not.toBeInTheDocument();
+    expect(requests.some((request) => request.path === `${O}/plans`)).toBe(false);
+  });
+
   it('explains when no subscription matches', async () => {
     installFetch({
       [`GET ${O}/plans`]: () => ({ body: planCatalog() }),

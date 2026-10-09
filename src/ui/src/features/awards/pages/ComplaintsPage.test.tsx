@@ -112,4 +112,19 @@ describe('ComplaintPage (BUY-29)', () => {
     expect(screen.queryByRole('button', { name: 'Acknowledge' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Release hold' })).not.toBeInTheDocument();
   });
+
+  it('leaves the evidence panel out for a debrief manager who may not read documents (DD-49)', async () => {
+    const { requests } = installFetch({
+      [GET]: () => ({ body: complaint() }),
+      'GET /api/v1/buyer/documents': () => ({
+        body: { items: [evidenceDocument()], total: 1, page: 1, pageSize: 25 },
+      }),
+    });
+    renderBuyer(<ComplaintPage />, { ...OPTIONS, permissions: ['debrief.manage'] });
+
+    expect(await screen.findByText('A procurement hold is active')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Evidence' })).not.toBeInTheDocument();
+    expect(document.querySelector('[data-state="restricted"]')).toBeNull();
+    expect(requests.some((request) => request.path === '/api/v1/buyer/documents')).toBe(false);
+  });
 });

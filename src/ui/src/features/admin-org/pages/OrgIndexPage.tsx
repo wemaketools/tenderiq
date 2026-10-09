@@ -5,7 +5,7 @@
 import { Navigate } from 'react-router';
 
 import { usePermission } from '../../../auth/permissions';
-import { RestrictedState } from '../../../components/ui';
+import { ForbiddenPage } from '../../../pages/ForbiddenPage';
 import { orgPaths } from '../lib/paths';
 import { AUTHORITY_READ, COMMITTEES_READ, ORG_READ, STRUCTURE_READ } from '../lib/permissions';
 
@@ -21,6 +21,6 @@ export default function OrgIndexPage() {
       : authority || committees
         ? orgPaths.authority
         : null;
-  if (target === null) return <RestrictedState />;
+  if (target === null) return <ForbiddenPage />;
   return <Navigate to={target} replace />;
 }

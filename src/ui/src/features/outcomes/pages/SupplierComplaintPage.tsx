@@ -17,9 +17,10 @@ import {
 } from '@contracts/awards';
 import type { SupplierComplaintDetail } from '@contracts/awards';
 import type { FieldError } from '@contracts/common';
+import { listSupplierDocuments } from '@contracts/documents';
 
 import { invalidateApiQueries, useApiMutation, useApiQuery } from '../../../api/hooks';
-import { usePermission } from '../../../auth/permissions';
+import { useCanCall, usePermission } from '../../../auth/permissions';
 import {
   Banner,
   Button,
@@ -93,6 +94,7 @@ function ComplaintBody({
   const toast = useToast();
   const timeZone = useOfficialTimeZone();
   const canSubmit = usePermission('supplier.complaint.submit');
+  const canReadDocuments = useCanCall(listSupplierDocuments);
   const [command, setCommand] = useState<Command | null>(null);
   const [appealGrounds, setAppealGrounds] = useState('');
   const [clientErrors, setClientErrors] = useState<readonly FieldError[]>([]);
@@ -312,14 +314,16 @@ function ComplaintBody({
                 ]}
               />
             </Card>
-            <DocumentList
-              audience="supplier"
-              relatedType="complaint"
-              relatedId={detail.complaintId}
-              title={t('outcomes.complaint.evidenceTitle')}
-              canUpload={canSubmit && !closed}
-              defaultClassification="supplier_private"
-            />
+            {canReadDocuments && (
+              <DocumentList
+                audience="supplier"
+                relatedType="complaint"
+                relatedId={detail.complaintId}
+                title={t('outcomes.complaint.evidenceTitle')}
+                canUpload={canSubmit && !closed}
+                defaultClassification="supplier_private"
+              />
+            )}
           </div>
         </div>
       </div>

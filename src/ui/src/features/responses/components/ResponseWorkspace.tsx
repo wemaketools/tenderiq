@@ -88,7 +88,10 @@ export function ResponseWorkspace({
   const next = nextActionOf(bid);
   const tabs = [
     { to: responsePaths.answers(bid.id), label: t('responses.tabs.answers') },
-    { to: responsePaths.pricing(bid.id), label: t('responses.tabs.pricing') },
+    // DD-49: a viewer who may not see pricing has no Pricing tab (the page still explains a URL visit).
+    ...(bid.viewer.canViewPricing
+      ? [{ to: responsePaths.pricing(bid.id), label: t('responses.tabs.pricing') }]
+      : []),
     { to: responsePaths.declarations(bid.id), label: t('responses.tabs.declarations') },
     { to: responsePaths.review(bid.id), label: t('responses.tabs.review') },
     { to: responsePaths.submit(bid.id), label: t('responses.tabs.submit') },

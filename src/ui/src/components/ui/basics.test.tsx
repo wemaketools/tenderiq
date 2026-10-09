@@ -196,9 +196,9 @@ describe('KpiCard', () => {
     expect(screen.getByText('-2').closest('.tiq-kpi-delta')).toHaveClass('tiq-kpi-delta--down');
     expect(screen.getByText('-1').closest('.tiq-kpi-delta')).toHaveClass('tiq-kpi-delta--up');
     expect(screen.getByRole('region', { name: 'Avg cycle time' })).toHaveTextContent('—');
-    const sealed = screen.getByRole('region', { name: 'Sealed bids' });
-    expect(sealed).toHaveTextContent('Not available in your role');
-    expect(sealed).not.toHaveTextContent('9');
+    // A metric the caller may not see is left out entirely (DD-49).
+    expect(screen.queryByRole('region', { name: 'Sealed bids' })).not.toBeInTheDocument();
+    expect(screen.queryByText('9')).not.toBeInTheDocument();
   });
 });
 

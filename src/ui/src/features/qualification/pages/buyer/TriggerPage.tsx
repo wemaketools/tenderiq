@@ -101,6 +101,8 @@ function TriggerView({ fetched }: { readonly fetched: Trigger }) {
   const [dialog, setDialog] = useState<'supersede' | 'confirm' | null>(null);
 
   const open = trigger.status === 'open';
+  // Only a decider records the disposition; anyone else sees the recorded outcome once it exists (DD-49).
+  const showDisposition = !open || canDecide;
   const body = {
     resultingStatus: resulting === '' ? undefined : resulting,
     disposition,
@@ -145,6 +147,49 @@ function TriggerView({ fetched }: { readonly fetched: Trigger }) {
     setDialog('confirm');
   };
 
+  const detailsCard = (
+    <Card title={t('qualification.trigger.detailsTitle')}>
+      <DetailList
+        items={[
+          { label: t('qualification.trigger.summary'), value: trigger.summary },
+          {
+            label: t('qualification.monitoring.col.supplier'),
+            value: trigger.supplier.legalName,
+          },
+          {
+            label: t('qualification.monitoring.col.program'),
+            value:
+              trigger.program === null
+                ? null
+                : t('qualification.common.programVersion', {
+                    name: trigger.program.programName,
+                    no: trigger.program.versionNo,
+                  }),
+          },
+          { label: t('qualification.trigger.source'), value: trigger.sourceLabel },
+          {
+            label: t('qualification.monitoring.col.lapses'),
+            value: dateOrDash(trigger.lapsesOn),
+          },
+          {
+            label: t('qualification.monitoring.col.detected'),
+            value: formatDateTime(trigger.detectedAt, timeZone),
+          },
+          {
+            label: t('qualification.trigger.decision'),
+            value:
+              trigger.decisionId === null ? null : (
+                <Reference
+                  value={t('qualification.decision.decisionNo', { id: trigger.decisionId })}
+                  to={buyerQualificationPaths.decision(trigger.decisionId)}
+                />
+              ),
+          },
+        ]}
+      />
+    </Card>
+  );
+
   return (
     <>
       <PageHeader
@@ -182,164 +227,127 @@ function TriggerView({ fetched }: { readonly fetched: Trigger }) {
       <Banner tone="info" title={t('qualification.trigger.historyTitle')}>
         {t('qualification.trigger.history')}
       </Banner>
-      <div className="tiq-grid tiq-grid--sidebar">
-        <Card title={t('qualification.trigger.detailsTitle')}>
-          <DetailList
-            items={[
-              { label: t('qualification.trigger.summary'), value: trigger.summary },
-              {
-                label: t('qualification.monitoring.col.supplier'),
-                value: trigger.supplier.legalName,
-              },
-              {
-                label: t('qualification.monitoring.col.program'),
-                value:
-                  trigger.program === null
-                    ? null
-                    : t('qualification.common.programVersion', {
-                        name: trigger.program.programName,
-                        no: trigger.program.versionNo,
-                      }),
-              },
-              { label: t('qualification.trigger.source'), value: trigger.sourceLabel },
-              {
-                label: t('qualification.monitoring.col.lapses'),
-                value: dateOrDash(trigger.lapsesOn),
-              },
-              {
-                label: t('qualification.monitoring.col.detected'),
-                value: formatDateTime(trigger.detectedAt, timeZone),
-              },
-              {
-                label: t('qualification.trigger.decision'),
-                value:
-                  trigger.decisionId === null ? null : (
-                    <Reference
-                      value={t('qualification.decision.decisionNo', { id: trigger.decisionId })}
-                      to={buyerQualificationPaths.decision(trigger.decisionId)}
-                    />
-                  ),
-              },
-            ]}
-          />
-        </Card>
-        <Card title={t('qualification.trigger.dispositionTitle')}>
-          {!open ? (
-            <DetailList
-              stacked
-              items={[
-                {
-                  label: t('qualification.trigger.result'),
-                  value: tEnum('reassessment_triggers.status', trigger.status),
-                },
-                { label: t('qualification.trigger.disposition'), value: trigger.disposition },
-                {
-                  label: t('qualification.trigger.assessedBy'),
-                  value:
-                    trigger.assessedBy === null
-                      ? null
-                      : `${trigger.assessedBy.fullName} · ${formatDateTime(trigger.assessedAt, timeZone)}`,
-                },
-                {
-                  label: t('qualification.trigger.impactReview'),
-                  value: t('qualification.trigger.impactReviewValue', {
-                    bids: trigger.activeBidsReviewed
-                      ? t('qualification.common.yes')
-                      : t('qualification.common.no'),
-                    contracts: trigger.activeContractsReviewed
-                      ? t('qualification.common.yes')
-                      : t('qualification.common.no'),
-                  }),
-                },
-                {
-                  label: t('qualification.trigger.resultingDecision'),
-                  value:
-                    trigger.resultingDecisionId === null ? null : (
-                      <Reference
-                        value={t('qualification.decision.decisionNo', {
-                          id: trigger.resultingDecisionId,
-                        })}
-                        to={buyerQualificationPaths.decision(trigger.resultingDecisionId)}
-                      />
-                    ),
-                },
-              ]}
-            />
-          ) : !canDecide ? (
-            <RestrictedState compact description={t('qualification.trigger.decidersOnly')} />
-          ) : (
-            <div className="tiq-form-stack">
-              <UnsavedChangesGuard when={dirty && !assess.pending} />
-              <FormErrorSummary
-                title={dialog === 'confirm' ? null : summaryTitle(assess.error)}
-                errors={errors.other}
+      {showDisposition ? (
+        <div className="tiq-grid tiq-grid--sidebar">
+          {detailsCard}
+          <Card title={t('qualification.trigger.dispositionTitle')}>
+            {!open ? (
+              <DetailList
+                stacked
+                items={[
+                  {
+                    label: t('qualification.trigger.result'),
+                    value: tEnum('reassessment_triggers.status', trigger.status),
+                  },
+                  { label: t('qualification.trigger.disposition'), value: trigger.disposition },
+                  {
+                    label: t('qualification.trigger.assessedBy'),
+                    value:
+                      trigger.assessedBy === null
+                        ? null
+                        : `${trigger.assessedBy.fullName} · ${formatDateTime(trigger.assessedAt, timeZone)}`,
+                  },
+                  {
+                    label: t('qualification.trigger.impactReview'),
+                    value: t('qualification.trigger.impactReviewValue', {
+                      bids: trigger.activeBidsReviewed
+                        ? t('qualification.common.yes')
+                        : t('qualification.common.no'),
+                      contracts: trigger.activeContractsReviewed
+                        ? t('qualification.common.yes')
+                        : t('qualification.common.no'),
+                    }),
+                  },
+                  {
+                    label: t('qualification.trigger.resultingDecision'),
+                    value:
+                      trigger.resultingDecisionId === null ? null : (
+                        <Reference
+                          value={t('qualification.decision.decisionNo', {
+                            id: trigger.resultingDecisionId,
+                          })}
+                          to={buyerQualificationPaths.decision(trigger.resultingDecisionId)}
+                        />
+                      ),
+                  },
+                ]}
               />
-              <RadioGroup
-                label={t('qualification.trigger.result')}
-                required
-                value={resulting}
-                onChange={(value) => setResulting(value as Resulting)}
-                error={errors.forField('resultingStatus')}
-                options={RESULTING.map((value) => ({
-                  value,
-                  label: tEnum('reassessment_triggers.status', value),
-                  hint: t(`qualification.trigger.resultHint.${value}`),
-                }))}
-              />
-              <Checkbox
-                label={t('qualification.trigger.bidsReviewed', {
-                  count: trigger.impactedBids.length,
-                })}
-                checked={bidsReviewed}
-                onChange={setBidsReviewed}
-                error={errors.forField('activeBidsReviewed')}
-              />
-              <Checkbox
-                label={t('qualification.trigger.contractsReviewed', {
-                  count: trigger.impactedContracts.length,
-                })}
-                checked={contractsReviewed}
-                onChange={setContractsReviewed}
-                error={errors.forField('activeContractsReviewed')}
-              />
-              {resulting === 'action_taken' && (
-                <div className="tiq-stack">
-                  {resultingDecisionId === null ? (
-                    <Button
-                      icon="gavel"
-                      onClick={() => setDialog('supersede')}
-                      disabled={decision.data === undefined}
-                    >
-                      {t('qualification.trigger.recordDecision')}
-                    </Button>
-                  ) : (
-                    <Banner tone="success">
-                      {t('qualification.trigger.decisionRecorded', { id: resultingDecisionId })}
-                    </Banner>
-                  )}
-                  {errors.forField('resultingDecisionId') !== undefined && (
-                    <p className="tiq-text-danger">{errors.forField('resultingDecisionId')}</p>
-                  )}
+            ) : (
+              <div className="tiq-form-stack">
+                <UnsavedChangesGuard when={dirty && !assess.pending} />
+                <FormErrorSummary
+                  title={dialog === 'confirm' ? null : summaryTitle(assess.error)}
+                  errors={errors.other}
+                />
+                <RadioGroup
+                  label={t('qualification.trigger.result')}
+                  required
+                  value={resulting}
+                  onChange={(value) => setResulting(value as Resulting)}
+                  error={errors.forField('resultingStatus')}
+                  options={RESULTING.map((value) => ({
+                    value,
+                    label: tEnum('reassessment_triggers.status', value),
+                    hint: t(`qualification.trigger.resultHint.${value}`),
+                  }))}
+                />
+                <Checkbox
+                  label={t('qualification.trigger.bidsReviewed', {
+                    count: trigger.impactedBids.length,
+                  })}
+                  checked={bidsReviewed}
+                  onChange={setBidsReviewed}
+                  error={errors.forField('activeBidsReviewed')}
+                />
+                <Checkbox
+                  label={t('qualification.trigger.contractsReviewed', {
+                    count: trigger.impactedContracts.length,
+                  })}
+                  checked={contractsReviewed}
+                  onChange={setContractsReviewed}
+                  error={errors.forField('activeContractsReviewed')}
+                />
+                {resulting === 'action_taken' && (
+                  <div className="tiq-stack">
+                    {resultingDecisionId === null ? (
+                      <Button
+                        icon="gavel"
+                        onClick={() => setDialog('supersede')}
+                        disabled={decision.data === undefined}
+                      >
+                        {t('qualification.trigger.recordDecision')}
+                      </Button>
+                    ) : (
+                      <Banner tone="success">
+                        {t('qualification.trigger.decisionRecorded', { id: resultingDecisionId })}
+                      </Banner>
+                    )}
+                    {errors.forField('resultingDecisionId') !== undefined && (
+                      <p className="tiq-text-danger">{errors.forField('resultingDecisionId')}</p>
+                    )}
+                  </div>
+                )}
+                <TextArea
+                  label={t('qualification.trigger.disposition')}
+                  hint={t('qualification.trigger.dispositionHint')}
+                  required
+                  rows={4}
+                  value={disposition}
+                  onChange={setDisposition}
+                  error={errors.forField('disposition')}
+                />
+                <div className="tiq-inline">
+                  <Button variant="primary" icon="checkCircle" onClick={review}>
+                    {t('qualification.trigger.record')}
+                  </Button>
                 </div>
-              )}
-              <TextArea
-                label={t('qualification.trigger.disposition')}
-                hint={t('qualification.trigger.dispositionHint')}
-                required
-                rows={4}
-                value={disposition}
-                onChange={setDisposition}
-                error={errors.forField('disposition')}
-              />
-              <div className="tiq-inline">
-                <Button variant="primary" icon="checkCircle" onClick={review}>
-                  {t('qualification.trigger.record')}
-                </Button>
               </div>
-            </div>
-          )}
-        </Card>
-      </div>
+            )}
+          </Card>
+        </div>
+      ) : (
+        detailsCard
+      )}
       <Card
         title={t('qualification.decision.impactsTitle')}
         subtitle={t('qualification.trigger.impactsHint')}

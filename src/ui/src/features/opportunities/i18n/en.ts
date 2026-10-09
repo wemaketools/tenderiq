@@ -283,9 +283,6 @@ export default {
     declinedTitle: 'Declined',
     declinedPrivate: 'No reason was shared with the buyer.',
     declinedShared: 'Reason shared with the buyer: {reason}',
-    representativeTitle: 'An authorized representative must answer',
-    representative:
-      'Your role cannot answer invitations or accept conditions for the organization. Ask a representative with authority to acknowledge notices.',
     openWorkspace: 'Open the opportunity',
     detailsTitle: 'Invitation',
     buyer: 'Inviting buyer',
@@ -443,7 +440,6 @@ export default {
     privateTitle: 'Private to your organization',
     private:
       'The assessment, decision, team and notes are never shown to the buyer. The buyer sees only the intent you share with “Tell the buyer”.',
-    readOnly: 'Your role can read this pursuit but not change it.',
     stateSaved: 'Assessment (private)',
     stateSavedHint: 'Saved, not decided',
     stateNotStartedHint: 'Not started',

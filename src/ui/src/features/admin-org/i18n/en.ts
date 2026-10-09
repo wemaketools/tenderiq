@@ -55,7 +55,6 @@ export default {
     formTitle: 'Settings',
     formIntro:
       'Changes are reviewed for their effect on public notices and active work before they are saved.',
-    readOnly: 'You can see the settings; changing them needs the organization settings permission.',
     identitySection: 'Identity and working conventions',
     branding: 'Display name',
     brandingHint: 'Shown on the public portal and notices.',
@@ -109,8 +108,6 @@ export default {
     intro:
       'Departments, locations, categories, cost centers and funding sources of {organization}. Values are deactivated, never deleted.',
     tabs: 'Structure registers',
-    readOnlyTitle: 'Read only',
-    readOnlyBody: 'Adding or changing values needs the organization structure permission.',
     add: 'Add',
     save: 'Save',
     edit: 'Revise',
@@ -205,7 +202,6 @@ export default {
       committees: 'Committees',
       sod: 'Incompatibilities',
     },
-    restricted: 'This section needs the authority or access review permission.',
     limitFilters: 'Limit filters',
     searchPlaceholder: 'Person, role or committee',
     subjectType: 'Holder type',

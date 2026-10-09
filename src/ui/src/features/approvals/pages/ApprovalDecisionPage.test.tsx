@@ -202,6 +202,34 @@ describe('ApprovalDecisionPage (COM-05)', () => {
     expect(screen.getAllByText('T-2026-0009').length).toBeGreaterThan(0);
   });
 
+  it('leaves the decider cards out for a requester who is not a decider (DD-49)', async () => {
+    routeCalls({
+      'me.approvals.get': () =>
+        approvalDetail({ allowedDecisions: [], myStep: null, authority: null }),
+      'buyer.audit.entityHistory': () => ({ items: [], total: 0, page: 1, pageSize: 10 }),
+    });
+    renderPage(<ApprovalDecisionPage />, PATH);
+    expect(
+      await screen.findByRole('heading', { name: /Approve PR-2026-0002 Chlorine analyser/ }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Your decision' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Your authority' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: 'Conflicts and independence' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/No decision is available to you/)).not.toBeInTheDocument();
+  });
+
+  it('shows the decider cards to a decider of the approval', async () => {
+    routeCalls({
+      'me.approvals.get': () => approvalDetail(),
+      'buyer.audit.entityHistory': () => ({ items: [], total: 0, page: 1, pageSize: 10 }),
+    });
+    renderPage(<ApprovalDecisionPage />, PATH);
+    expect(await screen.findByRole('heading', { name: 'Your decision' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Your authority' })).toBeInTheDocument();
+  });
+
   it('shows the not-found state for an unknown approval', async () => {
     routeCalls({});
     renderPage(<ApprovalDecisionPage />, PATH);

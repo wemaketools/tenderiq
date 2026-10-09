@@ -898,8 +898,6 @@ export default {
     notRequired: 'Not required',
     acknowledge: 'Acknowledge addendum',
     acknowledged: 'Addendum acknowledged.',
-    noAckPermission:
-      'Acknowledgment is required. Ask your bid manager, administrator or authorized signatory to acknowledge it.',
     required: {
       none: 'No action required on your submission',
       acknowledge: 'Acknowledge this addendum',

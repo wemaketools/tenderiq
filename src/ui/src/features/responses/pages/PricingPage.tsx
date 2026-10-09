@@ -405,13 +405,9 @@ function PricingEditor({
   return (
     <>
       <UnsavedChangesGuard when={dirty} />
-      {!canEdit && (
+      {!pricing.editable && (
         <Banner tone="info" title={t('responses.pricing.readOnlyTitle')}>
-          <p>
-            {pricing.editable
-              ? t('responses.pricing.readOnlyPermission')
-              : t('responses.pricing.readOnlyRevision', { no: pricing.revisionNo })}
-          </p>
+          <p>{t('responses.pricing.readOnlyRevision', { no: pricing.revisionNo })}</p>
         </Banner>
       )}
       {pricing.schedules.map((schedule) => (
@@ -572,8 +568,10 @@ function PricingContent({ bid }: { readonly bid: BidDetail }) {
     const pricingItems = toChecklistItems(
       (readiness.data?.items ?? []).filter((item) => item.category === 'pricing'),
     );
+    // Reached by URL only (the tab is left out, DD-49): the page explains itself once, then the pricing
+    // completeness stands on its own.
     return (
-      <div className="tiq-grid tiq-grid--sidebar">
+      <>
         <RestrictedState
           title={t('responses.pricing.restrictedTitle')}
           description={t('responses.pricing.restrictedDescription')}
@@ -592,7 +590,7 @@ function PricingContent({ bid }: { readonly bid: BidDetail }) {
             />
           )}
         </Card>
-      </div>
+      </>
     );
   }
 

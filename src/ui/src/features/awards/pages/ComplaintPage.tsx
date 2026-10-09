@@ -25,12 +25,13 @@ import type {
   ComplaintResponseOutcome,
 } from '@contracts/awards';
 import type { FieldError } from '@contracts/common';
+import { listBuyerDocuments } from '@contracts/documents';
 import { HOLDS_BLOCKED_ACTIONS } from '@contracts/enums';
 import type { ComplaintsStatus, HoldsBlockedActions } from '@contracts/enums';
 
 import type { ApiError } from '../../../api/client';
 import { invalidateApiQueries, useApiMutation, useApiQuery } from '../../../api/hooks';
-import { usePermission } from '../../../auth/permissions';
+import { useCanCall, usePermission } from '../../../auth/permissions';
 import { DocumentList } from '../../../components/documents';
 import {
   Banner,
@@ -139,6 +140,7 @@ function ComplaintBody({
   const toast = useToast();
   const timeZone = useOfficialTimeZone();
   const canManage = usePermission('complaint.manage');
+  const canReadDocuments = useCanCall(listBuyerDocuments);
   const [command, setCommand] = useState<Command | null>(null);
   const [standing, setStanding] = useState(detail.standingConfirmed);
   const [timely, setTimely] = useState(detail.withinWindow);
@@ -529,12 +531,14 @@ function ComplaintBody({
                 ]}
               />
             </Card>
-            <DocumentList
-              audience="buyer"
-              relatedType="complaint"
-              relatedId={detail.complaintId}
-              title={t('awards.complaint.evidenceTitle')}
-            />
+            {canReadDocuments && (
+              <DocumentList
+                audience="buyer"
+                relatedType="complaint"
+                relatedId={detail.complaintId}
+                title={t('awards.complaint.evidenceTitle')}
+              />
+            )}
           </div>
         </div>
         {detail.hold !== null && (

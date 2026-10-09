@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 
@@ -140,6 +140,62 @@ describe('TenderOverviewPage (BUY-08)', () => {
     expect(screen.queryByRole('button', { name: 'Edit details' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Assign' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Save as template' })).not.toBeInTheDocument();
+  });
+
+  it('shows the team card and every section tab to a member who may read them', async () => {
+    installFetch(routes());
+
+    renderPage(<TenderOverviewPage />, { route: '/buyer/tenders/5', path: PATH });
+
+    expect(await screen.findByRole('table', { name: 'Tender team' })).toBeInTheDocument();
+    const tabs = screen.getByRole('navigation', { name: 'Tender sections' });
+    for (const label of [
+      'Pricing and terms',
+      'Evaluation plan',
+      'Timetable and participation',
+      'Release review',
+    ]) {
+      expect(within(tabs).getByRole('link', { name: label })).toBeInTheDocument();
+    }
+  });
+
+  it('leaves out the team card, its query and the section tabs a membership cannot load', async () => {
+    const { requests } = installFetch(routes());
+
+    renderPage(<TenderOverviewPage />, {
+      route: '/buyer/tenders/5',
+      path: PATH,
+      permissions: ['tender.edit'],
+    });
+
+    await screen.findByTestId('tender-meta');
+    expect(screen.queryByText('Team and responsibilities')).not.toBeInTheDocument();
+    expect(requests.some((request) => request.path === `${API}/5/team`)).toBe(false);
+    const tabs = screen.getByRole('navigation', { name: 'Tender sections' });
+    expect(within(tabs).getByRole('link', { name: 'Overview and team' })).toBeInTheDocument();
+    for (const label of [
+      'Pricing and terms',
+      'Evaluation plan',
+      'Timetable and participation',
+      'Release review',
+    ]) {
+      expect(within(tabs).queryByRole('link', { name: label })).not.toBeInTheDocument();
+    }
+  });
+
+  it('leaves out the team card when the server refuses the team', async () => {
+    installFetch({
+      ...routes(),
+      [`GET ${API}/5/team`]: () => problem(403, 'Forbidden', { code: 'FORBIDDEN' }),
+    });
+
+    renderPage(<TenderOverviewPage />, { route: '/buyer/tenders/5', path: PATH });
+
+    await screen.findByTestId('tender-meta');
+    await waitFor(() =>
+      expect(screen.queryByText('Team and responsibilities')).not.toBeInTheDocument(),
+    );
+    expect(screen.queryByText(/restricted/i)).not.toBeInTheDocument();
   });
 
   it('shows the not-found state when the tender belongs to no visible register', async () => {

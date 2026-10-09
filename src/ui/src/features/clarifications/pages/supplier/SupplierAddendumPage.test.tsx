@@ -100,11 +100,10 @@ describe('SupplierAddendumPage (AC-10)', () => {
     ).toBeInTheDocument();
   });
 
-  it('tells a contributor without the acknowledgment right who can acknowledge', async () => {
+  it('shows a contributor without the acknowledgment right no acknowledge action and no role hint (DD-49)', async () => {
     render(supplierAddendum(), {}, ['supplier.opportunities.view', 'supplier.response.edit']);
-    expect(
-      await screen.findByText(/Ask your bid manager, administrator or authorized signatory/),
-    ).toBeInTheDocument();
+    expect(await screen.findByText('RCPT-2026-0002-001')).toBeInTheDocument();
+    expect(screen.queryByText(/Ask your bid manager/)).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Acknowledge addendum' })).not.toBeInTheDocument();
   });
 });

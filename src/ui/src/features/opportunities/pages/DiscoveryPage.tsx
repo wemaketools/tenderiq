@@ -10,6 +10,7 @@ import { publicationEndpoints } from '@contracts/publication';
 
 import { useApiQuery } from '../../../api/hooks';
 import { useScreenFilters } from '../../../app/hooks';
+import { useCanCall } from '../../../auth/permissions';
 import { KpiCard, KpiGrid, PageHeader, Tabs } from '../../../components/ui';
 import { formatCount } from '../../../lib/format';
 import { t } from '../../../lib/i18n';
@@ -31,7 +32,9 @@ export default function DiscoveryPage() {
   const now = useNow();
   const [params, setParams] = useSearchParams();
   const raw = params.get('tab');
-  const tab: DiscoveryTab = TABS.includes(raw as DiscoveryTab) ? (raw as DiscoveryTab) : 'discover';
+  const requested: DiscoveryTab = TABS.includes(raw as DiscoveryTab)
+    ? (raw as DiscoveryTab)
+    : 'discover';
   const [, setDiscoverFilters] = useScreenFilters('SUP-06', DISCOVER_DEFAULTS);
 
   const filters = useApiQuery(publicationEndpoints.opportunityFilters, {});
@@ -41,7 +44,14 @@ export default function DiscoveryPage() {
   const searches = useApiQuery(publicationEndpoints.listSavedSearches, {
     query: { pageSize: 100 },
   });
-  const watch = useApiQuery(publicationEndpoints.listWatchlist, { query: { pageSize: 100 } });
+  // DD-49: without the watchlist, its tile and tab are left out and it is not queried.
+  const canWatch = useCanCall(publicationEndpoints.listWatchlist);
+  const watch = useApiQuery(
+    publicationEndpoints.listWatchlist,
+    canWatch ? { query: { pageSize: 100 } } : null,
+  );
+  const showWatch = canWatch && watch.error?.kind !== 'forbidden';
+  const tab: DiscoveryTab = requested === 'watchlist' && !showWatch ? 'discover' : requested;
 
   const rows = overview.data?.items ?? [];
   const kpi = (value: number): string => (overview.data === undefined ? '…' : formatCount(value));
@@ -92,16 +102,17 @@ export default function DiscoveryPage() {
           hint={t('opportunities.discover.kpi.closingHint')}
           restricted={restricted}
         />
-        <KpiCard
-          label={t('opportunities.discover.kpi.watched')}
-          icon="eye"
-          tone="info"
-          value={watch.data === undefined ? '…' : formatCount(watch.data.total)}
-          hint={t('opportunities.discover.kpi.watchedHint', {
-            searches: searches.data?.total ?? 0,
-          })}
-          restricted={watch.error?.kind === 'forbidden'}
-        />
+        {showWatch && (
+          <KpiCard
+            label={t('opportunities.discover.kpi.watched')}
+            icon="eye"
+            tone="info"
+            value={watch.data === undefined ? '…' : formatCount(watch.data.total)}
+            hint={t('opportunities.discover.kpi.watchedHint', {
+              searches: searches.data?.total ?? 0,
+            })}
+          />
+        )}
       </KpiGrid>
       <Tabs
         label={t('opportunities.discover.tabsLabel')}
@@ -109,7 +120,15 @@ export default function DiscoveryPage() {
         onSelect={select}
         tabs={[
           { id: 'discover', label: t('opportunities.tabs.discover'), count: overview.data?.total },
-          { id: 'watchlist', label: t('opportunities.tabs.watchlist'), count: watch.data?.total },
+          ...(showWatch
+            ? [
+                {
+                  id: 'watchlist',
+                  label: t('opportunities.tabs.watchlist'),
+                  count: watch.data?.total,
+                },
+              ]
+            : []),
           { id: 'searches', label: t('opportunities.tabs.searches'), count: searches.data?.total },
           { id: 'subscriptions', label: t('opportunities.tabs.subscriptions') },
         ]}
@@ -117,7 +136,7 @@ export default function DiscoveryPage() {
         {tab === 'discover' && (
           <DiscoverTab filters={filters.data} searches={searches.data?.items ?? []} />
         )}
-        {tab === 'watchlist' && <WatchlistTab />}
+        {tab === 'watchlist' && showWatch && <WatchlistTab />}
         {tab === 'searches' && (
           <SavedSearchesTab
             filters={filters.data}

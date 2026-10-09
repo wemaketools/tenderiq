@@ -13,6 +13,7 @@ import { getBidStartOptions, startBid } from '@contracts/bids';
 import type { BidStartOption, BidStartOptions } from '@contracts/bids';
 
 import { useApiMutation, useApiQuery } from '../../../api/hooks';
+import { useCanCall } from '../../../auth/permissions';
 import {
   Banner,
   Button,
@@ -72,11 +73,13 @@ function OptionRow({
       </div>
     );
   }
+  // DD-49: an option the membership may not start is left out, not explained; state reasons still are.
+  if (option.blockedBy === null || option.blockedBy === 'NOT_PERMITTED') return null;
   return (
     <p className="tiq-text-muted" data-testid="start-option">
       {t('responses.start.blocked', {
         variant,
-        reason: t(`responses.start.block.${option.blockedBy ?? 'NOT_PERMITTED'}`),
+        reason: t(`responses.start.block.${option.blockedBy}`),
       })}
     </p>
   );
@@ -180,7 +183,11 @@ function StartContent({ data }: { readonly data: BidStartOptions }) {
 }
 
 export function StartResponsePanel({ tenderId }: StartResponsePanelProps) {
-  const query = useApiQuery(getBidStartOptions, { params: { tenderId } });
+  const canStart = useCanCall(getBidStartOptions);
+  const query = useApiQuery(getBidStartOptions, canStart ? { params: { tenderId } } : null);
+
+  // DD-49: a membership that may not start responses sees no start panel at all.
+  if (!canStart || query.error?.kind === 'forbidden') return null;
 
   let body: ReactNode;
   if (query.data !== undefined) {

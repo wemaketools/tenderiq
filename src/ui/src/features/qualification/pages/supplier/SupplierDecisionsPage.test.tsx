@@ -111,5 +111,17 @@ describe('SupplierDecisionsPage (SUP-24)', () => {
     expect(
       await screen.findByText('Your role cannot see qualification decisions.'),
     ).toBeInTheDocument();
+    expect(screen.queryByText('Current decisions')).not.toBeInTheDocument();
+    expect(screen.queryByText('…')).not.toBeInTheDocument();
+  });
+
+  it('shows the decision tiles when the list loads', async () => {
+    routeCalls({
+      'supplier.qualification.overview': () => supplierOverview(),
+      'supplier.qualification.decisions.list': () => page([]),
+    });
+    renderPage(<SupplierDecisionsPage />, { ...PATH, permissions: SUPPLIER_VIEW });
+    expect(await screen.findByText('No qualification decision yet')).toBeInTheDocument();
+    expect(screen.getByText('Current decisions')).toBeInTheDocument();
   });
 });

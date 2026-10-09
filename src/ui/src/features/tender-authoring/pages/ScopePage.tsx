@@ -17,6 +17,7 @@ import type { Lot, Requirement } from '@contracts/tenders';
 
 import { useApiMutation, useApiQuery } from '../../../api/hooks';
 import { useScreenFilters } from '../../../app/hooks';
+import { useCanCall } from '../../../auth/permissions';
 import {
   Button,
   Card,
@@ -71,7 +72,10 @@ const DEFAULTS = {
 function Scope({ context }: { readonly context: TenderWorkspaceContext }) {
   const { tender, canEdit } = context;
   const toast = useToast();
-  const lotsQuery = useApiQuery(listLots, { params: { tenderId: tender.id } });
+  // DD-49: a panel the membership cannot load is left out, and its query is not made.
+  const canListLots = useCanCall(listLots);
+  const canListRequirements = useCanCall(listRequirements);
+  const lotsQuery = useApiQuery(listLots, canListLots ? { params: { tenderId: tender.id } } : null);
   const lots = useOverlay<Lot>();
   const requirements = useOverlay<Requirement>();
   const [lotEditing, setLotEditing] = useState<Lot | null>(null);
@@ -82,23 +86,30 @@ function Scope({ context }: { readonly context: TenderWorkspaceContext }) {
   const remove = useApiMutation(removeRequirement);
   const [filters, setFilters, clearFilters] = useScreenFilters(`BUY-09:${tender.id}`, DEFAULTS);
 
-  const query = useApiQuery(listRequirements, {
-    params: { tenderId: tender.id },
-    query: compact({
-      q: filters.q.trim(),
-      lotId: positiveId(filters.lot),
-      tenderLevel: filters.lot === 'tender' ? true : undefined,
-      section: filters.section,
-      treatment: oneOf(filters.treatment, REQUIREMENTS_TREATMENT),
-      envelope: oneOf(filters.envelope, REQUIREMENTS_ENVELOPE),
-      ownerUserId: positiveId(filters.owner),
-      issue: single(filters.issue, REQUIREMENT_ISSUE_FILTERS),
-      sort: single<SortField>(filters.sort, REQUIREMENT_SORT_FIELDS) ?? 'sortOrder',
-      dir: directionOf(filters.dir),
-      page: filters.page,
-      pageSize: filters.pageSize,
-    }),
-  });
+  const query = useApiQuery(
+    listRequirements,
+    canListRequirements
+      ? {
+          params: { tenderId: tender.id },
+          query: compact({
+            q: filters.q.trim(),
+            lotId: positiveId(filters.lot),
+            tenderLevel: filters.lot === 'tender' ? true : undefined,
+            section: filters.section,
+            treatment: oneOf(filters.treatment, REQUIREMENTS_TREATMENT),
+            envelope: oneOf(filters.envelope, REQUIREMENTS_ENVELOPE),
+            ownerUserId: positiveId(filters.owner),
+            issue: single(filters.issue, REQUIREMENT_ISSUE_FILTERS),
+            sort: single<SortField>(filters.sort, REQUIREMENT_SORT_FIELDS) ?? 'sortOrder',
+            dir: directionOf(filters.dir),
+            page: filters.page,
+            pageSize: filters.pageSize,
+          }),
+        }
+      : null,
+  );
+  const showLots = canListLots && lotsQuery.error?.kind !== 'forbidden';
+  const showRequirements = canListRequirements && query.error?.kind !== 'forbidden';
   const summary = query.data?.summary;
   const filtered = [
     filters.q,
@@ -401,178 +412,184 @@ function Scope({ context }: { readonly context: TenderWorkspaceContext }) {
           ) : undefined
         }
       />
-      <FilterBar
-        label={t('tender-authoring.requirements.filters')}
-        onClear={clearFilters}
-        canClear={filtered}
-      >
-        <Select
-          label={t('tender-authoring.requirements.col.lot')}
-          placeholder={t('tender-authoring.requirements.filter.allLots')}
-          value={filters.lot}
-          options={[
-            { value: 'tender', label: t('tender-authoring.common.wholeTender') },
-            ...tender.lots.map((lot) => ({ value: String(lot.id), label: scopeLabel(lot) })),
-          ]}
-          onChange={(lot) => setFilters({ lot, page: 1 })}
-        />
-        <Select
-          label={t('tender-authoring.requirements.col.section')}
-          placeholder={t('tender-authoring.requirements.filter.allSections')}
-          value={filters.section}
-          options={(query.data?.sections ?? []).map((value) => ({ value, label: value }))}
-          onChange={(section) => setFilters({ section, page: 1 })}
-        />
-        <Select
-          label={t('tender-authoring.requirements.col.treatment')}
-          placeholder={t('tender-authoring.requirements.filter.allTreatments')}
-          value={filters.treatment}
-          options={REQUIREMENTS_TREATMENT.map((value) => ({
-            value,
-            label: tEnum('requirements.treatment', value),
-          }))}
-          onChange={(treatment) => setFilters({ treatment, page: 1 })}
-        />
-        <Select
-          label={t('tender-authoring.requirements.col.envelope')}
-          placeholder={t('tender-authoring.requirements.filter.allEnvelopes')}
-          value={filters.envelope}
-          options={REQUIREMENTS_ENVELOPE.map((value) => ({
-            value,
-            label: tEnum('requirements.envelope', value),
-          }))}
-          onChange={(envelope) => setFilters({ envelope, page: 1 })}
-        />
-        <Select
-          label={t('tender-authoring.requirements.col.owner')}
-          placeholder={t('tender-authoring.requirements.filter.allOwners')}
-          value={filters.owner}
-          options={ownerOptions}
-          onChange={(owner) => setFilters({ owner, page: 1 })}
-        />
-        <Select
-          label={t('tender-authoring.requirements.filter.issue')}
-          placeholder={t('tender-authoring.requirements.filter.allIssues')}
-          value={filters.issue}
-          options={REQUIREMENT_ISSUE_FILTERS.map((value) => ({
-            value,
-            label: t(`tender-authoring.requirements.issueFilter.${value}`),
-          }))}
-          onChange={(issue) => setFilters({ issue, page: 1 })}
-        />
-        <SearchField
-          label={t('tender-authoring.requirements.filter.search')}
-          placeholder={t('tender-authoring.requirements.filter.searchPlaceholder')}
-          value={filters.q}
-          onChange={(q) => setFilters({ q, page: 1 })}
-        />
-      </FilterBar>
-      <KpiGrid>
-        <KpiCard
-          label={t('tender-authoring.requirements.kpi.total')}
-          icon="listChecks"
-          value={summary === undefined ? '…' : formatCount(summary.total)}
-          hint={
-            summary === undefined
+      {showRequirements && (
+        <FilterBar
+          label={t('tender-authoring.requirements.filters')}
+          onClear={clearFilters}
+          canClear={filtered}
+        >
+          <Select
+            label={t('tender-authoring.requirements.col.lot')}
+            placeholder={t('tender-authoring.requirements.filter.allLots')}
+            value={filters.lot}
+            options={[
+              { value: 'tender', label: t('tender-authoring.common.wholeTender') },
+              ...tender.lots.map((lot) => ({ value: String(lot.id), label: scopeLabel(lot) })),
+            ]}
+            onChange={(lot) => setFilters({ lot, page: 1 })}
+          />
+          <Select
+            label={t('tender-authoring.requirements.col.section')}
+            placeholder={t('tender-authoring.requirements.filter.allSections')}
+            value={filters.section}
+            options={(query.data?.sections ?? []).map((value) => ({ value, label: value }))}
+            onChange={(section) => setFilters({ section, page: 1 })}
+          />
+          <Select
+            label={t('tender-authoring.requirements.col.treatment')}
+            placeholder={t('tender-authoring.requirements.filter.allTreatments')}
+            value={filters.treatment}
+            options={REQUIREMENTS_TREATMENT.map((value) => ({
+              value,
+              label: tEnum('requirements.treatment', value),
+            }))}
+            onChange={(treatment) => setFilters({ treatment, page: 1 })}
+          />
+          <Select
+            label={t('tender-authoring.requirements.col.envelope')}
+            placeholder={t('tender-authoring.requirements.filter.allEnvelopes')}
+            value={filters.envelope}
+            options={REQUIREMENTS_ENVELOPE.map((value) => ({
+              value,
+              label: tEnum('requirements.envelope', value),
+            }))}
+            onChange={(envelope) => setFilters({ envelope, page: 1 })}
+          />
+          <Select
+            label={t('tender-authoring.requirements.col.owner')}
+            placeholder={t('tender-authoring.requirements.filter.allOwners')}
+            value={filters.owner}
+            options={ownerOptions}
+            onChange={(owner) => setFilters({ owner, page: 1 })}
+          />
+          <Select
+            label={t('tender-authoring.requirements.filter.issue')}
+            placeholder={t('tender-authoring.requirements.filter.allIssues')}
+            value={filters.issue}
+            options={REQUIREMENT_ISSUE_FILTERS.map((value) => ({
+              value,
+              label: t(`tender-authoring.requirements.issueFilter.${value}`),
+            }))}
+            onChange={(issue) => setFilters({ issue, page: 1 })}
+          />
+          <SearchField
+            label={t('tender-authoring.requirements.filter.search')}
+            placeholder={t('tender-authoring.requirements.filter.searchPlaceholder')}
+            value={filters.q}
+            onChange={(q) => setFilters({ q, page: 1 })}
+          />
+        </FilterBar>
+      )}
+      {showRequirements && (
+        <KpiGrid>
+          <KpiCard
+            label={t('tender-authoring.requirements.kpi.total')}
+            icon="listChecks"
+            value={summary === undefined ? '…' : formatCount(summary.total)}
+            hint={
+              summary === undefined
+                ? undefined
+                : t('tender-authoring.requirements.kpi.totalHint', {
+                    gates: summary.mandatoryGates,
+                    rated: summary.rated,
+                    info: summary.informationOnly,
+                  })
+            }
+          />
+          <KpiCard
+            label={t('tender-authoring.requirements.kpi.gates')}
+            icon="shieldCheck"
+            tone="info"
+            value={summary === undefined ? '…' : formatCount(summary.mandatoryGates)}
+            hint={t('tender-authoring.requirements.kpi.gatesHint')}
+          />
+          <KpiCard
+            label={t('tender-authoring.requirements.kpi.missingOwner')}
+            icon="user"
+            tone={summary !== undefined && summary.missingOwner > 0 ? 'danger' : 'success'}
+            value={summary === undefined ? '…' : formatCount(summary.missingOwner)}
+            hint={t('tender-authoring.requirements.kpi.missingOwnerHint')}
+          />
+          <KpiCard
+            label={t('tender-authoring.requirements.kpi.contradictions')}
+            icon="alertTriangle"
+            tone={summary !== undefined && summary.contradictions > 0 ? 'danger' : 'success'}
+            value={summary === undefined ? '…' : formatCount(summary.contradictions)}
+            hint={t('tender-authoring.requirements.kpi.contradictionsHint')}
+          />
+        </KpiGrid>
+      )}
+      {showLots && (
+        <Card
+          title={t('tender-authoring.lots.title', { count: lotRows?.length ?? tender.lots.length })}
+          subtitle={
+            lotsQuery.data === undefined
               ? undefined
-              : t('tender-authoring.requirements.kpi.totalHint', {
-                  gates: summary.mandatoryGates,
-                  rated: summary.rated,
-                  info: summary.informationOnly,
+              : t('tender-authoring.lots.subtitle', {
+                  model: tEnum('tenders.award_model', lotsQuery.data.awardModel),
+                  max: lotsQuery.data.maxLotsPerSupplier ?? t('tender-authoring.lots.noMax'),
+                  partial: lotsQuery.data.partialBidsAllowed
+                    ? t('tender-authoring.common.yes')
+                    : t('tender-authoring.common.no'),
                 })
           }
-        />
-        <KpiCard
-          label={t('tender-authoring.requirements.kpi.gates')}
-          icon="shieldCheck"
-          tone="info"
-          value={summary === undefined ? '…' : formatCount(summary.mandatoryGates)}
-          hint={t('tender-authoring.requirements.kpi.gatesHint')}
-        />
-        <KpiCard
-          label={t('tender-authoring.requirements.kpi.missingOwner')}
-          icon="user"
-          tone={summary !== undefined && summary.missingOwner > 0 ? 'danger' : 'success'}
-          value={summary === undefined ? '…' : formatCount(summary.missingOwner)}
-          hint={t('tender-authoring.requirements.kpi.missingOwnerHint')}
-        />
-        <KpiCard
-          label={t('tender-authoring.requirements.kpi.contradictions')}
-          icon="alertTriangle"
-          tone={summary !== undefined && summary.contradictions > 0 ? 'danger' : 'success'}
-          value={summary === undefined ? '…' : formatCount(summary.contradictions)}
-          hint={t('tender-authoring.requirements.kpi.contradictionsHint')}
-        />
-      </KpiGrid>
-      <Card
-        title={t('tender-authoring.lots.title', { count: lotRows?.length ?? tender.lots.length })}
-        subtitle={
-          lotsQuery.data === undefined
-            ? undefined
-            : t('tender-authoring.lots.subtitle', {
-                model: tEnum('tenders.award_model', lotsQuery.data.awardModel),
-                max: lotsQuery.data.maxLotsPerSupplier ?? t('tender-authoring.lots.noMax'),
-                partial: lotsQuery.data.partialBidsAllowed
-                  ? t('tender-authoring.common.yes')
-                  : t('tender-authoring.common.no'),
-              })
-        }
-        flush
-      >
-        <DataTable
-          caption={t('tender-authoring.lots.caption')}
-          columns={lotColumns}
-          rows={lotRows}
-          rowKey={(row) => String(row.id)}
-          loading={lotsQuery.isFetching}
-          error={lotsQuery.error?.kind === 'forbidden' ? null : lotsQuery.error}
-          restricted={lotsQuery.error?.kind === 'forbidden'}
-          onRetry={lotsQuery.reload}
-          empty={<EmptyState compact icon="layers" title={t('tender-authoring.lots.empty')} />}
-        />
-      </Card>
-      {lotRows !== undefined && (
+          flush
+        >
+          <DataTable
+            caption={t('tender-authoring.lots.caption')}
+            columns={lotColumns}
+            rows={lotRows}
+            rowKey={(row) => String(row.id)}
+            loading={lotsQuery.isFetching}
+            error={lotsQuery.error}
+            onRetry={lotsQuery.reload}
+            empty={<EmptyState compact icon="layers" title={t('tender-authoring.lots.empty')} />}
+          />
+        </Card>
+      )}
+      {showLots && lotRows !== undefined && (
         <IssueList
           issues={lotRows.flatMap((lot) => lot.issues)}
           label={t('tender-authoring.lots.issues')}
         />
       )}
-      <Card title={t('tender-authoring.requirements.title')} flush>
-        <DataTable
-          caption={t('tender-authoring.requirements.caption')}
-          columns={reqColumns}
-          rows={query.data === undefined ? undefined : requirements.apply(query.data.items)}
-          rowKey={(row) => String(row.id)}
-          loading={query.isFetching}
-          error={query.error?.kind === 'forbidden' ? null : query.error}
-          restricted={query.error?.kind === 'forbidden'}
-          onRetry={query.reload}
-          sort={tableSort(filters.sort, filters.dir)}
-          onSortChange={(sort) => setFilters({ sort: sort.key, dir: sort.dir, page: 1 })}
-          empty={
-            <EmptyState
-              compact
-              icon="listChecks"
-              title={
-                filtered
-                  ? t('tender-authoring.requirements.emptyFiltered')
-                  : t('tender-authoring.requirements.empty')
-              }
-            />
-          }
-          pagination={
-            query.data === undefined
-              ? undefined
-              : {
-                  page: query.data.page,
-                  pageSize: query.data.pageSize,
-                  total: query.data.total,
-                  onPageChange: (page) => setFilters({ page }),
-                  onPageSizeChange: (pageSize) => setFilters({ pageSize, page: 1 }),
+      {showRequirements && (
+        <Card title={t('tender-authoring.requirements.title')} flush>
+          <DataTable
+            caption={t('tender-authoring.requirements.caption')}
+            columns={reqColumns}
+            rows={query.data === undefined ? undefined : requirements.apply(query.data.items)}
+            rowKey={(row) => String(row.id)}
+            loading={query.isFetching}
+            error={query.error}
+            onRetry={query.reload}
+            sort={tableSort(filters.sort, filters.dir)}
+            onSortChange={(sort) => setFilters({ sort: sort.key, dir: sort.dir, page: 1 })}
+            empty={
+              <EmptyState
+                compact
+                icon="listChecks"
+                title={
+                  filtered
+                    ? t('tender-authoring.requirements.emptyFiltered')
+                    : t('tender-authoring.requirements.empty')
                 }
-          }
-        />
-      </Card>
+              />
+            }
+            pagination={
+              query.data === undefined
+                ? undefined
+                : {
+                    page: query.data.page,
+                    pageSize: query.data.pageSize,
+                    total: query.data.total,
+                    onPageChange: (page) => setFilters({ page }),
+                    onPageSizeChange: (pageSize) => setFilters({ pageSize, page: 1 }),
+                  }
+            }
+          />
+        </Card>
+      )}
       {canEdit && (
         <LotDialog
           open={lotOpen}

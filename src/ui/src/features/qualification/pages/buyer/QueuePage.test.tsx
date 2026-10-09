@@ -195,6 +195,20 @@ describe('QueuePage (BUY-33)', () => {
     expect((await screen.findAllByText('Restricted')).length).toBeGreaterThan(0);
   });
 
+  it('shows the queue tiles when the membership may read the qualification summary', async () => {
+    routeCalls(standardRoutes());
+    renderPage(<QueuePage />, { ...PATH, permissions: ASSESSOR });
+    expect(await screen.findByText('In the queue')).toBeInTheDocument();
+  });
+
+  it('leaves out the queue tiles and never asks for the summary without the work permissions', async () => {
+    const calls = routeCalls(standardRoutes());
+    renderPage(<QueuePage />, { ...PATH, permissions: ['qualification.program.manage'] });
+    expect(await screen.findByText('QA-2026-0006')).toBeInTheDocument();
+    expect(screen.queryByText('In the queue')).not.toBeInTheDocument();
+    expect(calls.some((item) => item.id === 'buyer.qualification.summary')).toBe(false);
+  });
+
   it('hides assignment from a financial reviewer who can only request information', async () => {
     routeCalls(standardRoutes());
     renderPage(<QueuePage />, { ...PATH, permissions: ['qualification.financial_review'] });

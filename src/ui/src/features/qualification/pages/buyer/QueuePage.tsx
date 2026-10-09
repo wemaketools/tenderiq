@@ -18,7 +18,7 @@ import {
 
 import { invalidateApiQueries, useApiQuery } from '../../../../api/hooks';
 import { useScreenFilters } from '../../../../app/hooks';
-import { usePermission } from '../../../../auth/permissions';
+import { useCanCall, usePermission } from '../../../../auth/permissions';
 import {
   Button,
   ButtonLink,
@@ -131,7 +131,8 @@ export default function QueuePage() {
       pageSize: filters.pageSize,
     }),
   });
-  const summary = useApiQuery(api.getQualificationSummary, {});
+  const canSummary = useCanCall(api.getQualificationSummary);
+  const summary = useApiQuery(api.getQualificationSummary, canSummary ? {} : null);
   const options = useApiQuery(api.getQualificationOptions, {});
   const programs = useApiQuery(api.listPrograms, { query: { pageSize: 100, sort: 'name' } });
 
@@ -139,7 +140,8 @@ export default function QueuePage() {
   const inQueue = OPEN_STATUSES.reduce((total, status) => total + (counts.get(status) ?? 0), 0);
   const kpi = (value: number | undefined): string =>
     value === undefined ? '…' : formatCount(value);
-  const kpiRestricted = summary.error?.kind === 'forbidden';
+  // Tiles the membership cannot load are left out, and so is the grid (DD-49).
+  const kpiHidden = !canSummary || summary.error?.kind === 'forbidden';
 
   const filtered =
     filters.q !== '' ||
@@ -470,7 +472,7 @@ export default function QueuePage() {
           icon="inbox"
           value={kpi(summary.data === undefined ? undefined : inQueue)}
           hint={t('qualification.queue.kpi.inQueueHint')}
-          restricted={kpiRestricted}
+          restricted={kpiHidden}
         />
         <KpiCard
           label={t('qualification.queue.kpi.unassigned')}
@@ -478,7 +480,7 @@ export default function QueuePage() {
           tone="warning"
           value={kpi(summary.data?.unassigned)}
           hint={t('qualification.queue.kpi.unassignedHint')}
-          restricted={kpiRestricted}
+          restricted={kpiHidden}
         />
         <KpiCard
           label={t('qualification.queue.kpi.overdue')}
@@ -486,7 +488,7 @@ export default function QueuePage() {
           tone="danger"
           value={kpi(summary.data?.overdue)}
           hint={t('qualification.queue.kpi.overdueHint')}
-          restricted={kpiRestricted}
+          restricted={kpiHidden}
         />
         <KpiCard
           label={t('qualification.queue.kpi.highRisk')}
@@ -494,7 +496,7 @@ export default function QueuePage() {
           tone="danger"
           value={kpi(summary.data?.highRisk)}
           hint={t('qualification.queue.kpi.highRiskHint')}
-          restricted={kpiRestricted}
+          restricted={kpiHidden}
         />
         <KpiCard
           label={t('qualification.queue.kpi.renewals')}
@@ -502,7 +504,7 @@ export default function QueuePage() {
           tone="accent"
           value={kpi(summary.data?.renewalsInQueue)}
           hint={t('qualification.queue.kpi.renewalsHint')}
-          restricted={kpiRestricted}
+          restricted={kpiHidden}
         />
       </KpiGrid>
       <Card flush>

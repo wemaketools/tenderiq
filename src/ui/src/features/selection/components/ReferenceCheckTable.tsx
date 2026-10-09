@@ -1,6 +1,7 @@
 /**
  * Reference checks with the referee's consent, contact time, feedback and outcome. Confidential feedback the caller
- * may not read shows as restricted; feedback can be recorded only with consent (BUY-22).
+ * may not read shows as a dash beside the "Confidential" chip (DD-49); feedback can be recorded only with consent
+ * (BUY-22).
  */
 import type { ReactNode } from 'react';
 
@@ -9,7 +10,7 @@ import type { ReferenceCheck } from '@contracts/selection';
 import type { ApiError } from '../../../api/client';
 import { Button, Chip, DataTable, OrDash, Reference } from '../../../components/ui';
 import type { DataTableColumn, DataTableSort, PaginationProps } from '../../../components/ui';
-import { formatDateTime } from '../../../lib/format';
+import { EMPTY_VALUE, formatDateTime } from '../../../lib/format';
 import { t } from '../../../lib/i18n';
 import { selectionPaths } from '../lib/paths';
 import { BidName } from './BidName';
@@ -103,11 +104,7 @@ export function ReferenceCheckTable({
       header: t('selection.references.col.feedback'),
       cell: (row) => (
         <>
-          {row.feedbackRestricted ? (
-            <span className="tiq-text-muted">{t('selection.references.restricted')}</span>
-          ) : (
-            <OrDash>{row.feedback}</OrDash>
-          )}
+          {row.feedbackRestricted ? EMPTY_VALUE : <OrDash>{row.feedback}</OrDash>}
           {row.confidential && (
             <span className="tiq-cell-sub">
               <Chip tone="warning" size="sm" icon="lock">

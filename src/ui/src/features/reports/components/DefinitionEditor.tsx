@@ -179,12 +179,15 @@ export function DefinitionEditor({
             label={t('reports.definition.family')}
             required
             value={form.family}
-            options={REPORT_DEFINITIONS_FAMILY.map((value) => ({
+            options={REPORT_DEFINITIONS_FAMILY.filter(
+              (value) =>
+                value === form.family ||
+                families.find((item) => item.family === value)?.restricted !== true,
+            ).map((value) => ({
               value,
               label:
                 families.find((item) => item.family === value)?.title ??
                 tEnum('report_definitions.family', value),
-              disabled: families.find((item) => item.family === value)?.restricted === true,
             }))}
             onChange={(value) => {
               const next = REPORT_DEFINITIONS_FAMILY.find((item) => item === value);

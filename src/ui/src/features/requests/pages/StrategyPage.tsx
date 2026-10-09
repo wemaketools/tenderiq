@@ -11,10 +11,12 @@ import { useParams } from 'react-router';
 import { requestEndpoints } from '@contracts/requests';
 import type { FairnessReview, StrategyDetail } from '@contracts/requests';
 import type { ApprovalDecision } from '@contracts/approvals';
+import { listBuyerDocuments } from '@contracts/documents';
 import type { MarketResearchEntriesSourceType } from '@contracts/enums';
 
 import { useApiMutation, useApiQuery } from '../../../api/hooks';
 import { useActiveTenant } from '../../../app/hooks';
+import { useCanCall } from '../../../auth/permissions';
 import { DocumentList } from '../../../components/documents';
 import {
   Banner,
@@ -97,6 +99,7 @@ function StrategyWorkspace({
   const timeZone = tenant?.officialTimeZone ?? 'UTC';
   const [dialog, setDialog] = useState<Dialog | null>(null);
   const allowed = strategy.allowedActions;
+  const canReadDocuments = useCanCall(listBuyerDocuments);
   const comparison = useApiQuery(requestEndpoints.getProcedureOptions, {
     params: { strategyId: strategy.id },
   });
@@ -554,13 +557,15 @@ function StrategyWorkspace({
             />
           </Card>
 
-          <DocumentList
-            audience="buyer"
-            relatedType="procurement_strategy"
-            relatedId={strategy.id}
-            title={t('requests.strategy.sections.documents')}
-            canUpload={allowed.includes('edit')}
-          />
+          {canReadDocuments && (
+            <DocumentList
+              audience="buyer"
+              relatedType="procurement_strategy"
+              relatedId={strategy.id}
+              title={t('requests.strategy.sections.documents')}
+              canUpload={allowed.includes('edit')}
+            />
+          )}
         </div>
 
         <div className="tiq-stack">

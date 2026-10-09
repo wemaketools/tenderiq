@@ -262,7 +262,6 @@ export default {
     missingTypes: 'Still needed: {types}.',
     sent: 'Your evidence was sent to platform operations for identity verification.',
     loadEvidenceFailed: 'Your evidence library could not be loaded.',
-    restrictedLibrary: 'Ask a member who maintains the evidence library to supply the evidence.',
   },
   membership: {
     title: 'Request membership',
@@ -515,7 +514,6 @@ export default {
       withdrawn: 'Withdrawn',
       withdrawnHint: 'No longer shared or offered',
     },
-    financialRestrictedTitle: 'Financial evidence is not shown',
     financialRestricted:
       'Financial statements and other financial evidence are visible only to members with the financial evidence right. Counts and rows here exclude them.',
     caption: 'Evidence items',

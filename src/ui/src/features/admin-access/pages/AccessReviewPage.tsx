@@ -34,7 +34,6 @@ import {
   KpiGrid,
   OfficialDeadline,
   PageHeader,
-  RestrictedState,
   SearchField,
   Select,
   StatusChip,
@@ -697,18 +696,15 @@ export default function AccessReviewPage() {
         selected={tab}
         onSelect={(id) => setTab(id as Tab)}
         tabs={[
-          { id: 'findings', label: t('admin-access.review.tab.findings') },
+          ...(canFindings
+            ? [{ id: 'findings', label: t('admin-access.review.tab.findings') }]
+            : []),
           { id: 'grants', label: t('admin-access.review.tab.grants') },
           { id: 'restrictions', label: t('admin-access.review.tab.restrictions') },
           { id: 'effective', label: t('admin-access.review.tab.effective') },
         ]}
       >
-        {tab === 'findings' &&
-          (canFindings ? (
-            <FindingsTab />
-          ) : (
-            <RestrictedState description={t('admin-access.review.findingsRestricted')} />
-          ))}
+        {tab === 'findings' && canFindings && <FindingsTab />}
         {tab === 'grants' && <GrantsTab created={grants} />}
         {tab === 'restrictions' && <RestrictionsTab created={restrictions} />}
         {tab === 'effective' && <EffectiveTab />}

@@ -92,6 +92,17 @@ async function checkPage(page: Page, where: string): Promise<string[]> {
   return problems;
 }
 
+/**
+ * Restricted placeholders on a page the role may open (DD-49): anything the role cannot see or do is left out, so a
+ * sidebar or top bar destination never shows a lock box, a locked tile or "Not available in your role".
+ */
+async function restrictedPlaceholders(page: Page, where: string): Promise<string[]> {
+  const boxes = await page
+    .locator('main [data-state="restricted"]')
+    .evaluateAll((elements) => elements.map((element) => (element.textContent ?? '').trim().slice(0, 80)));
+  return boxes.map((text) => `${where}: restricted placeholder "${text}"`);
+}
+
 /** The top bar destinations that have no sidebar entry (DD-48): every signed-in user reaches them. */
 const TOPBAR_DESTINATIONS = ['/me/search', '/me/notifications', '/me/help'];
 
@@ -112,7 +123,7 @@ async function navDestinations(page: Page): Promise<string[]> {
 
 test.describe('accessibility sweep', () => {
   for (const persona of PERSONAS) {
-    test(`${persona}: every nav destination passes axe in both themes without sideways scroll`, async ({ page }) => {
+    test(`${persona}: every nav destination passes axe in both themes without sideways scroll or restricted placeholders`, async ({ page }) => {
       test.setTimeout(600_000);
       await signIn(page, persona);
       const destinations = await navDestinations(page);
@@ -121,6 +132,7 @@ test.describe('accessibility sweep', () => {
       for (const path of destinations) {
         await page.goto(path);
         problems.push(...(await checkPage(page, path)));
+        problems.push(...(await restrictedPlaceholders(page, path)));
       }
       expect(problems).toEqual([]);
     });

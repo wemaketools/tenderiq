@@ -558,7 +558,6 @@ export default {
       restrictions: 'Restrictions',
       effective: 'Effective access',
     },
-    findingsRestricted: 'The access review findings need the access review permission.',
     filters: 'Finding filters',
     searchPlaceholder: 'Person or finding',
     filter: {

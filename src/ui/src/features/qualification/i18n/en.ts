@@ -319,9 +319,6 @@ export default {
     done: 'Finding recorded: {finding}.',
   },
   financial: {
-    restrictedTitle: 'Restricted financial review',
-    restricted:
-      'Only the financial reviewer and the deciders of this program can see the financial review. Ask them for the conclusion.',
     confidentialTitle: 'Confidential financial review',
     confidential:
       'Visible only to financial reviewers and deciders. Assigned reviewer: {reviewer}.',
@@ -441,7 +438,6 @@ export default {
     cannotTitle: 'This application cannot be decided now',
     notPending: 'nothing to decide',
     notPendingDetail: 'Only decision-pending applications are decided. Current status: {status}.',
-    noAuthority: 'Your role does not hold the decision authority of this program.',
     recommendationTitle: 'Assessor’s recommendation',
     formTitle: 'Decision',
     formHint: 'Starts from the recommendation. Decisions are superseded later, never overwritten.',
@@ -586,7 +582,6 @@ export default {
     decisionRecorded: 'Decision {id} recorded for this trigger.',
     disposition: 'Disposition',
     dispositionHint: 'The explicit eligibility or award position, and why.',
-    decidersOnly: 'Only a decider of this program records the disposition.',
     assessedBy: 'Assessed by',
     impactReview: 'Impact review',
     impactReviewValue: 'Bids reviewed: {bids} · contracts reviewed: {contracts}',
@@ -872,9 +867,6 @@ export default {
     intro:
       'Your qualification with each buyer: programs, applications, requests for information and expiring evidence.',
     toDecisions: 'Decisions and renewals',
-    readOnlyTitle: 'Read-only access',
-    readOnly:
-      'Your role can follow qualification outcomes but not apply. Ask your organization administrator for the bid manager role.',
     registrationTitle: '{name} is registered on TenderIQ',
     registration:
       'Registration: {registration}; verification: {verification}. Registration is not qualification: each buyer qualifies suppliers per category.',

@@ -119,6 +119,24 @@ describe('CustomFieldsSection', () => {
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
   });
 
+  it('renders nothing, not a restricted box, when the form is refused', async () => {
+    const calls = routeCalls({
+      'buyer.policy.formDefinition': () => {
+        throw businessError('buyer.policy.formDefinition', 'FORBIDDEN', 403);
+      },
+    });
+    const { container } = render(
+      <CustomFieldsSection entityType="tender" values={{}} onChange={() => undefined} />,
+    );
+    await waitFor(() => expect(calls.length).toBeGreaterThan(0));
+    await waitFor(() =>
+      expect(screen.queryByText('Loading the additional fields')).not.toBeInTheDocument(),
+    );
+    expect(container.querySelector('[data-state="restricted"]')).toBeNull();
+    expect(screen.queryByText('The additional fields could not be loaded')).not.toBeInTheDocument();
+    expect(container.querySelector('fieldset')).toBeNull();
+  });
+
   it('renders nothing for a supplier on the buyer-only request form', () => {
     routeCalls({});
     const { container } = render(

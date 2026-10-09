@@ -33,7 +33,6 @@ import {
   EmptyState,
   ErrorState,
   FormErrorSummary,
-  RestrictedState,
   Select,
   SkeletonBlock,
   StatusChip,
@@ -535,22 +534,20 @@ function ReviewContent({
                 ]}
               />
             ) : (
-              <>
-                <RestrictedState compact description={t('responses.review.exposure.restricted')} />
-                <DetailList
-                  stacked
-                  items={[
-                    {
-                      label: t('responses.review.exposure.exceptions'),
-                      value: String(exposure.exceptionCount),
-                    },
-                    {
-                      label: t('responses.review.exposure.deviations'),
-                      value: String(exposure.deviationCount),
-                    },
-                  ]}
-                />
-              </>
+              // DD-49: without pricing visibility the price figures are simply left out.
+              <DetailList
+                stacked
+                items={[
+                  {
+                    label: t('responses.review.exposure.exceptions'),
+                    value: String(exposure.exceptionCount),
+                  },
+                  {
+                    label: t('responses.review.exposure.deviations'),
+                    value: String(exposure.deviationCount),
+                  },
+                ]}
+              />
             )}
           </Card>
           <ReadinessPanel

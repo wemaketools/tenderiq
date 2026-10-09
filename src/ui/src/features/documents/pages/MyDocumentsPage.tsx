@@ -22,7 +22,6 @@ import { useScreenFilters } from '../../../app/hooks';
 import { ClassificationBadge, DownloadVersionButton } from '../../../components/documents';
 import {
   Card,
-  Chip,
   DataTable,
   DateInput,
   EmptyState,
@@ -186,11 +185,7 @@ export default function MyDocumentsPage() {
               fileName={row.currentVersion.fileName}
             />
           </div>
-        ) : (
-          <Chip tone="neutral-outlined" size="sm" icon="lock">
-            {t('documents.list.notDownloadable')}
-          </Chip>
-        ),
+        ) : null,
     },
   ];
 
@@ -282,13 +277,6 @@ export default function MyDocumentsPage() {
           tone="info"
           value={kpi((row) => row.isRedactedCopy)}
           hint={t('documents.kpi.redactedHint')}
-        />
-        <KpiCard
-          label={t('documents.kpi.viewOnly')}
-          icon="eye"
-          tone="danger"
-          value={kpi((row) => !row.canDownload)}
-          hint={t('documents.kpi.viewOnlyHint')}
         />
       </KpiGrid>
       <Card flush>

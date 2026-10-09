@@ -4,7 +4,6 @@ import {
   EVALUATION_NEXT_ACTIONS,
   GATE_FAILURE_CODES,
   PEER_SCORE_VISIBILITIES,
-  RESULT_DETAIL_LEVELS,
   evaluationEndpoints,
 } from '@contracts/evaluation';
 import { permissionsForTemplates } from '@contracts/permissions';
@@ -139,9 +138,6 @@ describe('evaluation catalog coverage', () => {
       'results.next': ['none', 'draft', 'in_signoff', 'signed_off', 'superseded'],
       'assessment.peers': PEER_SCORE_VISIBILITIES.filter((value) => value !== 'visible'),
       'results.gateFailure': [...GATE_FAILURE_CODES, 'other'],
-      'results.detail': RESULT_DETAIL_LEVELS.filter((value) => value !== 'full').flatMap(
-        (value) => [`${value}.title`, `${value}.body`],
-      ),
       'assessment.blocked': ['ASSESSMENT_CONTENT_BLOCKED', 'COMMERCIAL_ASSIGNMENT'],
     };
     const missing = Object.entries(templated).flatMap(([prefix, values]) =>

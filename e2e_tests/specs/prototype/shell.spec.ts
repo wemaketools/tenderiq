@@ -132,4 +132,22 @@ test.describe('prototype shell', () => {
     await expect(nav.getByRole('button', { name: /^Administration/ })).toHaveAttribute('aria-expanded', 'true');
     await expectNoAxeViolations(page);
   });
+
+  test('the dashboard leaves out what the role cannot see instead of showing it locked (DD-49)', async ({ page }) => {
+    await signIn(page, 'tebogo.officer');
+    await expect(page).toHaveURL(/\/buyer/);
+    await page.goto('/buyer/dashboard');
+    await expect(page.getByRole('heading', { level: 2, name: 'Upcoming deadlines' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Workload by owner' })).toHaveCount(0);
+    await expect(page.getByText(/limited to procurement managers|Not available in your role/)).toHaveCount(0);
+    await expect(page.locator('main [data-state="restricted"]')).toHaveCount(0);
+
+    await page.getByRole('button', { name: /^Account menu for/ }).click();
+    await page.getByRole('menuitem', { name: 'Sign out' }).click();
+    await expect(page).toHaveURL(/\/signin/);
+    await signIn(page, 'mpho.manager');
+    await expect(page).toHaveURL(/\/buyer/);
+    await page.goto('/buyer/dashboard');
+    await expect(page.getByRole('heading', { name: 'Workload by owner' })).toBeVisible();
+  });
 });

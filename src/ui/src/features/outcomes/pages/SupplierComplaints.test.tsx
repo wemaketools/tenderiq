@@ -114,6 +114,35 @@ describe('SupplierComplaintPage (SUP-22)', () => {
     });
   });
 
+  it('shows the evidence panel to a member who may read the complaint documents', async () => {
+    installFetch({
+      'GET /api/v1/supplier/complaints/92': () => ({ body: supplierComplaint() }),
+      'GET /api/v1/supplier/documents': () => ({
+        body: { items: [], total: 0, page: 1, pageSize: 25 },
+      }),
+    });
+    renderSupplier(<SupplierComplaintPage />, OPTIONS);
+
+    expect(await screen.findByRole('heading', { name: 'Evidence' })).toBeInTheDocument();
+  });
+
+  it('leaves the evidence panel out for an outcome follower who may not read documents (DD-49)', async () => {
+    const { requests } = installFetch({
+      'GET /api/v1/supplier/complaints/92': () => ({ body: supplierComplaint() }),
+    });
+    renderSupplier(<SupplierComplaintPage />, {
+      ...OPTIONS,
+      permissions: ['supplier.outcomes.view'],
+    });
+
+    expect(
+      await screen.findByText('The sub-criterion was published in section 4.3.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Evidence' })).not.toBeInTheDocument();
+    expect(document.querySelector('[data-state="restricted"]')).toBeNull();
+    expect(requests.some((request) => request.path === '/api/v1/supplier/documents')).toBe(false);
+  });
+
   it('shows a just-lodged complaint from the router state when the API cannot read it back', async () => {
     const created = supplierComplaint({
       complaintId: 900,

@@ -64,7 +64,7 @@ describe('BuyerDashboardPage (BUY-01)', () => {
     expect(await screen.findByText('Some information is incomplete')).toBeInTheDocument();
   });
 
-  it('shows restricted panels and KPIs without counts when the role may not read them', async () => {
+  it('leaves out a KPI and the workload card the role may not read, with no lock or explanation', async () => {
     routes({
       ...BUYER_DASHBOARD,
       kpis: BUYER_DASHBOARD.kpis.map((kpi) =>
@@ -76,29 +76,60 @@ describe('BuyerDashboardPage (BUY-01)', () => {
     });
     renderWithProviders(<BuyerDashboardPage />, { state: buyerState(MANAGER) });
 
-    const overdue = await screen.findByRole('region', { name: 'Overdue obligations' });
-    expect(within(overdue).queryByText('3')).not.toBeInTheDocument();
-    expect(
-      screen.getByText('Workload by owner is limited to procurement managers.'),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('region', { name: 'Active events' })).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Overdue obligations' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Workload by owner' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/limited to procurement managers/)).not.toBeInTheDocument();
+    expect(screen.queryByText('Not available in your role')).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Pipeline by stage' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Upcoming deadlines' })).toBeInTheDocument();
   });
 
-  it('offers no "view all" link on a card the role may not read, so no link leads to a forbidden page', async () => {
+  it('leaves out every card and the pipeline value the role may not read, so no link leads to a forbidden page', async () => {
     routes({
       ...BUYER_DASHBOARD,
       pipelineValue: null,
       pipelineByStage: { restricted: true, items: [] },
       deadlines: { restricted: true, items: [] },
+      approvals: { restricted: true, items: [] },
       renewals: { restricted: true, items: [] },
     });
     renderWithProviders(<BuyerDashboardPage />, { state: buyerState(MANAGER) });
 
-    expect(
-      await screen.findByText('Your role does not include the tender pipeline.'),
-    ).toBeInTheDocument();
-    for (const name of ['View all tenders', 'View tenders', 'View contracts']) {
+    expect(await screen.findByRole('list', { name: 'Requires attention' })).toBeInTheDocument();
+    for (const heading of [
+      'Pipeline by stage',
+      'Upcoming deadlines',
+      'Pending approvals',
+      'Upcoming renewals',
+    ]) {
+      expect(screen.queryByRole('heading', { name: heading })).not.toBeInTheDocument();
+    }
+    expect(screen.queryByRole('region', { name: 'Open pipeline value' })).not.toBeInTheDocument();
+    for (const name of ['View all tenders', 'View tenders', 'Open my tasks', 'View contracts']) {
       expect(screen.queryByRole('link', { name })).not.toBeInTheDocument();
     }
+    expect(screen.queryByText(/your role/i)).not.toBeInTheDocument();
+  });
+
+  it('gives the attention card the full width when the approvals card is left out', async () => {
+    routes({ ...BUYER_DASHBOARD, approvals: { restricted: true, items: [] } });
+    renderWithProviders(<BuyerDashboardPage />, { state: buyerState(MANAGER) });
+
+    const attention = await screen.findByRole('list', { name: 'Requires attention' });
+    expect(attention.closest('.tiq-grid')).toBeNull();
+    const workload = screen.getByRole('heading', { name: 'Workload by owner' });
+    expect(workload.closest('.tiq-grid')).toHaveClass('tiq-grid--3');
+  });
+
+  it('lays the two remaining summary cards out in two columns when one is left out', async () => {
+    routes({ ...BUYER_DASHBOARD, workload: { restricted: true, items: [] } });
+    renderWithProviders(<BuyerDashboardPage />, { state: buyerState(MANAGER) });
+
+    const pipeline = await screen.findByRole('heading', { name: 'Pipeline by stage' });
+    expect(pipeline.closest('.tiq-grid')).toHaveClass('tiq-grid--2');
+    const attention = screen.getByRole('list', { name: 'Requires attention' });
+    expect(attention.closest('.tiq-grid')).toHaveClass('tiq-grid--sidebar');
   });
 
   it('sends the chosen department filter to the API', async () => {

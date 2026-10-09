@@ -141,6 +141,31 @@ describe('CalendarPage (ADM-10)', () => {
     expect(screen.getByText(/Saved as a draft/)).toBeInTheDocument();
   });
 
+  it('says nothing about approval to a member who may not approve calendars (DD-49)', async () => {
+    routeCalls({
+      'buyer.calendars.get': () =>
+        calendarDetail({
+          status: 'draft',
+          isDefault: false,
+          approvedAt: null,
+          approvedBy: null,
+          activeEventCount: 0,
+          usedBy: [],
+          capabilities: {
+            canEdit: false,
+            canApprove: false,
+            canRetire: false,
+            canSetDefault: false,
+            approveBlockedReason: 'permission_missing',
+          },
+        }),
+    });
+    renderPage(<CalendarPage />, DETAIL);
+    expect(await screen.findByText(/Saved as a draft/)).toBeInTheDocument();
+    expect(screen.queryByText(/permission/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Approve' })).not.toBeInTheDocument();
+  });
+
   it('retires with a reason and explains a refusal', async () => {
     routeCalls({
       'buyer.calendars.get': () =>

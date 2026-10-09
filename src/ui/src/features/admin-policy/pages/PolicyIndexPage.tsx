@@ -5,7 +5,7 @@
 import { Navigate } from 'react-router';
 
 import { usePermission } from '../../../auth/permissions';
-import { RestrictedState } from '../../../components/ui';
+import { ForbiddenPage } from '../../../pages/ForbiddenPage';
 import { policyPaths } from '../lib/paths';
 import { FIELDS_READ, PORTAL_READ, PROFILES_READ, TEMPLATES_READ } from '../lib/permissions';
 
@@ -23,6 +23,6 @@ export default function PolicyIndexPage() {
         : portal
           ? policyPaths.portal
           : null;
-  if (target === null) return <RestrictedState />;
+  if (target === null) return <ForbiddenPage />;
   return <Navigate to={target} replace />;
 }

@@ -47,8 +47,6 @@ export default {
     restrictedHint: 'Metadata only or assigned users',
     redacted: 'Redacted copies',
     redactedHint: 'Disclosure copies of controlled originals',
-    viewOnly: 'View only',
-    viewOnlyHint: 'Download not permitted',
   },
   viewer: {
     back: 'Back to documents',
@@ -105,12 +103,9 @@ export default {
     blocked: {
       sealed:
         'Sealed submission content. It cannot be downloaded or viewed before the authorized opening; only its metadata is shown.',
-      classification_restricted:
-        'The classification restricts this file to specifically assigned users. You can see its details but not download it.',
       no_confirmed_version: 'No confirmed version exists yet, so there is nothing to download.',
       withdrawn:
         'This document was withdrawn. Its history remains, but the file cannot be downloaded.',
-      generic: 'Downloading this document is not permitted for you.',
     },
   },
   upload: {

@@ -71,6 +71,51 @@ describe('PricingPage (SUP-13)', () => {
     expect(await screen.findByText('Pricing is restricted')).toBeInTheDocument();
     expect(await screen.findByText('2 price lines are not entered')).toBeInTheDocument();
     expect(calls.some((entry) => entry.id === 'supplier.bids.pricing')).toBe(false);
+    const tabs = screen.getByRole('navigation', { name: 'Response workspace' });
+    expect(within(tabs).queryByRole('link', { name: 'Pricing' })).not.toBeInTheDocument();
+    expect(within(tabs).getByRole('link', { name: 'Answers' })).toBeInTheDocument();
+  });
+
+  it('shows the Pricing tab to a viewer who may see prices', async () => {
+    // Arrange
+    routeCalls({
+      'supplier.bids.get': () => bidDetail(),
+      'supplier.bids.pricing': () => pricing(),
+    });
+
+    // Act
+    renderPage();
+
+    // Assert
+    const tabs = await screen.findByRole('navigation', { name: 'Response workspace' });
+    expect(within(tabs).getByRole('link', { name: 'Pricing' })).toBeInTheDocument();
+  });
+
+  it('shows no read-only notice to a viewer who may see but not change prices of an editable revision', async () => {
+    // Arrange
+    routeCalls({
+      'supplier.bids.get': () =>
+        bidDetail({
+          viewer: {
+            canEditResponse: true,
+            canViewPricing: true,
+            canEditPricing: false,
+            canAssign: false,
+            canComment: true,
+            canApprove: true,
+            canSubmit: false,
+          },
+        }),
+      'supplier.bids.pricing': () => pricing(),
+    });
+
+    // Act
+    renderPage();
+
+    // Assert
+    expect(await screen.findByRole('table', { name: 'Price schedule' })).toBeInTheDocument();
+    expect(screen.queryByText('Read only')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Save pricing' })).not.toBeInTheDocument();
   });
 
   it('shows decimal totals and keeps "not entered" distinct from a zero price', async () => {

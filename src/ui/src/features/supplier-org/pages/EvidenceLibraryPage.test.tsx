@@ -40,10 +40,14 @@ describe('EvidenceLibraryPage (SUP-05)', () => {
     expect(within(row).getByText('Edition 2')).toBeInTheDocument();
   });
 
-  it('says financial evidence is withheld instead of showing it', async () => {
+  it('lists only the evidence the member may read, with no banner about withheld financial evidence', async () => {
     routeCalls(routes(evidencePage([evidenceItem()], true)));
     renderPage(<EvidenceLibraryPage />, PATH);
-    expect(await screen.findByText('Financial evidence is not shown')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('row', { name: 'Public liability insurance 2025/26' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Financial evidence is not shown')).not.toBeInTheDocument();
+    expect(screen.queryByText(/visible only to members with/)).not.toBeInTheDocument();
   });
 
   it('sends type, buyer and history filters to the API', async () => {
@@ -109,5 +113,13 @@ describe('EvidenceLibraryPage (SUP-05)', () => {
     const row = await screen.findByRole('row', { name: 'Audited financial statements FY2025' });
     expect(within(row).getByText(/KPMG Botswana/)).toBeInTheDocument();
     expect(screen.queryByText('Financial evidence is not shown')).not.toBeInTheDocument();
+  });
+
+  it('leaves out the "shared with" filter, without listing buyers, for a member who may not share evidence', async () => {
+    const calls = routeCalls(routes());
+    renderPage(<EvidenceLibraryPage />, { ...PATH, permissions: SUPPLIER_FINANCE });
+    await screen.findByRole('row', { name: 'Public liability insurance 2025/26' });
+    expect(screen.queryByLabelText('Shared with')).not.toBeInTheDocument();
+    expect(calls.some((c) => c.id === 'supplier.suppliers.sharingBuyers')).toBe(false);
   });
 });

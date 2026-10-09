@@ -730,13 +730,9 @@ function DeclarationsContent({ bid }: { readonly bid: BidDetail }) {
       <Banner tone="info" title={t('responses.declarations.statementsTitle')}>
         <p>{t('responses.declarations.statementsDetail')}</p>
       </Banner>
-      {!canEdit && (
+      {!pack.editable && (
         <Banner tone="info" title={t('responses.answer.readOnlyTitle')}>
-          <p>
-            {pack.editable
-              ? t('responses.answer.noEditPermission')
-              : t('responses.answer.readOnlyRevision', { no: pack.revisionNo })}
-          </p>
+          <p>{t('responses.answer.readOnlyRevision', { no: pack.revisionNo })}</p>
         </Banner>
       )}
       {latest !== null && latest.invalidatedApprovalIds.length > 0 && (

@@ -1,8 +1,8 @@
 /**
  * SUP-05 — Evidence library: certificates, statements, licences, references, insurance and declarations with their
  * issuer, reporting period, expiry and sharing audiences. Add, replace prospectively, renew, withdraw future sharing;
- * each item shows where an edition was formally submitted. Financial evidence is withheld from members without
- * `supplier.financial.view` (PRD §4.3): the list says so instead of showing a misleading total.
+ * each item shows where an edition was formally submitted. Financial evidence is left out of the list for members
+ * without `supplier.financial.view` (PRD §4.3, DD-49).
  */
 
 import {
@@ -15,9 +15,8 @@ import type { EvidenceItem } from '@contracts/suppliers';
 
 import { useApiQuery } from '../../../api/hooks';
 import { useScreenFilters } from '../../../app/hooks';
-import { usePermission } from '../../../auth/permissions';
+import { useCanCall, usePermission } from '../../../auth/permissions';
 import {
-  Banner,
   Card,
   Checkbox,
   DataTable,
@@ -61,7 +60,9 @@ const DEFAULTS = {
 export default function EvidenceLibraryPage() {
   const canReadProfile = usePermission(PROFILE_READ);
   const [filters, setFilters, clearFilters] = useScreenFilters('SUP-05', DEFAULTS);
-  const buyers = useApiQuery(suppliersEndpoints.sharingBuyers, {});
+  /** The "shared with" filter is offered only to members who may list the sharing buyers (DD-49). */
+  const canListBuyers = useCanCall(suppliersEndpoints.sharingBuyers);
+  const buyers = useApiQuery(suppliersEndpoints.sharingBuyers, canListBuyers ? {} : null);
   const profile = useApiQuery(suppliersEndpoints.getProfile, canReadProfile ? {} : null);
 
   const query = useApiQuery(suppliersEndpoints.listEvidence, {
@@ -242,16 +243,18 @@ export default function EvidenceLibraryPage() {
           }))}
           onChange={(sensitivity) => setFilters({ sensitivity, page: 1 })}
         />
-        <Select
-          label={t('supplier-org.evidence.filter.buyer')}
-          placeholder={t('supplier-org.evidence.filter.anyBuyer')}
-          value={filters.buyer}
-          options={(buyers.data?.items ?? []).map((row) => ({
-            value: String(row.buyer.tenantId),
-            label: row.buyer.tenantName,
-          }))}
-          onChange={(buyer) => setFilters({ buyer, page: 1 })}
-        />
+        {canListBuyers && (
+          <Select
+            label={t('supplier-org.evidence.filter.buyer')}
+            placeholder={t('supplier-org.evidence.filter.anyBuyer')}
+            value={filters.buyer}
+            options={(buyers.data?.items ?? []).map((row) => ({
+              value: String(row.buyer.tenantId),
+              label: row.buyer.tenantName,
+            }))}
+            onChange={(buyer) => setFilters({ buyer, page: 1 })}
+          />
+        )}
         {profile.data !== undefined && (
           <Select
             label={t('supplier-org.evidence.filter.owner')}
@@ -316,11 +319,6 @@ export default function EvidenceLibraryPage() {
           hint={t('supplier-org.evidence.kpi.withdrawnHint')}
         />
       </KpiGrid>
-      {data?.financialRestricted === true && (
-        <Banner tone="info" title={t('supplier-org.evidence.financialRestrictedTitle')}>
-          <p>{t('supplier-org.evidence.financialRestricted')}</p>
-        </Banner>
-      )}
       <Card flush>
         <DataTable
           caption={t('supplier-org.evidence.caption')}

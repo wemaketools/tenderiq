@@ -334,11 +334,6 @@ export default function MonitoringTenderPage() {
           </ul>
         </Banner>
       )}
-      {closed === null && detail.canClose && !canClosePermission && (
-        <Banner tone="info" title={t('submission-monitoring.close.noPermissionTitle')}>
-          <p>{t('submission-monitoring.close.noPermission')}</p>
-        </Banner>
-      )}
       {detail.closedAt !== null && closed === null && (
         <Banner tone="info" title={t('submission-monitoring.close.closedTitle')}>
           <p>

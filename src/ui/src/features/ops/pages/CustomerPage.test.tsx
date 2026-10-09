@@ -46,7 +46,7 @@ describe('CustomerPage (OPS-01, OPS-02)', () => {
     );
   });
 
-  it('withholds the title of a non-public event and the title and supplier of a contract from the operator', async () => {
+  it('shows only the reference, status and dates of a non-public event and a contract the operator may not read, with no withheld marker', async () => {
     render();
 
     const event = (await screen.findByText('T-2026-0006')).closest('tr');
@@ -54,22 +54,35 @@ describe('CustomerPage (OPS-01, OPS-02)', () => {
 
     expect(screen.getByText('Maun road resurfacing')).toBeInTheDocument();
     expect(event).not.toBeNull();
-    expect(within(event as HTMLElement).getByText('Title withheld')).toBeInTheDocument();
-    expect(
-      within(event as HTMLElement).getByText(
-        /operators see its reference, status and deadline only/,
-      ),
-    ).toBeInTheDocument();
     expect(within(event as HTMLElement).getByTestId('official-deadline')).toBeInTheDocument();
     expect(contract).not.toBeNull();
-    expect(within(contract as HTMLElement).getByText('Title withheld')).toBeInTheDocument();
-    expect(within(contract as HTMLElement).getByText('Withheld')).toBeInTheDocument();
+    expect(within(contract as HTMLElement).getByText('Active')).toBeInTheDocument();
+    for (const text of [
+      /Title withheld/,
+      /^Withheld$/,
+      /see its reference, status and deadline only/,
+      /support grant/,
+    ]) {
+      expect(screen.queryByText(text)).not.toBeInTheDocument();
+    }
     expect(
-      within(contract as HTMLElement).getByText(/customer-authorized support grant/),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/Invitation-only, restricted and unreleased events/),
-    ).toBeInTheDocument();
+      screen.queryByText(/Invitation-only, restricted and unreleased events/),
+    ).not.toBeInTheDocument();
+  });
+
+  it('leaves out the supplier column when no live contract names a supplier the operator may see', async () => {
+    render({
+      [`GET ${O}/customers/3`]: () => ({
+        body: {
+          ...customerDetail(),
+          liveContracts: customerDetail().liveContracts.filter((row) => row.withheld),
+        },
+      }),
+    });
+
+    const table = await screen.findByRole('table', { name: 'Live contracts' });
+    expect(within(table).getByText('C-2026-0001')).toBeInTheDocument();
+    expect(within(table).queryByRole('columnheader', { name: 'Supplier' })).not.toBeInTheDocument();
   });
 
   it('explains the continuity rule when a status change is refused for live obligations', async () => {

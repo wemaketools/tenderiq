@@ -1,6 +1,6 @@
 /**
  * BUY-34 restricted financial review panel (AC-08): only financial reviewers and deciders read it (the API returns
- * 403 to anyone else and the panel explains the restriction). It shows the financial thresholds, the financial
+ * 403 to anyone else; the assessment workspace leaves the tab out for them, DD-49). It shows the financial thresholds, the financial
  * evidence with reporting periods, currency and consolidation, every recorded review (period, currency,
  * consolidated flag, source, review date, conclusion) and the information requests to the supplier. The assigned
  * financial reviewer records a review or asks for clarification.
@@ -30,7 +30,6 @@ import {
   FormErrorSummary,
   NumberInput,
   QueryView,
-  RestrictedState,
   Select,
   StatusChip,
   TextArea,
@@ -50,7 +49,7 @@ export interface FinancialReviewSectionProps {
   readonly reference: string;
   readonly supplierName: string;
   readonly timeZone: string;
-  /** From the application's actions: false shows the restriction without calling the API. */
+  /** From the application's actions: false renders nothing and never calls the API (DD-49). */
   readonly canView: boolean;
   /** Reporting currencies offered by the form options. */
   readonly currencies: readonly string[];
@@ -67,14 +66,7 @@ export function FinancialReviewSection({
   onInfoRequested,
 }: FinancialReviewSectionProps) {
   const query = useApiQuery(api.getFinancialReview, canView ? { params: { applicationId } } : null);
-  if (!canView || query.error?.kind === 'forbidden') {
-    return (
-      <RestrictedState
-        title={t('qualification.financial.restrictedTitle')}
-        description={t('qualification.financial.restricted')}
-      />
-    );
-  }
+  if (!canView || query.error?.kind === 'forbidden') return null;
   return (
     <QueryView query={query}>
       {(panel) => (

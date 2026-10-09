@@ -12,6 +12,7 @@ import type { ApprovalStep, ApprovalSummary } from '@contracts/approvals';
 import type { ApprovalRequestsSubjectType } from '@contracts/enums';
 
 import { invalidateApiQueries, useApiMutation, useApiQuery } from '../../api/hooks';
+import { useCanCall } from '../../auth/permissions';
 import { useActiveTenant, useAppSelector } from '../../app/hooks';
 import { formatMoney, formatOfficialTime } from '../../lib/format';
 import { t, tEnum } from '../../lib/i18n';
@@ -169,7 +170,12 @@ export function ApprovalStatusPanel({
   const userId = useAppSelector((state) => state.session.user?.id ?? null);
   const toast = useToast();
   const timeZone = tenant?.officialTimeZone ?? 'UTC';
-  const query = useApiQuery(getSubjectApprovals, { params: { subjectType, subjectId } });
+  // A role that cannot read the approvals of the subject does not see the panel (DD-49).
+  const allowed = useCanCall(getSubjectApprovals);
+  const query = useApiQuery(
+    getSubjectApprovals,
+    allowed ? { params: { subjectType, subjectId } } : null,
+  );
   const withdraw = useApiMutation(withdrawApproval);
   const [requesting, setRequesting] = useState(false);
   const [withdrawing, setWithdrawing] = useState<ApprovalSummary | null>(null);
@@ -179,6 +185,10 @@ export function ApprovalStatusPanel({
     invalidateApiQueries('buyer.approvals.');
     invalidateApiQueries('me.approvals.');
   };
+
+  if (!allowed || query.error?.kind === 'forbidden') {
+    return null;
+  }
 
   return (
     <Card title={title ?? t('approvalWidget.panel.title')}>

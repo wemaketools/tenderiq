@@ -3,6 +3,7 @@
  * membership hold X?" from the effective permissions /me/context returned for the active tenant. Hiding is a
  * convenience only: the API enforces every permission.
  */
+import type { AnyEndpoint } from '@contracts/endpoint';
 import type { PermissionCode } from '@contracts/permissions';
 
 import { useAppSelector } from '../app/hooks';
@@ -20,4 +21,13 @@ export function usePermissions(): readonly PermissionCode[] {
 export function usePermission(requirement: PermissionRequirement | undefined): boolean {
   const permissions = usePermissions();
   return hasPermission(requirement, permissions);
+}
+
+/**
+ * True when the active membership holds the permission an API endpoint requires (its contract's `permission`), so a
+ * page can leave out a panel, tab or tile it could not load instead of showing a restricted placeholder (DD-49), and
+ * skip its query. Endpoints without a permission (plain `me` and `public`) are always callable.
+ */
+export function useCanCall(endpoint: Pick<AnyEndpoint, 'permission'>): boolean {
+  return usePermission(endpoint.permission);
 }

@@ -185,11 +185,6 @@ export default function SupplierNegotiationPage() {
                               </Button>
                             </div>
                           )}
-                          {round.awaitingResponse && !canRespond && (
-                            <p className="tiq-text-muted">
-                              {t('selection.supplierNegotiation.respondRestricted')}
-                            </p>
-                          )}
                         </div>
                       ),
                     }))}

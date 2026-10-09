@@ -127,7 +127,11 @@ function DocumentView({ document }: { readonly document: DocumentDetail }) {
     capabilities.canCreateRedactedCopy &&
     activeTenant?.kind === 'buyer' &&
     activeId === document.organization.tenantId;
-  const blocked = capabilities.downloadBlockedReason ?? null;
+  // Only a state of the record explains a missing download (sealed, no confirmed version, withdrawn); a download the
+  // caller's access does not cover is simply not offered (DD-49).
+  const reason = capabilities.downloadBlockedReason ?? null;
+  const blocked =
+    capabilities.canDownload || reason === 'classification_restricted' ? null : reason;
   const evidence = document.evidence;
   const allCopies = [...document.redactedCopies, ...copies];
   const today = new Date(now).toISOString().slice(0, 10);
@@ -187,12 +191,12 @@ function DocumentView({ document }: { readonly document: DocumentDetail }) {
       {pinnedVersionId !== null && (
         <PinnedVersion document={document} versionId={pinnedVersionId} />
       )}
-      {!capabilities.canDownload && (
+      {blocked !== null && (
         <Banner
           tone={blocked === 'sealed' ? 'warning' : 'info'}
           title={t('documents.list.notDownloadable')}
         >
-          {t(`documents.viewer.blocked.${blocked ?? 'generic'}`)}
+          {t(`documents.viewer.blocked.${blocked}`)}
         </Banner>
       )}
       {document.redactedFrom !== null && (

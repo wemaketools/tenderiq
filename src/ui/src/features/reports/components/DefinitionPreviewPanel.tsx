@@ -9,6 +9,7 @@ import { Banner, Card, Chip, DataTable, DetailList, EmptyState } from '../../../
 import type { DataTableColumn } from '../../../components/ui';
 import { formatCalendarDate, formatCount, formatDateTime } from '../../../lib/format';
 import { t } from '../../../lib/i18n';
+import { readableColumns } from '../lib/cells';
 import { ReportCellView } from './ReportCellView';
 
 type SampleRow = ReportPreview['sampleRows'][number];
@@ -35,12 +36,14 @@ export function DefinitionPreviewPanel({
         </Chip>
       ),
     },
-    ...preview.columns.map((column): DataTableColumn<SampleRow> => ({
-      id: column.key,
-      header: column.label,
-      numeric: column.numeric,
-      cell: (row) => <ReportCellView cell={row.cells[column.key]} />,
-    })),
+    ...readableColumns(preview.columns, preview.sampleRows).map(
+      (column): DataTableColumn<SampleRow> => ({
+        id: column.key,
+        header: column.label,
+        numeric: column.numeric,
+        cell: (row) => <ReportCellView cell={row.cells[column.key]} />,
+      }),
+    ),
   ];
 
   return (

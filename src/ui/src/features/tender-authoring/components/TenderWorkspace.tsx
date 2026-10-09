@@ -10,11 +10,17 @@
 import { useCallback, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 
-import { getTender } from '@contracts/tenders';
+import {
+  getEvaluationPlans,
+  getPricing,
+  getReleaseReview,
+  getTender,
+  getTimetable,
+} from '@contracts/tenders';
 import type { ChangeImpact, TenderDetail } from '@contracts/tenders';
 
 import { useApiQuery } from '../../../api/hooks';
-import { usePermission } from '../../../auth/permissions';
+import { useCanCall, usePermission } from '../../../auth/permissions';
 import {
   Banner,
   ButtonLink,
@@ -179,13 +185,26 @@ export function TenderHeader({ context, section, primaryAction, actions }: Tende
   );
   const approval = tender.releaseApproval;
   const nextAction = nextActionOf(tender);
+  // DD-49: a section whose content the membership cannot load has no tab (its page still explains a URL visit).
+  const canPricing = useCanCall(getPricing);
+  const canEvaluation = useCanCall(getEvaluationPlans);
+  const canTimetable = useCanCall(getTimetable);
+  const canRelease = useCanCall(getReleaseReview);
   const tabs = [
     { to: tenderPaths.overview(tender.id), label: t('tender-authoring.tabs.overview'), end: true },
     { to: tenderPaths.scope(tender.id), label: t('tender-authoring.tabs.scope') },
-    { to: tenderPaths.pricing(tender.id), label: t('tender-authoring.tabs.pricing') },
-    { to: tenderPaths.evaluation(tender.id), label: t('tender-authoring.tabs.evaluation') },
-    { to: tenderPaths.timetable(tender.id), label: t('tender-authoring.tabs.timetable') },
-    { to: tenderPaths.release(tender.id), label: t('tender-authoring.tabs.release') },
+    ...(canPricing
+      ? [{ to: tenderPaths.pricing(tender.id), label: t('tender-authoring.tabs.pricing') }]
+      : []),
+    ...(canEvaluation
+      ? [{ to: tenderPaths.evaluation(tender.id), label: t('tender-authoring.tabs.evaluation') }]
+      : []),
+    ...(canTimetable
+      ? [{ to: tenderPaths.timetable(tender.id), label: t('tender-authoring.tabs.timetable') }]
+      : []),
+    ...(canRelease
+      ? [{ to: tenderPaths.release(tender.id), label: t('tender-authoring.tabs.release') }]
+      : []),
   ];
 
   return (
@@ -256,7 +275,7 @@ export function TenderHeader({ context, section, primaryAction, actions }: Tende
             revision: approval.subjectVersion,
           })}
           actions={
-            section === 'release' ? undefined : (
+            section === 'release' || !canRelease ? undefined : (
               <ButtonLink to={tenderPaths.release(tender.id)} size="sm">
                 {t('tender-authoring.workspace.openRelease')}
               </ButtonLink>

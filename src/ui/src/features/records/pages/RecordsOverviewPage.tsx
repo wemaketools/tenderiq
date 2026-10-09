@@ -2,7 +2,7 @@
  * ADM-14 — Audit, retention and legal holds: overview (FR-22, PRD §13.2, §18; BR-38–BR-40; AC-35). The volume of
  * business actions and access events, the retention schedules and records past retention, active holds with the
  * records they protect, disposal requests blocked by a hold, and evidence packs. A block the membership may not
- * read is restricted, without counts (BR-43).
+ * read is left out entirely, never shown as a count or a placeholder (BR-43, DD-49).
  */
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
@@ -148,82 +148,65 @@ export default function RecordsOverviewPage() {
         summary.error === null && <SkeletonBlock lines={4} />
       ) : (
         <KpiGrid>
-          <KpiCard
-            label={t('records.kpi.events')}
-            icon="history"
-            restricted={data.audit === null}
-            value={data.audit === null ? null : formatCount(data.audit.eventsLast30Days)}
-            hint={
-              data.audit === null
-                ? undefined
-                : t('records.kpi.eventsHint', {
-                    restricted: data.audit.restrictedEventsLast30Days,
-                    access: data.audit.accessEventsLast30Days,
-                  })
-            }
-            to={data.audit === null ? undefined : recordsPaths.audit}
-          />
-          <KpiCard
-            label={t('records.kpi.pastRetention')}
-            icon="hourglass"
-            tone="info"
-            restricted={data.retention === null}
-            value={
-              data.retention === null ? null : formatCount(data.retention.recordsPastRetention)
-            }
-            hint={
-              data.retention === null
-                ? undefined
-                : t('records.kpi.classes', { count: data.retention.classes })
-            }
-            to={data.retention === null ? undefined : recordsPaths.retention}
-          />
-          <KpiCard
-            label={t('records.kpi.holds')}
-            icon="lock"
-            tone="warning"
-            restricted={data.holds === null}
-            value={data.holds === null ? null : formatCount(data.holds.active)}
-            hint={
-              data.holds === null
-                ? undefined
-                : t('records.kpi.holdsHint', {
-                    records: data.holds.heldRecords,
-                    due: data.holds.reviewDueWithin30Days,
-                  })
-            }
-            to={data.holds === null ? undefined : recordsPaths.holds}
-          />
-          <KpiCard
-            label={t('records.kpi.blocked')}
-            icon="ban"
-            tone="danger"
-            restricted={data.disposals === null}
-            value={data.disposals === null ? null : formatCount(data.disposals.blocked)}
-            hint={
-              data.disposals === null
-                ? undefined
-                : t('records.kpi.disposalsHint', {
-                    proposed: data.disposals.proposed,
-                    approved: data.disposals.approved,
-                    executed: data.disposals.executed,
-                  })
-            }
-            to={data.disposals === null ? undefined : recordsPaths.disposals}
-          />
-          <KpiCard
-            label={t('records.kpi.packs')}
-            icon="package"
-            tone="success"
-            restricted={data.evidencePacks === null}
-            value={data.evidencePacks === null ? null : formatCount(data.evidencePacks.ready)}
-            hint={
-              data.evidencePacks === null
-                ? undefined
-                : t('records.kpi.packsHint', { count: data.evidencePacks.inProgress })
-            }
-            to={data.evidencePacks === null ? undefined : recordsPaths.evidencePacks}
-          />
+          {data.audit !== null && (
+            <KpiCard
+              label={t('records.kpi.events')}
+              icon="history"
+              value={formatCount(data.audit.eventsLast30Days)}
+              hint={t('records.kpi.eventsHint', {
+                restricted: data.audit.restrictedEventsLast30Days,
+                access: data.audit.accessEventsLast30Days,
+              })}
+              to={recordsPaths.audit}
+            />
+          )}
+          {data.retention !== null && (
+            <KpiCard
+              label={t('records.kpi.pastRetention')}
+              icon="hourglass"
+              tone="info"
+              value={formatCount(data.retention.recordsPastRetention)}
+              hint={t('records.kpi.classes', { count: data.retention.classes })}
+              to={recordsPaths.retention}
+            />
+          )}
+          {data.holds !== null && (
+            <KpiCard
+              label={t('records.kpi.holds')}
+              icon="lock"
+              tone="warning"
+              value={formatCount(data.holds.active)}
+              hint={t('records.kpi.holdsHint', {
+                records: data.holds.heldRecords,
+                due: data.holds.reviewDueWithin30Days,
+              })}
+              to={recordsPaths.holds}
+            />
+          )}
+          {data.disposals !== null && (
+            <KpiCard
+              label={t('records.kpi.blocked')}
+              icon="ban"
+              tone="danger"
+              value={formatCount(data.disposals.blocked)}
+              hint={t('records.kpi.disposalsHint', {
+                proposed: data.disposals.proposed,
+                approved: data.disposals.approved,
+                executed: data.disposals.executed,
+              })}
+              to={recordsPaths.disposals}
+            />
+          )}
+          {data.evidencePacks !== null && (
+            <KpiCard
+              label={t('records.kpi.packs')}
+              icon="package"
+              tone="success"
+              value={formatCount(data.evidencePacks.ready)}
+              hint={t('records.kpi.packsHint', { count: data.evidencePacks.inProgress })}
+              to={recordsPaths.evidencePacks}
+            />
+          )}
         </KpiGrid>
       )}
 

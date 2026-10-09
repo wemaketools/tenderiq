@@ -1,7 +1,7 @@
-import { screen, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { installFetch } from '../../../../test/fetchMock';
+import { installFetch, problem } from '../../../../test/fetchMock';
 import { page, supplierFinalOffer, supplierNegotiationRow } from '../../testing/data';
 import { renderSelection } from '../../testing/render';
 import SupplierNegotiationsPage from './SupplierNegotiationsPage';
@@ -36,5 +36,22 @@ describe('SupplierNegotiationsPage', () => {
     renderSelection(<SupplierNegotiationsPage />, { path: PATH, route: PATH, supplier: true });
     expect(await screen.findByText('No negotiation.')).toBeInTheDocument();
     expect(await screen.findByText('No final-offer round.')).toBeInTheDocument();
+  });
+
+  it('leaves out the final-offer tile, filter and card when the rounds are refused', async () => {
+    installFetch({
+      'GET /api/v1/supplier/selection/negotiations': () => ({
+        body: page([supplierNegotiationRow()]),
+      }),
+      'GET /api/v1/supplier/selection/final-offer-rounds': () => problem(403, 'Forbidden'),
+    });
+    renderSelection(<SupplierNegotiationsPage />, { path: PATH, route: PATH, supplier: true });
+    expect(await screen.findByRole('table', { name: 'Negotiations' })).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByRole('table', { name: 'Final-offer rounds' })).not.toBeInTheDocument(),
+    );
+    expect(screen.queryByText('Open final-offer rounds')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Final-offer status')).not.toBeInTheDocument();
+    expect(screen.queryByText('Restricted')).not.toBeInTheDocument();
   });
 });

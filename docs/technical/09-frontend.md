@@ -162,7 +162,7 @@ Names in the first column are the ones the plan and the prototype workflow use (
 | Dialog, including the consequential-action confirmation | `components/ui` | `.qiq-scrim`, `.qiq-dialog`, `--lg`, `-header`, `-body`, `-footer` | Confirmation shows acting organization, capacity, scope and result (COM-02) |
 | Banners | `components/ui` | `.qiq-banner--error`, `--warning`, `--info`, `--success` | Blocking condition, warning, information and completed decision each look distinct (PRD §19) |
 | Toasts | `components/ui` | `.qiq-toasts`, `.qiq-toast--success`, `--error` | Transient results of actions |
-| Skeleton, empty state | `components/ui` | `.qiq-skeleton`, `.qiq-empty` | Loading, empty and restricted-access explanations (PRD §11) |
+| Skeleton, empty state | `components/ui` | `.qiq-skeleton`, `.qiq-empty` | Loading and empty states; the restricted-access explanation only for a whole page opened by URL (PRD §11, DD-49) |
 | Tabs, vertical tabs | `components/ui` | `.qiq-tabs`, `.qiq-tab`, `.qiq-vtabs` | Record workspaces and settings sub-navigation |
 | Page scaffolding | `components/ui` | `.qiq-page`, `.qiq-grid` | Vertical rhythm `space-4` |
 | Auth surfaces | `auth/` | `.qiq-auth-page`, `.qiq-auth-card` | Sign-in, forgot and reset password render outside the shell; in local development builds the sign-in page also lists the demo accounts (DD-43) |
@@ -246,7 +246,7 @@ Pages follow **`PageHeader` → `FilterBar` card → KPI row → content cards �
 | `reports.png` | Introductory text, grid of report cards with an accent "Open report" action and a CSV action; footer bar as above (DD-34) | REP-01, REP-02, ADM-13 |
 | `settings.png` | Vertical sub-navigation (`vtabs`) beside a page-local header ("Brokers" + "Add broker") and a table with status chips and row "Edit" actions | Administration screens ADM-01 to ADM-17, SUP-04 |
 
-Table conventions: uppercase headers, sort carets, monospace accent references (`T-2026-0003`), `StatusChip` for every lifecycle state, overdue chips in danger, and right-aligned money with its currency (architecture-plan §7). Every list has search, filters, status, ownership and dates, plus an empty state and a restricted-access explanation (PRD §11). Every consequential action shows its scope and result.
+Table conventions: uppercase headers, sort carets, monospace accent references (`T-2026-0003`), `StatusChip` for every lifecycle state, overdue chips in danger, and right-aligned money with its currency (architecture-plan §7). Every list has search, filters, status, ownership and dates, plus an empty state; a list the role cannot open is explained only when its page was opened by URL, and in-page elements the role cannot see are left out (PRD §11, DD-49). Every consequential action shows its scope and result.
 
 **No placeholders.** Every button calls a contract endpoint and handles its response. UI code never hard-codes data; it always calls the API client. Deferred extensions (FR-20 / CON-12, EXT-01 to EXT-03) do not appear as dead links (architecture-plan §2).
 
@@ -827,7 +827,7 @@ stateDiagram-v2
 | Errors | problem+json is normalized to an `ApiError` with `status`, `title`, `code`, `fieldErrors` (from `errors[]`, `{ field, code, message }`), `correlationId` and a `kind`: `unauthenticated`, `forbidden`, `not_found`, `validation`, `conflict` (409, 410, 412), `rate_limited` (429), `server`, `network`, `contract` (a response that fails its schema in development builds) or `tenant_required` |
 | Server clock | Each response's `x-server-time` header updates the application clock (`lib/clock.ts`, §13) |
 | 401 | Sign out and redirect to `/signin` |
-| 403 | Restricted-access explanation; nothing about other tenants is revealed |
+| 403 | For the page's main content: a restricted-access explanation (the user opened that page). For an in-page panel, tab or tile: the element is not rendered (DD-49). Nothing about other tenants is revealed |
 | 5xx | Sanitized message plus the `correlationId`, which the user is asked to quote |
 
 ```mermaid
@@ -948,7 +948,7 @@ Formatting uses the platform `Intl` API in `lib/format`; no date library is appr
 | References | Monospace accent text (`T-2026-0003`, `PR-2026-0001`, `PP-2026-0001`, `QA-2026-0001`, `C-2026-0001`, `RCPT-2026-000001`, `CMP-2026-0001`, and change requests as `CR-0001` within their contract) linking to the record (DD-09). References are unique per buyer, so public links also carry the buyer slug (DD-22). Rows in `/me` lists name their organization (DD-21) |
 | Statuses | `StatusChip` with the state's label and tone; the label text is always present, so colour is never the only signal |
 | Empty values | An em dash, as in the reference screenshots |
-| Restricted data | Never rendered, counted or totalled for a user who cannot read it (BR-43); restricted areas show an explanation, not a zero |
+| Restricted data | Never rendered, counted or totalled for a user who cannot read it (BR-43). In-page elements the role cannot see or use are left out with their wrapper, never shown locked or as a zero; only a whole page opened by URL is explained (DD-49). `useCanCall(endpoint)` gates an element and its query on the endpoint contract's permission |
 
 ## 15. Accessibility
 
@@ -1010,5 +1010,5 @@ Formatting uses the platform `Intl` API in `lib/format`; no date library is appr
 - [12-traceability.md](12-traceability.md): screens to FR, BR and AC.
 - [13-delivery-and-resilience.md](13-delivery-and-resilience.md): Stage A, approval gate, Stage B.
 - [adr/0006-contracts-first-ui-prototype-stage.md](adr/0006-contracts-first-ui-prototype-stage.md), [adr/0010-no-icon-or-pdf-dependencies.md](adr/0010-no-icon-or-pdf-dependencies.md), [adr/0005-decimal-strings-for-money-and-scores.md](adr/0005-decimal-strings-for-money-and-scores.md), [adr/0001-tenancy-equals-organization.md](adr/0001-tenancy-equals-organization.md), [adr/0012-supplier-registration-via-provisioned-accounts.md](adr/0012-supplier-registration-via-provisioned-accounts.md).
-- [../plan/design-decisions.md](../plan/design-decisions.md): the decision log (DD-01 … DD-48); DD-32 to DD-37, DD-43 and DD-46 shape this document, and DD-38 is withdrawn.
+- [../plan/design-decisions.md](../plan/design-decisions.md): the decision log (DD-01 … DD-49); DD-32 to DD-37, DD-43 and DD-46 shape this document, and DD-38 is withdrawn.
 - [glossary.md](glossary.md).

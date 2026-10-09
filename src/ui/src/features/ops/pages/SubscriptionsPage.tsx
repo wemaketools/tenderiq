@@ -23,7 +23,6 @@ import {
   MoneyText,
   PageHeader,
   QueryView,
-  RestrictedState,
   SearchField,
   Select,
   StatusChip,
@@ -117,7 +116,7 @@ export default function SubscriptionsPage() {
   return (
     <div className="tiq-page">
       <PageHeader title={t('ops.plans.title')} subtitle={t('ops.plans.subtitle')} />
-      {canSeePlans ? (
+      {canSeePlans && (
         <QueryView query={catalog}>
           {(data) => (
             <>
@@ -132,8 +131,6 @@ export default function SubscriptionsPage() {
             </>
           )}
         </QueryView>
-      ) : (
-        <RestrictedState compact />
       )}
 
       <FilterBar onClear={clearFilters} canClear={canClear}>

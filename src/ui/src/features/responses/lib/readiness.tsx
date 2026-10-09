@@ -19,17 +19,27 @@ function labelOf(item: ContractReadinessItem): string {
   });
 }
 
+/**
+ * The viewer's own missing submit permission, while others in the organization may submit, is about the viewer's
+ * role, not the response: it is left out (DD-49). When nobody may submit, the blocking finding stays.
+ */
+function isViewerRoleNotice(item: ContractReadinessItem): boolean {
+  return item.code === 'SUBMIT_AUTHORITY_MISSING' && item.severity !== 'blocking';
+}
+
 export function toChecklistItems(items: readonly ContractReadinessItem[]): ReadinessItem[] {
-  return items.map((item) => ({
-    id: item.id,
-    status: item.severity,
-    label: labelOf(item),
-    detail: t(`responses.readiness.category.${item.category}`),
-    action:
-      item.link === null || item.severity === 'passed' ? undefined : (
-        <Link to={item.link} className="tiq-btn tiq-btn--link tiq-btn--sm">
-          {t('responses.readiness.fix')}
-        </Link>
-      ),
-  }));
+  return items
+    .filter((item) => !isViewerRoleNotice(item))
+    .map((item) => ({
+      id: item.id,
+      status: item.severity,
+      label: labelOf(item),
+      detail: t(`responses.readiness.category.${item.category}`),
+      action:
+        item.link === null || item.severity === 'passed' ? undefined : (
+          <Link to={item.link} className="tiq-btn tiq-btn--link tiq-btn--sm">
+            {t('responses.readiness.fix')}
+          </Link>
+        ),
+    }));
 }

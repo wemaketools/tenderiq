@@ -29,7 +29,6 @@ import {
   DetailList,
   EmptyState,
   ErrorState,
-  Icon,
   KpiCard,
   KpiGrid,
   MoneyText,
@@ -771,20 +770,14 @@ function EvidenceTab({
     {
       id: 'title',
       header: t('supplier-org.evidence.col.title'),
-      cell: (row) =>
-        row.restricted ? (
-          <span className="tiq-inline">
-            <Icon name="lock" />
-            <span>{row.title}</span>
+      cell: (row) => (
+        <>
+          <span>{row.title}</span>
+          <span className="tiq-cell-sub">
+            {[row.issuer, row.referenceNumber].filter((part) => part !== null).join(' · ')}
           </span>
-        ) : (
-          <>
-            <span>{row.title}</span>
-            <span className="tiq-cell-sub">
-              {[row.issuer, row.referenceNumber].filter((part) => part !== null).join(' · ')}
-            </span>
-          </>
-        ),
+        </>
+      ),
     },
     {
       id: 'type',
@@ -834,12 +827,7 @@ function EvidenceTab({
     {
       id: 'document',
       header: t('supplier-org.evidenceDetail.col.document'),
-      cell: (row) =>
-        row.restricted ? (
-          <span className="tiq-text-muted">{t('supplier-directory.evidence.restricted')}</span>
-        ) : (
-          <DocumentLink document={row.document} />
-        ),
+      cell: (row) => <DocumentLink document={row.document} />,
     },
     {
       id: 'shared',
@@ -847,26 +835,35 @@ function EvidenceTab({
       cell: (row) => formatDateTime(row.sharedAt, zone),
     },
   ];
-  const restricted = record.sharedEvidence.some((row) => row.restricted);
+  /**
+   * Evidence the viewer's role may not read (financial evidence) is simply not listed, and not counted either, so
+   * the figures match the rows shown (DD-49).
+   */
+  const readable = record.sharedEvidence.filter((row) => !row.restricted);
+  const hidden = record.sharedEvidence.filter((row) => row.restricted);
+  const uncounted = (freshness?: SharedEvidenceRow['freshness']) =>
+    hidden.filter((row) => freshness === undefined || row.freshness === freshness).length;
   return (
     <div className="tiq-stack">
       <KpiGrid>
         <KpiCard
           label={t('supplier-directory.evidence.shared')}
           icon="folder"
-          value={formatCount(record.evidence.sharedCount)}
+          value={formatCount(Math.max(0, record.evidence.sharedCount - uncounted()))}
         />
         <KpiCard
           label={t('supplier-directory.evidence.expiring')}
           icon="hourglass"
           tone="warning"
-          value={formatCount(record.evidence.expiringSoonCount)}
+          value={formatCount(
+            Math.max(0, record.evidence.expiringSoonCount - uncounted('expiring_soon')),
+          )}
         />
         <KpiCard
           label={t('supplier-directory.evidence.expiredCount')}
           icon="alertTriangle"
           tone="danger"
-          value={formatCount(record.evidence.expiredCount)}
+          value={formatCount(Math.max(0, record.evidence.expiredCount - uncounted('expired')))}
         />
         <KpiCard
           label={t('supplier-directory.evidence.nextExpiry')}
@@ -879,11 +876,6 @@ function EvidenceTab({
           }
         />
       </KpiGrid>
-      {restricted && (
-        <Banner tone="info" title={t('supplier-directory.evidence.restrictedTitle')}>
-          <p>{t('supplier-directory.evidence.restrictedText')}</p>
-        </Banner>
-      )}
       <Card
         flush
         title={t('supplier-directory.evidence.title')}
@@ -892,7 +884,7 @@ function EvidenceTab({
         <DataTable
           caption={t('supplier-directory.evidence.title')}
           columns={columns}
-          rows={record.sharedEvidence}
+          rows={readable}
           rowKey={(row) => String(row.evidenceItemId)}
           empty={<EmptyState compact title={t('supplier-directory.evidence.empty')} />}
         />

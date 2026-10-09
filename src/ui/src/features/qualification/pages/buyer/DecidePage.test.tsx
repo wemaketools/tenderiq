@@ -132,13 +132,26 @@ describe('DecidePage (BUY-35)', () => {
     expect(texts.some((text) => text.includes('ICT-SCADA'))).toBe(false);
   });
 
-  it('explains that only decision-pending applications are decided', async () => {
+  it('explains to a decider that only decision-pending applications are decided', async () => {
+    routeCalls({
+      'buyer.qualification.applications.get': () =>
+        applicationDetail({ actions: { ...pending().actions, canDecide: true } }),
+      'buyer.qualification.options': () => options(),
+    });
+    renderPage(<DecidePage />, { ...PATH, permissions: MANAGER });
+    expect(await screen.findByText('This application cannot be decided now')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Review decision' })).not.toBeInTheDocument();
+  });
+
+  it('shows no authority warning and no decision form to a user without decision authority', async () => {
     routeCalls({
       'buyer.qualification.applications.get': () => applicationDetail(),
       'buyer.qualification.options': () => options(),
     });
     renderPage(<DecidePage />, { ...PATH, permissions: ASSESSOR });
-    expect(await screen.findByText('This application cannot be decided now')).toBeInTheDocument();
+    expect(await screen.findByText('Assessor’s recommendation')).toBeInTheDocument();
+    expect(screen.queryByText('This application cannot be decided now')).not.toBeInTheDocument();
+    expect(screen.queryByText(/decision authority/)).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Review decision' })).not.toBeInTheDocument();
   });
 

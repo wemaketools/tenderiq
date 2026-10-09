@@ -775,16 +775,6 @@ export default {
       CRITERION_MINIMUM: 'Below the minimum rating on {criterion}',
       other: 'Did not pass an eligibility gate',
     },
-    detail: {
-      totals_only: {
-        title: 'Totals only until sign-off',
-        body: 'As a member of the tender team you see totals and ranks. Criterion points and the readiness checks stay with the committee until the report is signed off.',
-      },
-      reports_only: {
-        title: 'Signed-off reports only',
-        body: 'You see the report versions the committee signed off. The current results are still with the committee and appear here once signed off.',
-      },
-    },
     empty: 'No results yet',
     emptyHint: 'Results are computed once moderation and the commercial comparison are complete.',
     reportTitle: 'Evaluation report',

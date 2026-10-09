@@ -127,6 +127,17 @@ Owner review: a membership with many permissions had about 37 sidebar links in o
 - **Duplicates removed.** Search, Notifications and Help have no sidebar entry; the top bar's search box, bell (with the unread count) and help icon reach them. Tasks stays in "My work". The Help centre's "Open a case" becomes the page's primary action, because Help no longer has a section action.
 - Tests: `shell.test.tsx` (sections), `navCoherence.test.ts`, Playwright `shell.spec.ts`. The accessibility sweep opens every section and adds the three top bar destinations.
 
+### DD-49 — What a role cannot see or do is not shown (2026-09-30)
+
+Owner review: a procurement officer's dashboard showed a "Workload by owner" card with a lock and "limited to procurement managers". The owner's rule is that if a user does not have permission to see something or do something, it is not on the screen. It amends the "restricted state" of architecture-plan §7 and docs/technical/09-frontend.md, which showed an explanation instead of a number or panel (BR-43 "never a misleading zero" still holds: the element is absent, never zero).
+- **Left out entirely.** In-page elements the role cannot see or use are absent together with their wrapper: cards and panels (with their titles), KPI tiles (`KpiCard restricted` renders nothing; an empty `KpiGrid` hides itself), tabs, table columns and rows, select options, form fields, and banners, hints or disabled controls that only explain a missing permission. Grids reflow.
+- **Decided before fetching where possible.** `useCanCall(endpoint)` (`src/ui/src/auth/permissions.ts`) checks the endpoint contract's `permission` for the active membership. A page skips the query of an element it will not show, and leaves out tabs whose section it could not load.
+- **Where the server decides.** A payload flag, a capability, a null section, or a 403 for a panel that is not the page's main content: the element is not rendered.
+- **Kept:**
+  - A whole page the user opened by URL but cannot use: the route guard's "Not available in your role" page, and the page-level explanation when the page's main content returns 403. The user asked for that page, so it is explained.
+  - Explanations of state or business rules that are not about the user's role, such as sealed until opening, not yet released, "submit your own assessment first", locked revisions, and redacted audit entries.
+- **Tests.** The Playwright accessibility sweep fails when any sidebar or top bar destination of eight roles shows a restricted placeholder. `shell.spec.ts` checks the officer's dashboard (no Workload by owner) against the manager's.
+
 ## E. Owner decisions
 
 Status after the owner review of 2026-09-29 (details in architecture-plan §11):

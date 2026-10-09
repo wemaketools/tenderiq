@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { installFetch } from '../../../../test/fetchMock';
 import { page, processDecision, tenderSummary } from '../../testing/data';
-import { AUDITOR, OFFICER, renderSelection } from '../../testing/render';
+import { AUDITOR, EVALUATOR, OFFICER, renderSelection } from '../../testing/render';
 import TenderSelectionPage from './TenderSelectionPage';
 
 afterEach(() => vi.unstubAllGlobals());
@@ -54,6 +54,20 @@ describe('TenderSelectionPage', () => {
     expect(await screen.findByText('Process decision proposed.')).toBeInTheDocument();
     const post = requests.find((request) => request.method === 'POST');
     expect(post?.body).toMatchObject({ tenderId: 9, decisionType: 'new_competition_required' });
+  });
+
+  it('leaves out the process decisions card and its request for an evaluator who cannot read them', async () => {
+    const { requests } = installFetch(routes());
+    renderSelection(<TenderSelectionPage />, { path: PATH, route: ROUTE, permissions: EVALUATOR });
+    await screen.findByText('Final offers are blocked');
+    expect(screen.queryByRole('heading', { name: 'Process decisions' })).not.toBeInTheDocument();
+    expect(requests.some((request) => request.url.includes('/process-decisions'))).toBe(false);
+  });
+
+  it('shows the process decisions card to an auditor who may read them', async () => {
+    installFetch(routes());
+    renderSelection(<TenderSelectionPage />, { path: PATH, route: ROUTE, permissions: AUDITOR });
+    expect(await screen.findByRole('heading', { name: 'Process decisions' })).toBeInTheDocument();
   });
 
   it('hides the propose action for a read-only auditor', async () => {

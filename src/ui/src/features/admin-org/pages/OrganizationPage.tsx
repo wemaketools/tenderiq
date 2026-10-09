@@ -204,7 +204,7 @@ function SettingsForm({
   return (
     <Card
       title={t('admin-org.settings.formTitle')}
-      subtitle={canManage ? t('admin-org.settings.formIntro') : t('admin-org.settings.readOnly')}
+      subtitle={canManage ? t('admin-org.settings.formIntro') : undefined}
       footer={
         canManage ? (
           <div className="tiq-inline">

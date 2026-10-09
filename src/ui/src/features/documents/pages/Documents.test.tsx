@@ -15,7 +15,7 @@ const VIEWER = { path: '/me/documents/:documentId', route: '/me/documents/203' }
 const versions = () => ({ items: [documentDetail().currentVersion] });
 
 describe('MyDocumentsPage (COM-07 index)', () => {
-  it('distinguishes downloadable originals, redacted copies and view-only documents', async () => {
+  it('offers a download only where permitted and shows no view-only marker otherwise (DD-49)', async () => {
     routeCalls({
       'me.documents.list': () =>
         page([
@@ -37,7 +37,9 @@ describe('MyDocumentsPage (COM-07 index)', () => {
     renderPage(<MyDocumentsPage />, { path: '/me/documents', route: '/me/documents' });
     expect(await screen.findByText('Commercial offer')).toBeInTheDocument();
     const sealedRow = screen.getByText('Commercial offer').closest('tr') as HTMLElement;
-    expect(within(sealedRow).getByText('View only')).toBeInTheDocument();
+    expect(within(sealedRow).queryByText('View only')).not.toBeInTheDocument();
+    expect(within(sealedRow).queryByRole('button', { name: /Download/ })).not.toBeInTheDocument();
+    expect(screen.queryByText('Download not permitted')).not.toBeInTheDocument();
     const copyRow = screen
       .getByText('Evaluation report — public copy')
       .closest('tr') as HTMLElement;
@@ -100,6 +102,28 @@ describe('DocumentViewerPage (COM-07)', () => {
     });
     renderPage(<DocumentViewerPage />, VIEWER);
     expect(await screen.findByText(/Sealed submission content/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Download/ })).not.toBeInTheDocument();
+  });
+
+  it('does not explain a download that the caller’s access does not cover (DD-49)', async () => {
+    routeCalls({
+      'me.documents.get': () =>
+        documentDetail({
+          classification: 'restricted_assessment',
+          capabilities: {
+            canDownload: false,
+            canUploadVersion: false,
+            canCreateRedactedCopy: false,
+            downloadBlockedReason: 'classification_restricted',
+          },
+        }),
+      'me.documents.versions': versions,
+      'buyer.audit.entityHistory': () => page([]),
+    });
+    renderPage(<DocumentViewerPage />, VIEWER);
+    expect((await screen.findAllByText(documentDetail().title)).length).toBeGreaterThan(0);
+    expect(screen.queryByText('View only')).not.toBeInTheDocument();
+    expect(screen.queryByText(/not download it|not permitted/)).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Download/ })).not.toBeInTheDocument();
   });
 

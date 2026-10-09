@@ -154,6 +154,8 @@ export function CustomFieldsSection({
     return null;
   }
   if (form === undefined) {
+    // A form the membership may not read is simply absent from the host page (DD-49).
+    if (query.error?.kind === 'forbidden') return null;
     if (query.status === 'error' && query.error !== null) {
       return (
         <ErrorState

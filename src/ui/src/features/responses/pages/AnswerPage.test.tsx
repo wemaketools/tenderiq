@@ -147,6 +147,34 @@ describe('AnswerPage (SUP-12 answer)', () => {
     expect(screen.queryByRole('button', { name: 'Save answer' })).not.toBeInTheDocument();
   });
 
+  it('shows no read-only notice to a viewer whose capacity cannot edit an editable answer', async () => {
+    // Arrange
+    routeCalls({
+      'supplier.bids.get': () =>
+        bidDetail({
+          viewer: {
+            canEditResponse: false,
+            canViewPricing: true,
+            canEditPricing: false,
+            canAssign: false,
+            canComment: true,
+            canApprove: true,
+            canSubmit: false,
+          },
+        }),
+      'supplier.bids.getAnswer': () => answerDetail(),
+      'supplier.bids.declarations': () => declarations(),
+    });
+
+    // Act
+    renderPage();
+
+    // Assert
+    expect(await screen.findAllByText(answerDetail().text)).not.toHaveLength(0);
+    expect(screen.queryByText('Read only')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Save answer' })).not.toBeInTheDocument();
+  });
+
   it('flags reused content for review before it counts as complete (FR-11)', async () => {
     // Arrange
     routeCalls({

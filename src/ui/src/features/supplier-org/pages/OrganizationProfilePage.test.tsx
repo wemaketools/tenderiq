@@ -209,6 +209,21 @@ describe('OrganizationProfilePage (SUP-03)', () => {
     expect(await screen.findByText('Answered, awaiting review')).toBeInTheDocument();
   });
 
+  it('does not offer to answer a request to a profile manager who may not read the evidence library', async () => {
+    const calls = routeCalls({
+      'supplier.suppliers.profile.get': () =>
+        profile({ verificationRequests: [verificationRequest()] }),
+    });
+    renderPage(<OrganizationProfilePage />, {
+      ...PATH,
+      permissions: ['supplier.dashboard.view', 'supplier.org.manage'],
+    });
+    expect(await screen.findByText('Resolve missing evidence')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Supply evidence' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Ask a member who maintains/)).not.toBeInTheDocument();
+    expect(calls.some((c) => c.id === 'supplier.suppliers.evidence.list')).toBe(false);
+  });
+
   it('shows no missing-evidence panel for an identity-verified organization without requests', async () => {
     routeCalls({ 'supplier.suppliers.profile.get': () => profile() });
     renderPage(<OrganizationProfilePage />, PATH);

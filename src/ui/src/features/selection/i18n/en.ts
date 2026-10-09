@@ -396,7 +396,6 @@ export default {
     consentGiven: 'Consent given',
     consentMissing: 'No consent',
     consentRequired: 'Consent required',
-    restricted: 'Confidential: restricted',
     confidentialChip: 'Confidential',
     assessedBy: 'Assessed by {name}',
     recorded: 'Recorded',
@@ -1066,7 +1065,6 @@ export default {
     respondTitle: 'Respond to round {no}',
     respondConsequence: 'Your internally approved response is sent to the buyer and recorded.',
     internalApproval: 'This response is approved within my organization.',
-    respondRestricted: 'An authorized approver of your organization sends the response.',
     responded: 'Response sent.',
     next: {
       respond: 'respond to the open round',

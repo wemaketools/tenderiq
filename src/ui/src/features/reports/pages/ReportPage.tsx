@@ -3,7 +3,9 @@
  * may read and states every safeguard beside the numbers: unique organizations rather than revisions, whether each
  * row is event-level or lot-level (lot rows are never added to their event), the currency basis and conversion
  * date, and completeness (missing data is shown as missing, never as zero). Rows drill through to the supporting
- * record when the caller may open it; restricted fields are redacted and listed.
+ * record when the caller may open it. A column or highlight the caller's role may not read is left out, and a
+ * restricted cell is left empty (DD-49). A report family the role may not run is explained on its own, with no
+ * filters or actions that could not be used (DD-49).
  */
 import { useState } from 'react';
 import { Link, useParams } from 'react-router';
@@ -49,7 +51,7 @@ import { NotFoundPage } from '../../../pages/NotFoundPage';
 import { SavedViewsMenu } from '../../search/components/SavedViews';
 import { ExportDialog } from '../components/ExportDialog';
 import { ReportCellView } from '../components/ReportCellView';
-import { cellText } from '../lib/cells';
+import { cellText, readableColumns } from '../lib/cells';
 import { EMPTY_FILTERS, FAMILY_ICON } from '../lib/definitions';
 import { useDimensionOptions } from '../lib/dimensions';
 import { QUICK_RANGES, compact, idOf, oneOf, quickRangeDates } from '../lib/shared';
@@ -163,7 +165,7 @@ function ReportView({ family }: { readonly family: (typeof REPORT_DEFINITIONS_FA
           )
         }
         primaryAction={
-          canExport ? (
+          canExport && !restricted ? (
             <Button
               variant="primary"
               icon="download"
@@ -175,123 +177,26 @@ function ReportView({ family }: { readonly family: (typeof REPORT_DEFINITIONS_FA
           ) : undefined
         }
         actions={
-          <>
-            <SavedViewsMenu
-              scope="REP-01"
-              current={{ family, ...current }}
-              onApply={(view) => {
-                const next = filtersOfView(view);
-                setSearch(next.q ?? '');
-                setFilters(next);
-              }}
-            />
-            {canManage && (
-              <ButtonLink to={`/buyer/reports/definitions/new?family=${family}`} icon="bookOpen">
-                {t('reports.report.saveDefinition')}
-              </ButtonLink>
-            )}
-          </>
+          restricted ? undefined : (
+            <>
+              <SavedViewsMenu
+                scope="REP-01"
+                current={{ family, ...current }}
+                onApply={(view) => {
+                  const next = filtersOfView(view);
+                  setSearch(next.q ?? '');
+                  setFilters(next);
+                }}
+              />
+              {canManage && (
+                <ButtonLink to={`/buyer/reports/definitions/new?family=${family}`} icon="bookOpen">
+                  {t('reports.report.saveDefinition')}
+                </ButtonLink>
+              )}
+            </>
+          )
         }
       />
-
-      <FilterBar
-        label={t('reports.report.filters')}
-        onClear={() => {
-          setSearch('');
-          clearFilters();
-        }}
-        canClear={filtered}
-        quickRanges={
-          <QuickRanges
-            label={t('reports.report.quickRanges')}
-            options={QUICK_RANGES.map((id) => ({ id, label: t(`reports.ranges.${id}`) }))}
-            selected={filters.range === '' ? null : filters.range}
-            onSelect={(id) => {
-              const range = oneOf(id, QUICK_RANGES);
-              if (range === undefined) return;
-              setFilters({ range, ...quickRangeDates(range, clockDate()) });
-            }}
-          />
-        }
-      >
-        <SearchField
-          label={t('reports.report.search')}
-          value={search}
-          onChange={setSearch}
-          onSubmit={(value) => setFilters({ q: value.trim() })}
-          placeholder={t('reports.report.searchPlaceholder')}
-        />
-        <DateInput
-          label={t('reports.report.from')}
-          value={filters.from}
-          onChange={(from) => setFilters({ from, range: '' })}
-          error={errors.forField('from')}
-        />
-        <DateInput
-          label={t('reports.report.to')}
-          value={filters.to}
-          onChange={(to) => setFilters({ to, range: '' })}
-          error={errors.forField('to')}
-        />
-        <Select
-          label={t('reports.report.level')}
-          value={level}
-          options={REPORT_LEVEL_FILTERS.map((value) => ({
-            value,
-            label: t(`reports.report.levels.${value}`),
-          }))}
-          onChange={(value) => setFilters({ level: value })}
-        />
-        <Select
-          label={t('reports.report.entity')}
-          value={filters.legalEntityId}
-          placeholder={t('reports.report.all')}
-          options={options.legalEntities.map((item) => ({
-            value: String(item.id),
-            label: item.label,
-          }))}
-          onChange={(legalEntityId) => setFilters({ legalEntityId })}
-        />
-        <Select
-          label={t('reports.report.department')}
-          value={filters.departmentId}
-          placeholder={t('reports.report.all')}
-          options={options.departments.map((item) => ({
-            value: String(item.id),
-            label: item.label,
-          }))}
-          onChange={(departmentId) => setFilters({ departmentId })}
-        />
-        <Select
-          label={t('reports.report.category')}
-          value={filters.categoryId}
-          placeholder={t('reports.report.all')}
-          options={options.categories.map((item) => ({
-            value: String(item.id),
-            label: item.label,
-          }))}
-          onChange={(categoryId) => setFilters({ categoryId })}
-        />
-        <Select
-          label={t('reports.report.owner')}
-          value={filters.ownerUserId}
-          placeholder={t('reports.report.all')}
-          options={options.owners.map((item) => ({
-            value: String(item.userId),
-            label: item.fullName,
-          }))}
-          onChange={(ownerUserId) => setFilters({ ownerUserId })}
-        />
-        <TextField
-          label={t('reports.report.currency')}
-          hint={t('reports.report.currencyHint')}
-          value={filters.currency}
-          maxLength={3}
-          placeholder={tenant?.defaultCurrency ?? 'BWP'}
-          onChange={(value) => setFilters({ currency: value.toUpperCase() })}
-          error={errors.forField('currency')}
-        />
-      </FilterBar>
 
       {restricted ? (
         <Card>
@@ -299,6 +204,105 @@ function ReportView({ family }: { readonly family: (typeof REPORT_DEFINITIONS_FA
         </Card>
       ) : (
         <>
+          <FilterBar
+            label={t('reports.report.filters')}
+            onClear={() => {
+              setSearch('');
+              clearFilters();
+            }}
+            canClear={filtered}
+            quickRanges={
+              <QuickRanges
+                label={t('reports.report.quickRanges')}
+                options={QUICK_RANGES.map((id) => ({ id, label: t(`reports.ranges.${id}`) }))}
+                selected={filters.range === '' ? null : filters.range}
+                onSelect={(id) => {
+                  const range = oneOf(id, QUICK_RANGES);
+                  if (range === undefined) return;
+                  setFilters({ range, ...quickRangeDates(range, clockDate()) });
+                }}
+              />
+            }
+          >
+            <SearchField
+              label={t('reports.report.search')}
+              value={search}
+              onChange={setSearch}
+              onSubmit={(value) => setFilters({ q: value.trim() })}
+              placeholder={t('reports.report.searchPlaceholder')}
+            />
+            <DateInput
+              label={t('reports.report.from')}
+              value={filters.from}
+              onChange={(from) => setFilters({ from, range: '' })}
+              error={errors.forField('from')}
+            />
+            <DateInput
+              label={t('reports.report.to')}
+              value={filters.to}
+              onChange={(to) => setFilters({ to, range: '' })}
+              error={errors.forField('to')}
+            />
+            <Select
+              label={t('reports.report.level')}
+              value={level}
+              options={REPORT_LEVEL_FILTERS.map((value) => ({
+                value,
+                label: t(`reports.report.levels.${value}`),
+              }))}
+              onChange={(value) => setFilters({ level: value })}
+            />
+            <Select
+              label={t('reports.report.entity')}
+              value={filters.legalEntityId}
+              placeholder={t('reports.report.all')}
+              options={options.legalEntities.map((item) => ({
+                value: String(item.id),
+                label: item.label,
+              }))}
+              onChange={(legalEntityId) => setFilters({ legalEntityId })}
+            />
+            <Select
+              label={t('reports.report.department')}
+              value={filters.departmentId}
+              placeholder={t('reports.report.all')}
+              options={options.departments.map((item) => ({
+                value: String(item.id),
+                label: item.label,
+              }))}
+              onChange={(departmentId) => setFilters({ departmentId })}
+            />
+            <Select
+              label={t('reports.report.category')}
+              value={filters.categoryId}
+              placeholder={t('reports.report.all')}
+              options={options.categories.map((item) => ({
+                value: String(item.id),
+                label: item.label,
+              }))}
+              onChange={(categoryId) => setFilters({ categoryId })}
+            />
+            <Select
+              label={t('reports.report.owner')}
+              value={filters.ownerUserId}
+              placeholder={t('reports.report.all')}
+              options={options.owners.map((item) => ({
+                value: String(item.userId),
+                label: item.fullName,
+              }))}
+              onChange={(ownerUserId) => setFilters({ ownerUserId })}
+            />
+            <TextField
+              label={t('reports.report.currency')}
+              hint={t('reports.report.currencyHint')}
+              value={filters.currency}
+              maxLength={3}
+              placeholder={tenant?.defaultCurrency ?? 'BWP'}
+              onChange={(value) => setFilters({ currency: value.toUpperCase() })}
+              error={errors.forField('currency')}
+            />
+          </FilterBar>
+
           {query.error !== null && (
             <ErrorState
               error={query.error}
@@ -311,34 +315,34 @@ function ReportView({ family }: { readonly family: (typeof REPORT_DEFINITIONS_FA
           ) : (
             <ReportBody data={data} />
           )}
+
+          <ExportDialog
+            open={exporting}
+            onClose={() => setExporting(false)}
+            source={{ kind: 'family', family, filters: exportFilters, currency }}
+            scopeLabel={t('reports.report.exportScope', {
+              report: data?.title ?? t(`reports.families.${family}`),
+              period: periodText(data),
+              level: t(`reports.report.levels.${level}`),
+              currency,
+            })}
+          />
+          <FooterBar
+            currency={data?.currencyBasis.currency ?? null}
+            asOf={data?.asOf ?? null}
+            timeZone={tenant?.officialTimeZone ?? 'UTC'}
+            conversionNote={
+              data?.currencyBasis.conversionDate
+                ? t('reports.report.convertedOn', {
+                    date: formatCalendarDate(data.currencyBasis.conversionDate),
+                  })
+                : undefined
+            }
+            refreshing={query.isFetching}
+            onRefresh={query.reload}
+          />
         </>
       )}
-
-      <ExportDialog
-        open={exporting}
-        onClose={() => setExporting(false)}
-        source={{ kind: 'family', family, filters: exportFilters, currency }}
-        scopeLabel={t('reports.report.exportScope', {
-          report: data?.title ?? t(`reports.families.${family}`),
-          period: periodText(data),
-          level: t(`reports.report.levels.${level}`),
-          currency,
-        })}
-      />
-      <FooterBar
-        currency={data?.currencyBasis.currency ?? null}
-        asOf={data?.asOf ?? null}
-        timeZone={tenant?.officialTimeZone ?? 'UTC'}
-        conversionNote={
-          data?.currencyBasis.conversionDate
-            ? t('reports.report.convertedOn', {
-                date: formatCalendarDate(data.currencyBasis.conversionDate),
-              })
-            : undefined
-        }
-        refreshing={query.isFetching}
-        onRefresh={query.reload}
-      />
     </div>
   );
 }
@@ -369,7 +373,9 @@ function ReportBody({ data }: { readonly data: ReportResult }) {
       total: true,
     });
   }
-  const firstKey = data.columns[0]?.key;
+  const visible = readableColumns(data.columns, data.rows);
+  const firstKey = visible[0]?.key;
+  const highlights = data.highlights.filter((highlight) => highlight.cell.kind !== 'restricted');
 
   const columns: DataTableColumn<DisplayRow>[] = [
     {
@@ -390,7 +396,7 @@ function ReportBody({ data }: { readonly data: ReportResult }) {
           </Chip>
         ),
     },
-    ...data.columns.map((column): DataTableColumn<DisplayRow> => ({
+    ...visible.map((column): DataTableColumn<DisplayRow> => ({
       id: column.key,
       header: column.label,
       numeric: column.numeric,
@@ -417,11 +423,7 @@ function ReportBody({ data }: { readonly data: ReportResult }) {
       id: '__drill',
       header: t('reports.report.col.record'),
       cell: (row) =>
-        row.drillThrough === null ? (
-          row.total === true ? null : (
-            <span className="tiq-text-muted">{t('reports.report.noDrill')}</span>
-          )
-        ) : (
+        row.drillThrough === null ? null : (
           <Link
             to={row.drillThrough}
             aria-label={t('reports.report.drillNamed', {
@@ -452,21 +454,20 @@ function ReportBody({ data }: { readonly data: ReportResult }) {
         </Banner>
       )}
 
-      {data.highlights.length > 0 && (
+      {highlights.length > 0 && (
         <KpiGrid>
-          {data.highlights.map((highlight) => (
+          {highlights.map((highlight) => (
             <KpiCard
               key={highlight.key}
               label={highlight.label}
               icon={FAMILY_ICON[data.family]}
               value={
-                highlight.cell.kind === 'missing' || highlight.cell.kind === 'restricted' ? (
+                highlight.cell.kind === 'missing' ? (
                   <ReportCellView cell={highlight.cell} />
                 ) : (
                   cellText(highlight.cell)
                 )
               }
-              restricted={highlight.cell.kind === 'restricted'}
             />
           ))}
         </KpiGrid>
@@ -569,21 +570,6 @@ function ReportBody({ data }: { readonly data: ReportResult }) {
           }
         />
       </Card>
-
-      {data.redactions.length > 0 && (
-        <Card
-          title={t('reports.report.redactionsTitle')}
-          subtitle={t('reports.report.redactionsSubtitle')}
-        >
-          <DetailList
-            items={data.redactions.map((item) => ({
-              key: item.field,
-              label: item.field,
-              value: item.reason,
-            }))}
-          />
-        </Card>
-      )}
     </>
   );
 }

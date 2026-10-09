@@ -25,7 +25,7 @@ import {
 
 import { useApiQuery } from '../../../../api/hooks';
 import { useScreenFilters } from '../../../../app/hooks';
-import { usePermission } from '../../../../auth/permissions';
+import { useCanCall, usePermission } from '../../../../auth/permissions';
 import {
   Button,
   ButtonLink,
@@ -108,17 +108,26 @@ export default function MonitoringPage() {
   const [filters, setFilters, clearFilters] = useScreenFilters('BUY-35', DEFAULTS);
   const [, setQueueFilters] = useScreenFilters('BUY-33', { status: '', page: 1 });
   const canDecide = usePermission('qualification.decide');
-  const tab: TabId = (TABS as readonly string[]).includes(filters.tab)
-    ? (filters.tab as TabId)
-    : 'statuses';
+  const canSummary = useCanCall(api.getQualificationSummary);
+  const allowed: Record<TabId, boolean> = {
+    statuses: useCanCall(api.listStatuses),
+    decisions: useCanCall(api.listDecisions),
+    triggers: useCanCall(api.listTriggers),
+    screenings: useCanCall(api.listScreenings),
+    eligibility: useCanCall(api.checkEligibility),
+  };
+  // A tab the membership cannot use is left out (DD-49); the selection falls back to the first visible tab.
+  const visibleTabs = TABS.filter((id) => allowed[id]);
+  const requested = visibleTabs.find((id) => id === filters.tab);
+  const tab: TabId | undefined = requested ?? visibleTabs[0];
 
-  const summary = useApiQuery(api.getQualificationSummary, {});
+  const summary = useApiQuery(api.getQualificationSummary, canSummary ? {} : null);
   const options = useApiQuery(api.getQualificationOptions, {});
   const programs = useApiQuery(api.listPrograms, { query: { pageSize: 100, sort: 'name' } });
 
   const statuses = useApiQuery(
     api.listStatuses,
-    tab === 'statuses' || tab === 'eligibility'
+    (tab === 'statuses' || tab === 'eligibility') && allowed.statuses
       ? {
           query: compact({
             q: filters.q.trim(),
@@ -181,7 +190,16 @@ export default function MonitoringPage() {
   const kpi = (value: number | undefined): string =>
     value === undefined ? '…' : formatCount(value);
   const pending = summary.data?.byStatus.find((item) => item.status === 'decision_pending')?.count;
-  const kpiRestricted = summary.error?.kind === 'forbidden';
+  const kpiHidden = !canSummary || summary.error?.kind === 'forbidden';
+
+  const tabCount = (id: TabId): number | undefined =>
+    id === 'decisions'
+      ? summary.data?.openReconsiderations
+      : id === 'triggers'
+        ? summary.data?.openTriggers
+        : id === 'screenings'
+          ? summary.data?.unreviewedScreeningFlags
+          : undefined;
 
   const programOptions = (programs.data?.items ?? []).map((program) => ({
     value: String(program.id),
@@ -252,7 +270,7 @@ export default function MonitoringPage() {
               options={programOptions}
             />
           )}
-          {tab === 'statuses' && (
+          {tab === 'statuses' && statuses.error?.kind !== 'forbidden' && (
             <>
               <Select
                 label={t('qualification.queue.filter.category')}
@@ -286,7 +304,7 @@ export default function MonitoringPage() {
               />
             </>
           )}
-          {tab === 'decisions' && (
+          {tab === 'decisions' && decisions.error?.kind !== 'forbidden' && (
             <>
               <Select
                 label={t('qualification.monitoring.filter.outcome')}
@@ -315,7 +333,7 @@ export default function MonitoringPage() {
               />
             </>
           )}
-          {tab === 'triggers' && (
+          {tab === 'triggers' && triggers.error?.kind !== 'forbidden' && (
             <>
               <Select
                 label={t('qualification.monitoring.filter.triggerStatus')}
@@ -392,7 +410,7 @@ export default function MonitoringPage() {
           tone="accent"
           value={kpi(pending)}
           hint={t('qualification.monitoring.kpi.pendingHint')}
-          restricted={kpiRestricted}
+          restricted={kpiHidden}
         />
         <KpiCard
           label={t('qualification.monitoring.kpi.expiring')}
@@ -400,7 +418,7 @@ export default function MonitoringPage() {
           tone="warning"
           value={kpi(summary.data?.decisionsExpiringIn90Days)}
           hint={t('qualification.monitoring.kpi.expiringHint')}
-          restricted={kpiRestricted}
+          restricted={kpiHidden}
         />
         <KpiCard
           label={t('qualification.monitoring.kpi.expired')}
@@ -408,7 +426,7 @@ export default function MonitoringPage() {
           tone="danger"
           value={kpi(summary.data?.expiredDecisions)}
           hint={t('qualification.monitoring.kpi.expiredHint')}
-          restricted={kpiRestricted}
+          restricted={kpiHidden}
         />
         <KpiCard
           label={t('qualification.monitoring.kpi.triggers')}
@@ -416,7 +434,7 @@ export default function MonitoringPage() {
           tone="danger"
           value={kpi(summary.data?.openTriggers)}
           hint={t('qualification.monitoring.kpi.triggersHint')}
-          restricted={kpiRestricted}
+          restricted={kpiHidden}
         />
         <KpiCard
           label={t('qualification.monitoring.kpi.screenings')}
@@ -424,7 +442,7 @@ export default function MonitoringPage() {
           tone="info"
           value={kpi(summary.data?.unreviewedScreeningFlags)}
           hint={t('qualification.monitoring.kpi.screeningsHint')}
-          restricted={kpiRestricted}
+          restricted={kpiHidden}
         />
         <KpiCard
           label={t('qualification.monitoring.kpi.reconsiderations')}
@@ -432,34 +450,20 @@ export default function MonitoringPage() {
           tone="warning"
           value={kpi(summary.data?.openReconsiderations)}
           hint={t('qualification.monitoring.kpi.reconsiderationsHint')}
-          restricted={kpiRestricted}
+          restricted={kpiHidden}
         />
       </KpiGrid>
       <Tabs
         label={t('qualification.monitoring.tabsLabel')}
-        selected={tab}
+        selected={tab ?? ''}
         onSelect={(id) => setFilters({ tab: id })}
-        tabs={[
-          { id: 'statuses', label: t('qualification.monitoring.tab.statuses') },
-          {
-            id: 'decisions',
-            label: t('qualification.monitoring.tab.decisions'),
-            count: summary.data?.openReconsiderations,
-          },
-          {
-            id: 'triggers',
-            label: t('qualification.monitoring.tab.triggers'),
-            count: summary.data?.openTriggers,
-          },
-          {
-            id: 'screenings',
-            label: t('qualification.monitoring.tab.screenings'),
-            count: summary.data?.unreviewedScreeningFlags,
-          },
-          { id: 'eligibility', label: t('qualification.monitoring.tab.eligibility') },
-        ]}
+        tabs={visibleTabs.map((id) => ({
+          id,
+          label: t(`qualification.monitoring.tab.${id}`),
+          count: tabCount(id),
+        }))}
       >
-        {tab === 'statuses' && (
+        {tab === 'statuses' && statuses.error?.kind !== 'forbidden' && (
           <Card flush>
             <DataTable
               caption={t('qualification.monitoring.statusesCaption')}
@@ -474,7 +478,6 @@ export default function MonitoringPage() {
               loading={statuses.isFetching}
               error={statuses.error}
               onRetry={statuses.reload}
-              restricted={statuses.error?.kind === 'forbidden'}
               sort={tableSort(filters.statusSort, filters.statusDir)}
               onSortChange={(sort) =>
                 setFilters({ statusSort: sort.key, statusDir: sort.dir, statusPage: 1 })
@@ -494,7 +497,7 @@ export default function MonitoringPage() {
             />
           </Card>
         )}
-        {tab === 'decisions' && (
+        {tab === 'decisions' && decisions.error?.kind !== 'forbidden' && (
           <Card flush>
             <DataTable
               caption={t('qualification.monitoring.decisionsCaption')}
@@ -506,7 +509,6 @@ export default function MonitoringPage() {
               loading={decisions.isFetching}
               error={decisions.error}
               onRetry={decisions.reload}
-              restricted={decisions.error?.kind === 'forbidden'}
               sort={tableSort(filters.decisionSort, filters.decisionDir)}
               onSortChange={(sort) =>
                 setFilters({ decisionSort: sort.key, decisionDir: sort.dir, decisionPage: 1 })
@@ -526,7 +528,7 @@ export default function MonitoringPage() {
             />
           </Card>
         )}
-        {tab === 'triggers' && (
+        {tab === 'triggers' && triggers.error?.kind !== 'forbidden' && (
           <Card flush>
             <DataTable
               caption={t('qualification.monitoring.triggersCaption')}
@@ -538,7 +540,6 @@ export default function MonitoringPage() {
               loading={triggers.isFetching}
               error={triggers.error}
               onRetry={triggers.reload}
-              restricted={triggers.error?.kind === 'forbidden'}
               sort={tableSort(filters.triggerSort, filters.triggerDir)}
               onSortChange={(sort) =>
                 setFilters({ triggerSort: sort.key, triggerDir: sort.dir, triggerPage: 1 })

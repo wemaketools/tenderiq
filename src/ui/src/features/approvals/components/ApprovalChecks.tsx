@@ -14,11 +14,7 @@ export function AuthorityCard({ approval }: { readonly approval: ApprovalDetail 
   return (
     <Card title={t('approvals.authority.title')}>
       {authority === null ? (
-        <p className="tiq-text-muted">
-          {approval.myStep === null
-            ? t('approvals.authority.notYours')
-            : t('approvals.authority.notApplicable')}
-        </p>
+        <p className="tiq-text-muted">{t('approvals.authority.notApplicable')}</p>
       ) : (
         <DetailList
           stacked

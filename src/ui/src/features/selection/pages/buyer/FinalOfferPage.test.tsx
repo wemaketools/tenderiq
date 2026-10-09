@@ -1,7 +1,7 @@
-import { fireEvent, screen, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { installFetch } from '../../../../test/fetchMock';
+import { installFetch, problem } from '../../../../test/fetchMock';
 import { finalOfferDetail, page, processDecision } from '../../testing/data';
 import { OFFICER, renderSelection } from '../../testing/render';
 import FinalOfferPage from './FinalOfferPage';
@@ -29,6 +29,19 @@ describe('FinalOfferPage', () => {
     expect(screen.getByRole('button', { name: 'Issue round' })).toBeDisabled();
     expect(screen.getAllByText(/Africa\/Gaborone/).length).toBeGreaterThan(0);
     expect(await screen.findByText('Rejected', { selector: '.tiq-chip' })).toBeInTheDocument();
+  });
+
+  it('leaves out the process decisions card when the server refuses them', async () => {
+    installFetch({
+      'GET /api/v1/buyer/selection/final-offer-rounds/1': () => ({ body: finalOfferDetail() }),
+      'GET /api/v1/buyer/selection/process-decisions': () => problem(403, 'Forbidden'),
+    });
+    renderSelection(<FinalOfferPage />, { path: PATH, route: ROUTE, permissions: OFFICER });
+    expect(await screen.findByText('Final offers are blocked')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByRole('heading', { name: 'Process decisions' })).not.toBeInTheDocument(),
+    );
+    expect(screen.queryByText('Restricted')).not.toBeInTheDocument();
   });
 
   it('issues a permitted round after the acknowledgement', async () => {

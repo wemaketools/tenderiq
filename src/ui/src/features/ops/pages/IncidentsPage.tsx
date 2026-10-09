@@ -17,7 +17,7 @@ import type { ServiceIncidentsStatus } from '@contracts/enums';
 
 import { useApiMutation, useApiQuery } from '../../../api/hooks';
 import { useActiveTenant, useScreenFilters } from '../../../app/hooks';
-import { usePermission } from '../../../auth/permissions';
+import { useCanCall, usePermission } from '../../../auth/permissions';
 import {
   Banner,
   Button,
@@ -175,9 +175,12 @@ export default function IncidentsPage() {
   const [declaringRequested, setDeclaring] = useCreateParam();
   const declaring = canManage && declaringRequested;
   const [filters, setFilters, clearFilters] = useScreenFilters('OPS-05', DEFAULTS);
-  const customers = useApiQuery(operationsEndpoints.listCustomers, {
-    query: { pageSize: 100, sort: 'name' },
-  });
+  /** The customer filter is offered only to members who may list customers (DD-49). */
+  const canListCustomers = useCanCall(operationsEndpoints.listCustomers);
+  const customers = useApiQuery(
+    operationsEndpoints.listCustomers,
+    canListCustomers ? { query: { pageSize: 100, sort: 'name' } } : null,
+  );
   const query = {
     page: filters.page,
     pageSize: 25,
@@ -231,16 +234,18 @@ export default function IncidentsPage() {
           onChange={(value) => update({ severity: value })}
           options={opsOptions('severity', SERVICE_INCIDENT_SEVERITIES)}
         />
-        <Select
-          label={t('ops.incidents.filter.customer')}
-          placeholder={t('ops.common.all')}
-          value={filters.customer}
-          onChange={(value) => update({ customer: value })}
-          options={(customers.data?.items ?? []).map((row) => ({
-            value: String(row.tenantId),
-            label: row.name,
-          }))}
-        />
+        {canListCustomers && (
+          <Select
+            label={t('ops.incidents.filter.customer')}
+            placeholder={t('ops.common.all')}
+            value={filters.customer}
+            onChange={(value) => update({ customer: value })}
+            options={(customers.data?.items ?? []).map((row) => ({
+              value: String(row.tenantId),
+              label: row.name,
+            }))}
+          />
+        )}
         <DateInput
           label={t('ops.incidents.filter.from')}
           value={filters.from}

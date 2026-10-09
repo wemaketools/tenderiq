@@ -34,6 +34,20 @@ export function cellText(cell: ReportCell | undefined): string {
     case 'missing':
       return t('reports.cell.missing');
     case 'restricted':
-      return t('reports.cell.restricted');
+      return '';
   }
+}
+
+/**
+ * The columns the caller may read: a column whose every row holds a restricted cell is left out entirely rather than
+ * shown as a column of placeholders (DD-49). Without rows nothing is known, so every column is kept.
+ */
+export function readableColumns<C extends { readonly key: string }>(
+  columns: readonly C[],
+  rows: readonly { readonly cells: Readonly<Record<string, ReportCell>> }[],
+): C[] {
+  return columns.filter(
+    (column) =>
+      rows.length === 0 || !rows.every((row) => row.cells[column.key]?.kind === 'restricted'),
+  );
 }

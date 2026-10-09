@@ -1,7 +1,7 @@
 /**
  * REP-01 — Management reports (FR-21, PRD §13.4, §15.1; styled on `reports.png`). The report families with the
  * questions they answer and their dimensions. Each card opens the report or produces a controlled CSV export with a
- * manifest. A family the caller's role may not run shows why, never an empty report (BR-43).
+ * manifest. A family the caller's role may not run is left out of the catalog entirely (BR-43, DD-49).
  */
 import { useState } from 'react';
 
@@ -21,7 +21,6 @@ import {
   Icon,
   PageHeader,
   QueryView,
-  RestrictedState,
 } from '../../../components/ui';
 import { formatInstantDate } from '../../../lib/format';
 import { t } from '../../../lib/i18n';
@@ -54,12 +53,12 @@ export default function ReportsPage() {
       />
       <QueryView
         query={query}
-        isEmpty={(data) => data.families.length === 0}
+        isEmpty={(data) => runnable(data.families).length === 0}
         empty={<EmptyState icon="barChart" title={t('reports.catalog.empty')} />}
       >
         {(data) => (
           <div className="tiq-grid tiq-grid--3">
-            {data.families.map((family) => (
+            {runnable(data.families).map((family) => (
               <FamilyCard
                 key={family.family}
                 family={family}
@@ -98,6 +97,11 @@ export default function ReportsPage() {
   );
 }
 
+/** The families the caller's role may run; the others are not shown at all (DD-49). */
+function runnable(families: readonly ReportFamilySummary[]): readonly ReportFamilySummary[] {
+  return families.filter((family) => !family.restricted);
+}
+
 function FamilyCard({
   family,
   timeZone,
@@ -122,58 +126,49 @@ function FamilyCard({
       }
       subtitle={family.description}
       footer={
-        family.restricted ? undefined : (
-          <div className="tiq-inline">
-            <ButtonLink
-              to={`/buyer/reports/${family.family}`}
-              variant="primary"
+        <div className="tiq-inline">
+          <ButtonLink
+            to={`/buyer/reports/${family.family}`}
+            variant="primary"
+            size="sm"
+            icon="fileText"
+            aria-label={t('reports.catalog.openNamed', { family: family.title })}
+          >
+            {t('reports.catalog.open')}
+          </ButtonLink>
+          {canExport && (
+            <Button
+              variant="ghost"
               size="sm"
-              icon="fileText"
-              aria-label={t('reports.catalog.openNamed', { family: family.title })}
+              icon="download"
+              onClick={onExport}
+              aria-label={t('reports.catalog.csvNamed', { family: family.title })}
             >
-              {t('reports.catalog.open')}
-            </ButtonLink>
-            {canExport && (
-              <Button
-                variant="ghost"
-                size="sm"
-                icon="download"
-                onClick={onExport}
-                aria-label={t('reports.catalog.csvNamed', { family: family.title })}
-              >
-                {t('reports.catalog.csv')}
-              </Button>
-            )}
-          </div>
-        )
+              {t('reports.catalog.csv')}
+            </Button>
+          )}
+        </div>
       }
     >
-      {family.restricted ? (
-        <RestrictedState
-          compact
-          description={family.restrictionReason ?? t('reports.catalog.restricted')}
-        />
-      ) : (
-        <div className="tiq-stack" style={{ gap: 'var(--tiq-space-2)' }}>
-          <span className="tiq-cell-sub">{family.questions}</span>
-          <div className="tiq-inline">
-            {family.dimensions.slice(0, 6).map((dimension) => (
-              <Chip key={dimension} tone="neutral" size="sm">
-                {dimension}
-              </Chip>
-            ))}
-          </div>
-          <span className="tiq-cell-sub">
-            {family.lastRunAt === null
-              ? t('reports.catalog.neverRun')
-              : t('reports.catalog.lastRun', {
-                  date: formatInstantDate(family.lastRunAt, timeZone),
-                })}
-            {' · '}
-            {t('reports.catalog.savedDefinitions', { count: family.savedDefinitions })}
-          </span>
+      <div className="tiq-stack" style={{ gap: 'var(--tiq-space-2)' }}>
+        <span className="tiq-cell-sub">{family.questions}</span>
+        <div className="tiq-inline">
+          {family.dimensions.slice(0, 6).map((dimension) => (
+            <Chip key={dimension} tone="neutral" size="sm">
+              {dimension}
+            </Chip>
+          ))}
         </div>
-      )}
+        <span className="tiq-cell-sub">
+          {family.lastRunAt === null
+            ? t('reports.catalog.neverRun')
+            : t('reports.catalog.lastRun', {
+                date: formatInstantDate(family.lastRunAt, timeZone),
+              })}
+          {' · '}
+          {t('reports.catalog.savedDefinitions', { count: family.savedDefinitions })}
+        </span>
+      </div>
     </Card>
   );
 }

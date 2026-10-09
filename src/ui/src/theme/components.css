@@ -1072,6 +1072,10 @@ button:disabled {
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: var(--tiq-space-4);
 }
+/* Every card hidden (the caller may see none of the metrics, DD-49): no empty row. */
+.tiq-kpi-grid:empty {
+  display: none;
+}
 .tiq-kpi {
   display: flex;
   flex-direction: column;

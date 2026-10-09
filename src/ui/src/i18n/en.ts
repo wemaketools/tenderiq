@@ -203,9 +203,6 @@ export const shellCatalog = {
       currency: 'Currency',
       errorTitle: 'Some information needs attention',
     },
-    kpi: {
-      restricted: 'Not available in your role',
-    },
     table: {
       empty: 'Nothing to show yet.',
       selectAll: 'Select all rows on this page',

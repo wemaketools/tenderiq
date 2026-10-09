@@ -11,6 +11,7 @@ import type { DocumentSummary } from '@contracts/documents';
 import type { DocumentsClassification, DocumentsRelatedType } from '@contracts/enums';
 
 import { invalidateApiQueries, useApiQuery } from '../../api/hooks';
+import { useCanCall } from '../../auth/permissions';
 import { useActiveTenant } from '../../app/hooks';
 import { formatDateTime } from '../../lib/format';
 import { t } from '../../lib/i18n';
@@ -62,9 +63,27 @@ export function DocumentList({
   const endpoint = (
     audience === 'buyer' ? listBuyerDocuments : listSupplierDocuments
   ) as typeof listBuyerDocuments;
-  const query = useApiQuery(endpoint, {
-    query: { relatedType, relatedId, page, pageSize, sort: sort.key as SortKey, dir: sort.dir },
-  });
+  // A role that cannot list the documents does not see the panel (DD-49).
+  const allowed = useCanCall(endpoint);
+  const query = useApiQuery(
+    endpoint,
+    allowed
+      ? {
+          query: {
+            relatedType,
+            relatedId,
+            page,
+            pageSize,
+            sort: sort.key as SortKey,
+            dir: sort.dir,
+          },
+        }
+      : null,
+  );
+
+  if (!allowed || query.error?.kind === 'forbidden') {
+    return null;
+  }
 
   return (
     <Card

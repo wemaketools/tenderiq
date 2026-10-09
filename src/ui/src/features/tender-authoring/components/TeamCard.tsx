@@ -36,6 +36,7 @@ import { useOverlay } from '../lib/overlay';
 import { FormDialog } from './FormDialog';
 import { IssueList } from './IssueList';
 
+/** Rendered only when the membership may read the tender team (`useCanCall(getTenderTeam)`, DD-49). */
 export interface TeamCardProps {
   readonly tender: TenderDetail;
   readonly canEdit: boolean;
@@ -141,6 +142,9 @@ export function TeamCard({ tender, canEdit, onOwnerChanged }: TeamCardProps) {
     },
   ];
 
+  // DD-49: a membership the server refuses the team to sees no team card at all.
+  if (query.error?.kind === 'forbidden') return null;
+
   return (
     <Card
       title={t('tender-authoring.team.title')}
@@ -179,8 +183,7 @@ export function TeamCard({ tender, canEdit, onOwnerChanged }: TeamCardProps) {
         rows={members}
         rowKey={(row) => String(row.id)}
         loading={query.isFetching}
-        error={query.error?.kind === 'forbidden' ? null : query.error}
-        restricted={query.error?.kind === 'forbidden'}
+        error={query.error}
         onRetry={query.reload}
         empty={<EmptyState compact icon="users" title={t('tender-authoring.team.empty')} />}
       />

@@ -91,16 +91,16 @@ describe('NotificationCenterPage (COM-06)', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows who handles the acknowledgment instead of a button the member may not use (DD-23)', async () => {
+  it('leaves the acknowledge action out for a member who may not acknowledge, without a role hint (DD-49)', async () => {
     const calls = routeCalls({
       'me.notifications.summary': () => notificationSummary(),
       'me.notifications.list': () =>
         page([notification({ canAcknowledge: false, acknowledgeBlockedReason: 'not_authorized' })]),
     });
     renderPage(<NotificationCenterPage />, { ...SUPPLIER, capacity: 'Contributor' });
-    expect(await screen.findByText('Handled by your bid manager')).toBeInTheDocument();
+    expect(await screen.findByText('Acknowledgment required')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Acknowledge' })).not.toBeInTheDocument();
-    expect(screen.getByText('Acknowledgment required')).toBeInTheDocument();
+    expect(screen.queryByText('Handled by your bid manager')).not.toBeInTheDocument();
     expect(callsTo(calls, 'me.notifications.acknowledge')).toHaveLength(0);
   });
 

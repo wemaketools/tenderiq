@@ -86,7 +86,7 @@ describe('ReviewPage (SUP-15)', () => {
     expect(await screen.findByText('Approved. The response is not submitted.')).toBeInTheDocument();
   });
 
-  it('hides the pricing exposure from a reviewer who may not see prices', async () => {
+  it('leaves the price figures out of the commercial exposure, without a restricted notice, for a reviewer who may not see prices', async () => {
     // Arrange
     routeCalls({
       'supplier.bids.get': () => bidDetail(),
@@ -112,8 +112,10 @@ describe('ReviewPage (SUP-15)', () => {
     });
 
     // Assert
-    expect(
-      await screen.findByText('Prices are restricted to pricing contributors and approvers.'),
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Commercial exposure')).toBeInTheDocument();
+    expect(screen.getByText('Contract exceptions')).toBeInTheDocument();
+    expect(screen.queryByText('One-time total (gross)')).not.toBeInTheDocument();
+    expect(screen.queryByText('Subcontracted share')).not.toBeInTheDocument();
+    expect(screen.queryByText(/restricted/i)).not.toBeInTheDocument();
   });
 });

@@ -29,7 +29,7 @@ import type { RetentionClassesRecordClass } from '@contracts/enums';
 import { listTenders } from '@contracts/tenders';
 
 import { invalidateApiQueries, useApiMutation, useApiQuery } from '../../../api/hooks';
-import { usePermission } from '../../../auth/permissions';
+import { useCanCall, usePermission } from '../../../auth/permissions';
 import {
   Banner,
   Button,
@@ -154,6 +154,7 @@ function CloseoutBody({
   const timeZone = useOfficialTimeZone();
   const canClose = usePermission('event.closeout');
   const canExport = usePermission('export.create');
+  const canListTenders = useCanCall(listTenders);
   const [initial] = useState(() => draftOf(state));
   const [draft, setDraft] = useState<RecordDraft>(initial);
   const [clientErrors, setClientErrors] = useState<readonly FieldError[]>([]);
@@ -164,7 +165,10 @@ function CloseoutBody({
   const save = useApiMutation(updateCloseout);
   const close = useApiMutation(closeEvent);
   const archive = useApiMutation(archiveEvent);
-  const tenders = useApiQuery(listTenders, canClose ? { query: { pageSize: 100 } } : null);
+  const tenders = useApiQuery(
+    listTenders,
+    canClose && canListTenders ? { query: { pageSize: 100 } } : null,
+  );
 
   const editable = canClose && (state.status === 'in_progress' || state.status === 'blocked');
   const dirty = JSON.stringify(draft) !== JSON.stringify(initial);

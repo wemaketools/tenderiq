@@ -201,6 +201,27 @@ describe('TenderPublicationPage (BUY-14)', () => {
     expect(screen.queryByRole('button', { name: 'Retry' })).not.toBeInTheDocument();
   });
 
+  it('leaves out the Participants tab for a membership that cannot read participants', async () => {
+    routes({ [`GET ${T2}`]: data.overview2() });
+    render(['tender.publish']);
+    await screen.findByText('Exception #901');
+    const tabs = screen.getByRole('navigation', { name: 'Publication sections' });
+    expect(
+      within(tabs).queryByRole('link', { name: /Participants and access/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(tabs).getByRole('link', { name: 'Publication and distribution' }),
+    ).toBeInTheDocument();
+  });
+
+  it('shows the Participants tab to a membership that can read participants', async () => {
+    routes({ [`GET ${T2}`]: data.overview2() });
+    render();
+    await screen.findByText('Exception #901');
+    const tabs = screen.getByRole('navigation', { name: 'Publication sections' });
+    expect(within(tabs).getByRole('link', { name: /Participants and access/ })).toBeInTheDocument();
+  });
+
   it('answers an unknown tender with the not-found state', async () => {
     routes({ [`GET ${T2}`]: () => problem(404, 'Not Found', { code: 'TENDER_NOT_FOUND' }) });
     render();

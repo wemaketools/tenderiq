@@ -254,14 +254,13 @@ function HandoverBody({ contract }: { readonly contract: ContractDetail }) {
                 {t('contracts.handover.submit')}
               </Button>
             )}
-            {canManage && handover.status === 'submitted' && (
+            {canManage && isManager && handover.status === 'submitted' && (
               <>
                 <Button
                   onClick={() => {
                     giveBack.reset();
                     setDialog('return');
                   }}
-                  disabled={!isManager}
                 >
                   {t('contracts.handover.return')}
                 </Button>
@@ -272,7 +271,6 @@ function HandoverBody({ contract }: { readonly contract: ContractDetail }) {
                     accept.reset();
                     setDialog('accept');
                   }}
-                  disabled={!isManager}
                 >
                   {t('contracts.handover.accept')}
                 </Button>
@@ -315,9 +313,6 @@ function HandoverBody({ contract }: { readonly contract: ContractDetail }) {
             },
           ]}
         />
-        {canManage && handover.status === 'submitted' && !isManager && (
-          <p className="tiq-text-muted">{t('contracts.handover.onlyManager')}</p>
-        )}
         <ChecksPanel checks={handover.checks} label={t('contracts.handover.checks')} />
       </Card>
       <Banner tone="info" title={t('contracts.handover.excludes')}>

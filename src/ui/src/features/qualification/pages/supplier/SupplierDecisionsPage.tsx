@@ -80,6 +80,8 @@ export default function SupplierDecisionsPage() {
     groups.set(row.buyer.buyerTenantId, group);
   }
   const current = items.filter((row) => row.current);
+  // The tiles count the list: without access to it they are left out and only the list explains why (DD-49).
+  const listForbidden = query.error?.kind === 'forbidden';
   const filtered =
     filters.buyerTenantId !== '' ||
     filters.effectiveStatus !== '' ||
@@ -230,6 +232,7 @@ export default function SupplierDecisionsPage() {
       </FilterBar>
       <KpiGrid>
         <KpiCard
+          restricted={listForbidden}
           label={t('qualification.supplierDecisions.kpi.current')}
           icon="shieldCheck"
           tone="success"
@@ -237,6 +240,7 @@ export default function SupplierDecisionsPage() {
           hint={t('qualification.supplierDecisions.kpi.currentHint')}
         />
         <KpiCard
+          restricted={listForbidden}
           label={t('qualification.supplierDecisions.kpi.conditional')}
           icon="alertTriangle"
           tone="warning"
@@ -248,6 +252,7 @@ export default function SupplierDecisionsPage() {
           hint={t('qualification.supplierDecisions.kpi.conditionalHint')}
         />
         <KpiCard
+          restricted={listForbidden}
           label={t('qualification.supplierDecisions.kpi.renewal')}
           icon="repeat"
           tone="info"
@@ -259,6 +264,7 @@ export default function SupplierDecisionsPage() {
           hint={t('qualification.supplierDecisions.kpi.renewalHint')}
         />
         <KpiCard
+          restricted={listForbidden}
           label={t('qualification.supplierDecisions.kpi.buyers')}
           icon="building"
           value={query.data === undefined ? '…' : formatCount(groups.size)}

@@ -235,11 +235,6 @@ function InvitationView({
           </>
         }
       />
-      {!canAnswerPermission && detail.awaitingResponse && (
-        <Banner tone="warning" title={t('opportunities.invitation.representativeTitle')}>
-          <p>{t('opportunities.invitation.representative')}</p>
-        </Banner>
-      )}
       {detail.invitationStatus === 'declined' && (
         <Banner tone="info" title={t('opportunities.invitation.declinedTitle')}>
           <p>

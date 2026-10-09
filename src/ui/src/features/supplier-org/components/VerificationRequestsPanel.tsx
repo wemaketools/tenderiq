@@ -2,7 +2,8 @@
  * SUP-02 "Resolve missing evidence" on the organization profile: the operator's requests for identity evidence that
  * is missing or unclear, what is needed and by when, links to add each kind of evidence to the library, and the
  * answer with current library items (COM-02 confirmation). Identity verification stays separate from any buyer's
- * qualification (AC-07); nothing is shared with buyers by this answer.
+ * qualification (AC-07); nothing is shared with buyers by this answer. The answer is offered only to a member who
+ * may both manage the profile and read the evidence library it is answered from (DD-49).
  */
 import { useState } from 'react';
 
@@ -46,7 +47,9 @@ export interface VerificationRequestsPanelProps {
 
 export function VerificationRequestsPanel({ requests }: VerificationRequestsPanelProps) {
   const zone = useOfficialTimeZone();
-  const canAnswer = usePermission(PROFILE_MANAGE);
+  const canManageProfile = usePermission(PROFILE_MANAGE);
+  const canReadLibrary = usePermission(EVIDENCE_READ);
+  const canAnswer = canManageProfile && canReadLibrary;
   const canAddEvidence = usePermission(EVIDENCE_MANAGE);
   const [answered, setAnswered] = useState<Readonly<Record<number, VerificationRequest>>>({});
   const [answering, setAnswering] = useState<VerificationRequest | null>(null);
@@ -192,11 +195,9 @@ function AnswerDialog({
 }) {
   const zone = useOfficialTimeZone();
   const toast = useToast();
-  const canReadLibrary = usePermission(EVIDENCE_READ);
-  const library = useApiQuery(
-    suppliersEndpoints.listEvidence,
-    canReadLibrary ? { query: { status: ['current'], pageSize: 100 } } : null,
-  );
+  const library = useApiQuery(suppliersEndpoints.listEvidence, {
+    query: { status: ['current'], pageSize: 100 },
+  });
   const respond = useApiMutation(suppliersEndpoints.respondVerificationRequest);
   const [chosen, setChosen] = useState<string[]>([]);
   const [note, setNote] = useState('');
@@ -250,9 +251,7 @@ function AnswerDialog({
         }
       }}
     >
-      {!canReadLibrary ? (
-        <Banner tone="info" title={t('supplier-org.verification.restrictedLibrary')} />
-      ) : library.data === undefined ? (
+      {library.data === undefined ? (
         library.error !== null ? (
           <ErrorState
             title={t('supplier-org.verification.loadEvidenceFailed')}

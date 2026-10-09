@@ -29,7 +29,6 @@ export default {
   cell: {
     days: '{value} d',
     missing: 'Missing',
-    restricted: 'Restricted',
     notApplicable: 'Not applicable',
   },
   errors: {
@@ -78,7 +77,6 @@ export default {
     openNamed: 'Open report {family}',
     csv: 'CSV',
     csvNamed: 'Export {family} as CSV',
-    restricted: 'Your role may not run this report.',
     neverRun: 'Never run',
     lastRun: 'Last run {date}',
     savedDefinitions_one: '{count} saved definition',
@@ -137,11 +135,8 @@ export default {
     col: { rowType: 'Row', record: 'Record' },
     drill: 'Open record',
     drillNamed: 'Open the record of {row}',
-    noDrill: 'Not available to you',
     empty: 'No rows match these filters',
     emptyHint: 'Widen the dates or clear the filters.',
-    redactionsTitle: 'Redacted fields',
-    redactionsSubtitle: 'Fields hidden for your role and why',
     exportScope: '{report}, {period}, {level}, amounts in {currency}',
   },
   export: {

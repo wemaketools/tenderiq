@@ -1,7 +1,7 @@
 /**
  * Authorize an evidence pack (ADM-14, PRD §18.2, DD-16): a controlled export of one record with its decision
  * history. Sealed content before its opening is never included (the manifest lists the omission); restricted audit
- * rows are included as metadata only and only by auditors (DD-31).
+ * rows are included as metadata only and only by auditors (DD-31); the option is not offered to anyone else (DD-49).
  */
 import { useState } from 'react';
 
@@ -84,7 +84,7 @@ function EvidencePackForm({ onClose, onCreated }: Omit<EvidencePackDialogProps, 
               subjectId: subject.subjectId,
               purpose: reason,
               includeAuditTrail,
-              includeRestrictedMetadata: includeAuditTrail && includeRestricted,
+              includeRestrictedMetadata: canAudit && includeAuditTrail && includeRestricted,
               format,
             },
           });
@@ -116,22 +116,20 @@ function EvidencePackForm({ onClose, onCreated }: Omit<EvidencePackDialogProps, 
           checked={includeAuditTrail}
           onChange={setIncludeAuditTrail}
         />
-        <Checkbox
-          label={t('records.packs.includeRestricted')}
-          hint={
-            canAudit
-              ? t('records.packs.includeRestrictedHint')
-              : t('records.packs.restrictedNeedsAudit')
-          }
-          checked={includeRestricted && includeAuditTrail}
-          disabled={!canAudit || !includeAuditTrail}
-          onChange={setIncludeRestricted}
-          error={
-            create.error?.code === 'RESTRICTED_METADATA_REQUIRES_AUDIT_VIEW'
-              ? t('reports.errors.RESTRICTED_METADATA_REQUIRES_AUDIT_VIEW')
-              : errors.forField('includeRestrictedMetadata')
-          }
-        />
+        {canAudit && (
+          <Checkbox
+            label={t('records.packs.includeRestricted')}
+            hint={t('records.packs.includeRestrictedHint')}
+            checked={includeRestricted && includeAuditTrail}
+            disabled={!includeAuditTrail}
+            onChange={setIncludeRestricted}
+            error={
+              create.error?.code === 'RESTRICTED_METADATA_REQUIRES_AUDIT_VIEW'
+                ? t('reports.errors.RESTRICTED_METADATA_REQUIRES_AUDIT_VIEW')
+                : errors.forField('includeRestrictedMetadata')
+            }
+          />
+        )}
         <RadioGroup
           label={t('reports.export.format')}
           inline

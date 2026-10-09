@@ -1,7 +1,8 @@
 /**
  * Renders one report cell (PRD §15.2): money with its currency, counts, percentages and durations as tabular numbers,
  * statuses as chips, references as links when the caller may open the record. A missing value is shown as
- * "Missing" with its reason and never as zero; a restricted value is shown as "Restricted" (BR-43).
+ * "Missing" with its reason and never as zero; a value the caller may not read is left empty (BR-43, DD-49), and a
+ * column that holds only such values is left out by `readableColumns`.
  */
 import type { ReportCell } from '@contracts/reporting';
 
@@ -49,11 +50,6 @@ export function ReportCellView({ cell }: { readonly cell: ReportCell | undefined
         </Chip>
       );
     case 'restricted':
-      return (
-        <Chip tone="neutral" size="sm" outlined icon="lock" title={cell.reason}>
-          {t('reports.cell.restricted')}
-          <span className="tiq-visually-hidden">{`: ${cell.reason}`}</span>
-        </Chip>
-      );
+      return null;
   }
 }

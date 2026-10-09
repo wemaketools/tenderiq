@@ -41,6 +41,32 @@ describe('DeclarationsPage (SUP-14)', () => {
     expect(within(row).getByText('Supplier provided')).toBeInTheDocument();
   });
 
+  it('shows no read-only notice to a viewer whose capacity cannot edit editable declarations', async () => {
+    // Arrange
+    routeCalls({
+      'supplier.bids.get': () =>
+        bidDetail({
+          viewer: {
+            canEditResponse: false,
+            canViewPricing: true,
+            canEditPricing: false,
+            canAssign: false,
+            canComment: true,
+            canApprove: true,
+            canSubmit: false,
+          },
+        }),
+      'supplier.bids.declarations': () => declarations(),
+    });
+
+    // Act
+    renderPage();
+
+    // Assert
+    expect(await screen.findByText('Supplier statements')).toBeInTheDocument();
+    expect(screen.queryByText('Read only')).not.toBeInTheDocument();
+  });
+
   it('requires an explanation for a declaration that cannot be confirmed, then saves it', async () => {
     // Arrange
     const user = userEvent.setup();

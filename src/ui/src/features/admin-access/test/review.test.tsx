@@ -199,7 +199,7 @@ describe('AccessReviewPage (ADM-04)', () => {
     expect(screen.queryByRole('button', { name: 'Lift' })).not.toBeInTheDocument();
   });
 
-  it('shows the findings tab as restricted when the viewer only manages roles', async () => {
+  it('leaves out the findings tab and opens on grants when the viewer only manages roles', async () => {
     // Arrange
     installFetch({ [`GET ${BUYER}/access-grants`]: () => ({ body: page([]) }) });
 
@@ -207,12 +207,27 @@ describe('AccessReviewPage (ADM-04)', () => {
     renderWithProviders(<AccessReviewPage />, {
       state: { session: buyerAdminSession(['org.roles.manage']) },
     });
-    await userEvent.click(await screen.findByRole('tab', { name: 'Findings' }));
 
     // Assert
-    expect(
-      await screen.findByText('The access review findings need the access review permission.'),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('tab', { name: 'Direct grants' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    expect(screen.queryByRole('tab', { name: 'Findings' })).not.toBeInTheDocument();
+  });
+
+  it('shows the findings tab first when the viewer holds the access review permission', async () => {
+    // Arrange
+    installFetch({ [`GET ${BUYER}/access/findings`]: () => ({ body: findingPage() }) });
+
+    // Act
+    renderWithProviders(<AccessReviewPage />, { state: { session: buyerAdminSession() } });
+
+    // Assert
+    expect(await screen.findByRole('tab', { name: 'Findings' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
   });
 });
 
@@ -288,5 +303,20 @@ describe('AccessIndexPage', () => {
 
     // Assert
     await waitFor(() => expect(router.state.location.pathname).toBe('/buyer/admin/access/roles'));
+  });
+
+  it('explains the forbidden page with its heading when the membership holds no access permission', () => {
+    // Arrange
+    installFetch({});
+
+    // Act
+    renderWithProviders(<AccessIndexPage />, {
+      state: { session: buyerAdminSession(['org.settings.manage']) },
+    });
+
+    // Assert
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Not available in your role' }),
+    ).toBeInTheDocument();
   });
 });

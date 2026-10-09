@@ -75,17 +75,17 @@ describe('HandoverPage (CON-04)', () => {
     });
   });
 
-  it('disables acceptance for a member who is not the named contract manager', async () => {
+  it('leaves acceptance out for a member who is not the named contract manager (DD-49)', async () => {
     routeCalls({ 'buyer.contracts.get': detail, 'buyer.contracts.handover': handover() });
     renderPage(<HandoverPage />, {
       ...OPTIONS,
       permissions: ['contract.view', 'contract.manage'],
       userId: 5,
     });
-    expect(await screen.findByRole('button', { name: 'Accept handover' })).toBeDisabled();
-    expect(
-      screen.getByText('Only the named contract manager can accept or return this handover.'),
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Delivery within 6 weeks')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Accept handover' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Return with omissions' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Only the named contract manager/)).not.toBeInTheDocument();
   });
 
   it('explains when a contract has no procurement handover', async () => {

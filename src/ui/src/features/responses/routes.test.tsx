@@ -111,7 +111,10 @@ describe('responses catalog coverage', () => {
       ...BID_INTERNAL_APPROVALS_STATUS.filter((status) => status !== 'pending').map(
         (status) => `responses.review.state.${status}`,
       ),
-      ...SUBMIT_BLOCK_REASONS.map((reason) => `responses.submit.block.${reason}`),
+      // The missing submit permission is not announced (DD-49); the other reasons are.
+      ...SUBMIT_BLOCK_REASONS.filter((reason) => reason !== 'SUBMIT_PERMISSION_MISSING').map(
+        (reason) => `responses.submit.block.${reason}`,
+      ),
       ...PRICING_ISSUE_CODES.map((code) => `responses.pricing.issue.${code}`),
       ...[
         'withdrawn',

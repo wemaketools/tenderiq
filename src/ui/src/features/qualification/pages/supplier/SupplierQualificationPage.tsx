@@ -23,7 +23,7 @@ import {
 
 import { useApiQuery } from '../../../../api/hooks';
 import { useActiveTenant, useScreenFilters } from '../../../../app/hooks';
-import { usePermission } from '../../../../auth/permissions';
+import { useCanCall, usePermission } from '../../../../auth/permissions';
 import {
   Banner,
   ButtonLink,
@@ -90,13 +90,7 @@ export default function SupplierQualificationPage() {
         }
       />
       <QueryView query={overview}>{(data) => <OverviewSection overview={data} />}</QueryView>
-      {canApply ? (
-        <WorkSection buyers={buyersOf(overview.data)} />
-      ) : (
-        <Banner tone="info" title={t('qualification.supplier.readOnlyTitle')}>
-          {t('qualification.supplier.readOnly')}
-        </Banner>
-      )}
+      {canApply && <WorkSection buyers={buyersOf(overview.data)} />}
     </div>
   );
 }
@@ -279,7 +273,15 @@ function WorkSection({ buyers }: { readonly buyers: readonly { value: string; la
   const timeZone = useOfficialTimeZone();
   const tenant = useActiveTenant();
   const [filters, setFilters, clearFilters] = useScreenFilters('SUP-20', DEFAULTS);
-  const tab = filters.tab === 'programs' ? 'programs' : 'applications';
+  const canApplications = useCanCall(api.listSupplierApplications);
+  const canPrograms = useCanCall(api.listSupplierPrograms);
+  // A list the membership cannot read is left out with its tab (DD-49); the selection falls back to the other one.
+  const tab: 'applications' | 'programs' | null =
+    (filters.tab === 'programs' || !canApplications) && canPrograms
+      ? 'programs'
+      : canApplications
+        ? 'applications'
+        : null;
 
   const applications = useApiQuery(
     api.listSupplierApplications,
@@ -489,14 +491,19 @@ function WorkSection({ buyers }: { readonly buyers: readonly { value: string; la
     },
   ];
 
+  if (tab === null) return null;
   return (
     <Tabs
       label={t('qualification.supplier.tabsLabel', { name: tenant?.name ?? '' })}
       selected={tab}
       onSelect={(id) => setFilters({ tab: id })}
       tabs={[
-        { id: 'applications', label: t('qualification.supplier.tab.applications') },
-        { id: 'programs', label: t('qualification.supplier.tab.programs') },
+        ...(canApplications
+          ? [{ id: 'applications', label: t('qualification.supplier.tab.applications') }]
+          : []),
+        ...(canPrograms
+          ? [{ id: 'programs', label: t('qualification.supplier.tab.programs') }]
+          : []),
       ]}
     >
       <div className="tiq-stack">
@@ -562,83 +569,83 @@ function WorkSection({ buyers }: { readonly buyers: readonly { value: string; la
             </>
           )}
         </FilterBar>
-        {tab === 'applications' ? (
-          <Card flush>
-            <DataTable
-              caption={t('qualification.supplier.applicationsCaption')}
-              columns={appColumns}
-              rows={applications.data?.items}
-              rowKey={(row) => String(row.id)}
-              rowLabel={(row) =>
-                `${row.reference ?? t('qualification.supplier.draft')} ${row.program.programName}`
-              }
-              rowHref={(row) => supplierQualificationPaths.application(row.id)}
-              loading={applications.isFetching}
-              error={applications.error}
-              onRetry={applications.reload}
-              restricted={applications.error?.kind === 'forbidden'}
-              sort={tableSort(filters.appSort, filters.appDir)}
-              onSortChange={(sort) =>
-                setFilters({ appSort: sort.key, appDir: sort.dir, appPage: 1 })
-              }
-              empty={
-                <EmptyState
-                  compact
-                  title={
-                    filtered
-                      ? t('qualification.supplier.applicationsEmptyFiltered')
-                      : t('qualification.supplier.applicationsEmpty')
+        {tab === 'applications'
+          ? applications.error?.kind !== 'forbidden' && (
+              <Card flush>
+                <DataTable
+                  caption={t('qualification.supplier.applicationsCaption')}
+                  columns={appColumns}
+                  rows={applications.data?.items}
+                  rowKey={(row) => String(row.id)}
+                  rowLabel={(row) =>
+                    `${row.reference ?? t('qualification.supplier.draft')} ${row.program.programName}`
                   }
-                  description={
-                    filtered ? undefined : t('qualification.supplier.applicationsEmptyHint')
+                  rowHref={(row) => supplierQualificationPaths.application(row.id)}
+                  loading={applications.isFetching}
+                  error={applications.error}
+                  onRetry={applications.reload}
+                  sort={tableSort(filters.appSort, filters.appDir)}
+                  onSortChange={(sort) =>
+                    setFilters({ appSort: sort.key, appDir: sort.dir, appPage: 1 })
+                  }
+                  empty={
+                    <EmptyState
+                      compact
+                      title={
+                        filtered
+                          ? t('qualification.supplier.applicationsEmptyFiltered')
+                          : t('qualification.supplier.applicationsEmpty')
+                      }
+                      description={
+                        filtered ? undefined : t('qualification.supplier.applicationsEmptyHint')
+                      }
+                    />
+                  }
+                  pagination={
+                    applications.data === undefined
+                      ? undefined
+                      : {
+                          page: applications.data.page,
+                          pageSize: applications.data.pageSize,
+                          total: applications.data.total,
+                          onPageChange: (appPage) => setFilters({ appPage }),
+                          onPageSizeChange: (pageSize) => setFilters({ pageSize, appPage: 1 }),
+                        }
                   }
                 />
-              }
-              pagination={
-                applications.data === undefined
-                  ? undefined
-                  : {
-                      page: applications.data.page,
-                      pageSize: applications.data.pageSize,
-                      total: applications.data.total,
-                      onPageChange: (appPage) => setFilters({ appPage }),
-                      onPageSizeChange: (pageSize) => setFilters({ pageSize, appPage: 1 }),
-                    }
-              }
-            />
-          </Card>
-        ) : (
-          <Card flush>
-            <DataTable
-              caption={t('qualification.supplier.programsCaption')}
-              columns={programColumns}
-              rows={programs.data?.items}
-              rowKey={(row) => String(row.id)}
-              rowLabel={(row) => row.name}
-              rowHref={(row) => supplierQualificationPaths.program(row.id)}
-              loading={programs.isFetching}
-              error={programs.error}
-              onRetry={programs.reload}
-              restricted={programs.error?.kind === 'forbidden'}
-              sort={tableSort(filters.programSort, filters.programDir)}
-              onSortChange={(sort) =>
-                setFilters({ programSort: sort.key, programDir: sort.dir, programPage: 1 })
-              }
-              empty={<EmptyState compact title={t('qualification.supplier.programsEmpty')} />}
-              pagination={
-                programs.data === undefined
-                  ? undefined
-                  : {
-                      page: programs.data.page,
-                      pageSize: programs.data.pageSize,
-                      total: programs.data.total,
-                      onPageChange: (programPage) => setFilters({ programPage }),
-                      onPageSizeChange: (pageSize) => setFilters({ pageSize, programPage: 1 }),
-                    }
-              }
-            />
-          </Card>
-        )}
+              </Card>
+            )
+          : programs.error?.kind !== 'forbidden' && (
+              <Card flush>
+                <DataTable
+                  caption={t('qualification.supplier.programsCaption')}
+                  columns={programColumns}
+                  rows={programs.data?.items}
+                  rowKey={(row) => String(row.id)}
+                  rowLabel={(row) => row.name}
+                  rowHref={(row) => supplierQualificationPaths.program(row.id)}
+                  loading={programs.isFetching}
+                  error={programs.error}
+                  onRetry={programs.reload}
+                  sort={tableSort(filters.programSort, filters.programDir)}
+                  onSortChange={(sort) =>
+                    setFilters({ programSort: sort.key, programDir: sort.dir, programPage: 1 })
+                  }
+                  empty={<EmptyState compact title={t('qualification.supplier.programsEmpty')} />}
+                  pagination={
+                    programs.data === undefined
+                      ? undefined
+                      : {
+                          page: programs.data.page,
+                          pageSize: programs.data.pageSize,
+                          total: programs.data.total,
+                          onPageChange: (programPage) => setFilters({ programPage }),
+                          onPageSizeChange: (pageSize) => setFilters({ pageSize, programPage: 1 }),
+                        }
+                  }
+                />
+              </Card>
+            )}
       </div>
     </Tabs>
   );

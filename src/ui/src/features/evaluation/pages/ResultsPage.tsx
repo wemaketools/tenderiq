@@ -418,11 +418,7 @@ function ResultsView({
           </p>
         </Banner>
       )}
-      {view.detail !== 'full' && (
-        <Banner tone="info" title={t(`evaluation.results.detail.${view.detail}.title`)}>
-          <p>{t(`evaluation.results.detail.${view.detail}.body`)}</p>
-        </Banner>
-      )}
+      {/* DD-49: a reduced detail level (totals only, reports only) simply shows less, without a role notice. */}
       {view.detail !== 'reports_only' && (
         <>
           <KpiGrid>

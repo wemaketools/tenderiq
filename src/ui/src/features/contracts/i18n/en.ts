@@ -593,7 +593,6 @@ export default {
     submittedAt: 'Submitted',
     acceptedAt: 'Accepted',
     returnedAt: 'Returned',
-    onlyManager: 'Only the named contract manager can accept or return this handover.',
     checks: 'Handover completeness',
     excludes: 'Only the winning offer is handed over',
     excludesDetail:

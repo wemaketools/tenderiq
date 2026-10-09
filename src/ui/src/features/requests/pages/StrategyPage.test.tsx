@@ -2,6 +2,7 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import type { PermissionCode } from '@contracts/permissions';
 import type { StrategyDetail, StrategyRow } from '@contracts/requests';
 
 import { installFetch, problem } from '../../../test/fetchMock';
@@ -65,7 +66,11 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-function render(detail: StrategyDetail, routes: Parameters<typeof installFetch>[0] = {}) {
+function render(
+  detail: StrategyDetail,
+  routes: Parameters<typeof installFetch>[0] = {},
+  permissions?: readonly PermissionCode[],
+) {
   const fetch = installFetch({
     [`GET /api/v1/buyer/strategies/${detail.id}`]: () => ({ body: detail }),
     [`GET /api/v1/buyer/strategies/${detail.id}/procedure-options`]: () => ({
@@ -78,6 +83,7 @@ function render(detail: StrategyDetail, routes: Parameters<typeof installFetch>[
   renderPage(<StrategyPage />, {
     route: `/buyer/strategies/${detail.id}`,
     path: '/buyer/strategies/:strategyId',
+    permissions,
   });
   return fetch;
 }
@@ -109,6 +115,21 @@ describe('StrategyPage (BUY-06)', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('T-2026-0009')).toBeInTheDocument();
     expect(screen.getByText('None: an information-only event makes no award')).toBeInTheDocument();
+  });
+
+  it('shows the strategy documents to a member who may read documents', async () => {
+    render(strategy);
+
+    expect(await screen.findByRole('heading', { name: 'Strategy documents' })).toBeInTheDocument();
+  });
+
+  it('leaves the documents panel out for an approver who may not read documents (DD-49)', async () => {
+    const { requests } = render(strategy, {}, ['strategy.approve']);
+
+    expect(await screen.findByRole('heading', { name: 'Strategy approval' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Strategy documents' })).not.toBeInTheDocument();
+    expect(document.querySelector('[data-state="restricted"]')).toBeNull();
+    expect(requests.some((request) => request.path === '/api/v1/buyer/documents')).toBe(false);
   });
 
   it('marks market research as an unverified estimate or a supplier commitment and compares procedures', async () => {

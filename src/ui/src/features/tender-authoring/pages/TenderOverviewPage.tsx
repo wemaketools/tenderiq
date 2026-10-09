@@ -6,9 +6,10 @@
  */
 import { useState } from 'react';
 
+import { getTenderTeam } from '@contracts/tenders';
 import type { SavedTemplate, TenderDetail, TenderLinkState } from '@contracts/tenders';
 
-import { usePermission } from '../../../auth/permissions';
+import { useCanCall, usePermission } from '../../../auth/permissions';
 import {
   Banner,
   Button,
@@ -53,6 +54,8 @@ function Overview({ context }: { readonly context: TenderWorkspaceContext }) {
   const { tender, canEdit } = context;
   const toast = useToast();
   const canCreate = usePermission(TENDER_CREATE);
+  // DD-49: the team card is left out (and its query not made) for a membership that cannot read the team.
+  const canViewTeam = useCanCall(getTenderTeam);
   const [editOpen, setEditOpen] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
   const [templateOpen, setTemplateOpen] = useState(false);
@@ -398,14 +401,16 @@ function Overview({ context }: { readonly context: TenderWorkspaceContext }) {
               }
             />
           </Card>
-          <TeamCard
-            tender={tender}
-            canEdit={canEdit}
-            onOwnerChanged={(result) => {
-              if (result.newOwner !== null)
-                context.setTender({ ...tender, owner: result.newOwner });
-            }}
-          />
+          {canViewTeam && (
+            <TeamCard
+              tender={tender}
+              canEdit={canEdit}
+              onOwnerChanged={(result) => {
+                if (result.newOwner !== null)
+                  context.setTender({ ...tender, owner: result.newOwner });
+              }}
+            />
+          )}
         </div>
         <div className="tiq-stack">
           <Card title={t('tender-authoring.overview.versionTitle')}>

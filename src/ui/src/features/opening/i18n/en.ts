@@ -736,9 +736,6 @@ export default {
     submitted: 'Your response was submitted.',
     submittedAt: 'Submitted by {who} on {at}.',
     closed: 'This request no longer accepts a response.',
-    noPermission: 'Your capacity cannot respond',
-    noPermissionHint:
-      'The answer is a formal statement to the buyer: a person with submission authority in your organization (for example the authorized signatory) sends it.',
   },
   next: {
     notClosed: 'Wait for the submission deadline: nothing can be opened before closing.',

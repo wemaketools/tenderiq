@@ -240,10 +240,6 @@ export default {
     expiring: 'Expiring within 60 days',
     expiredCount: 'Expired',
     nextExpiry: 'Next expiry',
-    restricted: 'Restricted',
-    restrictedTitle: 'Some financial evidence is withheld',
-    restrictedText:
-      'Financial evidence is visible only to financial reviewers. The rows show that it exists but not its content.',
     empty: 'The supplier has not shared evidence with you.',
   },
   identity: {

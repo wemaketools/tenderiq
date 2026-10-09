@@ -214,9 +214,6 @@ function SupplierAddendumView({
           </p>
         )}
       </Banner>
-      {needsAck && !canAcknowledge && (
-        <Banner tone="info" title={t('clarifications.supplierAddendum.noAckPermission')} />
-      )}
 
       <div className="tiq-grid tiq-grid--sidebar">
         <div className="tiq-stack tiq-stack--spaced">

@@ -8,6 +8,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 
+import { getSubjectApprovals } from '@contracts/approvals';
 import {
   APPROVED_LOT_OUTCOME_STATUSES,
   createRecommendation,
@@ -17,7 +18,7 @@ import {
 import type { AwardOverview, LotAwardStatus, LotOutcome } from '@contracts/awards';
 
 import { invalidateApiQueries, useApiMutation, useApiQuery } from '../../../api/hooks';
-import { usePermission } from '../../../auth/permissions';
+import { useCanCall, usePermission } from '../../../auth/permissions';
 import { ApprovalStatusPanel, RequestApprovalDialog } from '../../../components/approvals';
 import type { RequestApprovalDefaults } from '../../../components/approvals';
 import {
@@ -96,6 +97,7 @@ function AwardFileBody({
   const canRecommend = usePermission('award.recommend');
   const canFinal = usePermission(['award.recommend', 'award.approve']);
   const canCases = usePermission(['complaint.manage', 'debrief.manage', 'audit.view']);
+  const canSeeApprovals = useCanCall(getSubjectApprovals);
 
   const [finalResults, setFinalResults] = useState<Readonly<Record<number, LotOutcome>>>({});
   const [finalTarget, setFinalTarget] = useState<LotAwardStatus | null>(null);
@@ -461,25 +463,26 @@ function AwardFileBody({
                           {selectedGate.finalAwardApproval.unavailableReason}
                         </Banner>
                       )}
-                    {(selectedGate.finalAwardApproval.requestable ||
-                      selectedGate.finalAwardApproval.approvalRequestId !== null) && (
-                      <ApprovalStatusPanel
-                        key={selectedGate.finalAwardApproval.lotOutcomeId}
-                        title={t('awards.file.finalApproval.title')}
-                        subjectType="final_award"
-                        subjectId={selectedGate.finalAwardApproval.lotOutcomeId}
-                        subjectLabel={approvalSubject(selectedGate)}
-                        currentVersion={
-                          canRecommend && selectedGate.finalAwardApproval.requestable
-                            ? {
-                                subjectVersion: selectedGate.finalAwardApproval.subjectVersion,
-                                contentHash: selectedGate.finalAwardApproval.contentHash,
-                              }
-                            : null
-                        }
-                        requestDefaults={approvalDefaults(selectedGate)}
-                      />
-                    )}
+                    {canSeeApprovals &&
+                      (selectedGate.finalAwardApproval.requestable ||
+                        selectedGate.finalAwardApproval.approvalRequestId !== null) && (
+                        <ApprovalStatusPanel
+                          key={selectedGate.finalAwardApproval.lotOutcomeId}
+                          title={t('awards.file.finalApproval.title')}
+                          subjectType="final_award"
+                          subjectId={selectedGate.finalAwardApproval.lotOutcomeId}
+                          subjectLabel={approvalSubject(selectedGate)}
+                          currentVersion={
+                            canRecommend && selectedGate.finalAwardApproval.requestable
+                              ? {
+                                  subjectVersion: selectedGate.finalAwardApproval.subjectVersion,
+                                  contentHash: selectedGate.finalAwardApproval.contentHash,
+                                }
+                              : null
+                          }
+                          requestDefaults={approvalDefaults(selectedGate)}
+                        />
+                      )}
                   </>
                 )}
               </div>

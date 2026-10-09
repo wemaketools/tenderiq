@@ -21,7 +21,7 @@ import {
   StatusChip,
   Timeline,
 } from '../../../components/ui';
-import type { TimelineTone } from '../../../components/ui';
+import type { DataTableColumn, TimelineTone } from '../../../components/ui';
 import { EMPTY_VALUE, formatCalendarDate, formatDateTime } from '../../../lib/format';
 import { t } from '../../../lib/i18n';
 
@@ -69,27 +69,25 @@ export interface LiveObligationsProps {
   readonly subtitle?: string;
 }
 
-/** The live events (with official deadlines) and contracts that continue during an account change (AC-36). */
-/** A title the operator may see, or the withheld marker with the reason (PRD §4.3). */
-function WithheldText({ value, hint }: { readonly value: string | null; readonly hint: string }) {
-  if (value !== null) {
-    return <div className="tiq-cell-sub">{value}</div>;
-  }
-  return (
-    <div className="tiq-cell-sub">
-      <Chip tone="neutral" size="sm" icon="lock">
-        {t('ops.obligations.withheldTitle')}
-      </Chip>{' '}
-      <span className="tiq-text-muted">{hint}</span>
-    </div>
-  );
-}
-
+/**
+ * The live events (with official deadlines) and contracts that continue during an account change (AC-36). A title
+ * or supplier the operator may not see (PRD §4.3) is simply not shown: the row keeps its reference, status and dates,
+ * and the supplier column is left out when no contract names one the operator may see (DD-49).
+ */
 export function LiveObligations({ events, contracts, subtitle }: LiveObligationsProps) {
-  const anyWithheld = events.some((row) => row.withheld) || contracts.some((row) => row.withheld);
+  const supplierColumn: DataTableColumn<LiveContract>[] = contracts.some(
+    (row) => !row.withheld && row.supplierName !== null,
+  )
+    ? [
+        {
+          id: 'supplier',
+          header: t('ops.obligations.col.supplier'),
+          cell: (row) => (row.withheld ? null : row.supplierName),
+        },
+      ]
+    : [];
   return (
     <div className="tiq-stack">
-      {anyWithheld && <p className="tiq-text-muted">{t('ops.obligations.withheldNote')}</p>}
       <div className="tiq-grid tiq-grid--2">
         <Card
           flush
@@ -108,10 +106,7 @@ export function LiveObligations({ events, contracts, subtitle }: LiveObligations
                 cell: (row) => (
                   <>
                     <Reference value={row.reference} />
-                    <WithheldText
-                      value={row.withheld ? null : row.title}
-                      hint={t('ops.obligations.withheldEventHint')}
-                    />
+                    {!row.withheld && <div className="tiq-cell-sub">{row.title}</div>}
                   </>
                 ),
               },
@@ -146,23 +141,11 @@ export function LiveObligations({ events, contracts, subtitle }: LiveObligations
                 cell: (row) => (
                   <>
                     <Reference value={row.reference} />
-                    <WithheldText
-                      value={row.withheld ? null : row.title}
-                      hint={t('ops.obligations.withheldContractHint')}
-                    />
+                    {!row.withheld && <div className="tiq-cell-sub">{row.title}</div>}
                   </>
                 ),
               },
-              {
-                id: 'supplier',
-                header: t('ops.obligations.col.supplier'),
-                cell: (row) =>
-                  row.withheld || row.supplierName === null ? (
-                    <span className="tiq-text-muted">{t('ops.obligations.withheldSupplier')}</span>
-                  ) : (
-                    row.supplierName
-                  ),
-              },
+              ...supplierColumn,
               {
                 id: 'status',
                 header: t('ops.obligations.col.status'),

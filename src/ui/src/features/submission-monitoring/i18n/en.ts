@@ -152,9 +152,6 @@ export default {
       UNRESOLVED_SERVICE_INCIDENT:
         'A service incident is unresolved. Record an accountable decision before closing.',
     },
-    noPermissionTitle: 'Ready to close',
-    noPermission:
-      'The deadline has passed. A person with authority to close tenders must close submissions.',
     closedTitle: 'Submissions are closed',
     closedDetail: 'Closed on {time} by {name}.',
     system: 'the system at the deadline',

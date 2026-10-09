@@ -106,6 +106,9 @@ function ApprovalView({
     approval.allowedDecisions.includes(decision),
   );
   const related = approval.relatedApprovals ?? [];
+  // The decider's column (decision, readiness, authority, independence) shows only to a decider of the approval;
+  // a requester or observer reads the record without it (DD-49).
+  const decider = approval.myStep !== null || decisions.length > 0;
 
   return (
     <div className="tiq-page">
@@ -145,7 +148,7 @@ function ApprovalView({
         <RoutingNotice routing={approval.routing} timeZone={timeZone} />
       )}
       <InvalidationNotice approval={approval} timeZone={timeZone} />
-      <div className="tiq-grid tiq-grid--sidebar">
+      <div className={decider ? 'tiq-grid tiq-grid--sidebar' : 'tiq-stack'}>
         <div className="tiq-stack">
           <Card title={t('approvals.detail.decision')}>
             <DetailList
@@ -452,39 +455,41 @@ function ApprovalView({
             />
           )}
         </div>
-        <div className="tiq-stack">
-          <Card title={t('approvals.decide.title')}>
-            {decisions.length === 0 ? (
-              <p className="tiq-text-muted">{t('approvals.decide.none')}</p>
-            ) : (
-              <div className="tiq-stack">
-                <p>{t('approvals.decide.intro', { version: approval.subjectVersion })}</p>
-                {decisions.map((decision) => (
-                  <Button
-                    key={decision}
-                    block
-                    variant={
-                      decision === 'approve'
-                        ? 'primary'
-                        : decision === 'reject'
-                          ? 'danger-soft'
-                          : 'secondary'
-                    }
-                    onClick={() => onDecide(decision)}
-                  >
-                    {t(`approvals.decide.${decision}`)}
-                  </Button>
-                ))}
-                {approval.conditionsPermitted === false && (
-                  <p className="tiq-text-muted">{t('approvals.decide.conditionsNotPermitted')}</p>
-                )}
-              </div>
-            )}
-          </Card>
-          <DecisionReadiness approval={approval} />
-          <AuthorityCard approval={approval} />
-          <IndependenceCard approval={approval} />
-        </div>
+        {decider && (
+          <div className="tiq-stack">
+            <Card title={t('approvals.decide.title')}>
+              {decisions.length === 0 ? (
+                <p className="tiq-text-muted">{t('approvals.decide.none')}</p>
+              ) : (
+                <div className="tiq-stack">
+                  <p>{t('approvals.decide.intro', { version: approval.subjectVersion })}</p>
+                  {decisions.map((decision) => (
+                    <Button
+                      key={decision}
+                      block
+                      variant={
+                        decision === 'approve'
+                          ? 'primary'
+                          : decision === 'reject'
+                            ? 'danger-soft'
+                            : 'secondary'
+                      }
+                      onClick={() => onDecide(decision)}
+                    >
+                      {t(`approvals.decide.${decision}`)}
+                    </Button>
+                  ))}
+                  {approval.conditionsPermitted === false && (
+                    <p className="tiq-text-muted">{t('approvals.decide.conditionsNotPermitted')}</p>
+                  )}
+                </div>
+              )}
+            </Card>
+            <DecisionReadiness approval={approval} />
+            <AuthorityCard approval={approval} />
+            <IndependenceCard approval={approval} />
+          </div>
+        )}
       </div>
     </div>
   );
