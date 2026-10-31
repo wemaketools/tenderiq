@@ -104,6 +104,72 @@ describe('EvaluationOverviewPage (evaluation workspace)', () => {
     ).toBeInTheDocument();
   });
 
+  it('counts the submitted assessments in words, with the overdue, incomplete and conflict lines', async () => {
+    routeCalls({ 'buyer.evaluation.get': () => overview() });
+    renderPage(<EvaluationOverviewPage />, { ...PATH, persona: CHAIR });
+    const meter = await screen.findByRole('progressbar', { name: 'Assessments submitted' });
+    expect(meter).toHaveAttribute('aria-valuenow', '2');
+    expect(meter).toHaveAttribute('aria-valuemax', '5');
+    expect(document.querySelector('.tiq-bigcount')?.textContent).toBe('2of5assessments submitted');
+    expect(screen.getByText('2 overdue')).toBeInTheDocument();
+    expect(
+      screen.getByText('3 incomplete assessments (never counted as zero)'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('1 conflict declaration awaiting review')).toBeInTheDocument();
+    expect(screen.queryByText('Assessments submitted', { selector: '.tiq-kpi-label' })).toBeNull();
+  });
+
+  it('says the prices are released, by whom, when the real gate is released', async () => {
+    routeCalls({ 'buyer.evaluation.get': () => overview() });
+    renderPage(<EvaluationOverviewPage />, { ...PATH, persona: CHAIR });
+    expect(
+      await screen.findByRole('heading', { name: 'Prices are released.' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Released by Boitumelo Kgari, 24 Sep 2026/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Release price gate' })).not.toBeInTheDocument();
+  });
+
+  it('says the prices stay sealed while the gate is closed and offers the release only to the chair', async () => {
+    const closed = {
+      applies: true,
+      released: false,
+      releasedAt: null,
+      releasedBy: null,
+      nonPriceCompleteConfirmed: null,
+      note: null,
+    };
+    routeCalls({ 'buyer.evaluation.get': () => ({ ...overview(), priceGate: closed }) });
+    const { unmount } = renderPage(<EvaluationOverviewPage />, { ...PATH, persona: CHAIR });
+    expect(await screen.findByRole('heading', { name: 'Prices stay sealed.' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Release price gate' })).toBeInTheDocument();
+    unmount();
+
+    renderPage(<EvaluationOverviewPage />, { ...PATH, persona: EVALUATOR });
+    expect(await screen.findByRole('heading', { name: 'Prices stay sealed.' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Release price gate' })).not.toBeInTheDocument();
+  });
+
+  it('marks the current evaluation stage in what happens next and the earlier ones as done', async () => {
+    routeCalls({ 'buyer.evaluation.get': () => overview() });
+    renderPage(<EvaluationOverviewPage />, { ...PATH, persona: CHAIR });
+    const steps = await screen.findByRole('list', { name: 'What happens next' });
+    const items = within(steps).getAllByRole('listitem');
+    expect(items).toHaveLength(6);
+    const current = items.find((item) => item.getAttribute('aria-current') === 'step');
+    expect(current).toHaveTextContent('Ranking');
+    expect(items[0]?.querySelector('[data-icon="check"]')).not.toBeNull();
+    expect(items[4]?.querySelector('[data-icon="check"]')).toBeNull();
+  });
+
+  it('shows each bid’s compliance as a check with its label and the evaluation status', async () => {
+    routeCalls({ 'buyer.evaluation.get': () => overview() });
+    renderPage(<EvaluationOverviewPage />, { ...PATH, persona: CHAIR });
+    const bids = await screen.findByRole('table', { name: 'Bids in evaluation' });
+    const checks = bids.querySelectorAll('.tiq-checkitem');
+    expect(checks.length).toBe(2);
+    expect([...checks].every((check) => check.textContent !== '')).toBe(true);
+  });
+
   it('shows the caller’s own next action and none for an observer', async () => {
     routeCalls({
       'buyer.evaluation.get': () => ({

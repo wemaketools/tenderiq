@@ -33,6 +33,8 @@ export interface RenderOptions {
   readonly routes?: RouteObject[];
   /** The path pattern the element is mounted at (default `*`). */
   readonly path?: string;
+  /** Child routes of the element (rendered through its `Outlet`, for shells); needs a non-splat `path`. */
+  readonly children?: RouteObject[];
   readonly auth?: AuthActions;
   readonly onUnauthorized?: () => void;
 }
@@ -46,7 +48,12 @@ export function renderWithProviders(element: ReactElement, options: RenderOption
     onUnauthorized: options.onUnauthorized ?? (() => undefined),
   });
   const router = createMemoryRouter(
-    [{ path: options.path ?? '*', element }, ...(options.routes ?? [])],
+    [
+      options.children === undefined
+        ? { path: options.path ?? '*', element }
+        : { path: options.path ?? '/', element, children: options.children },
+      ...(options.routes ?? []),
+    ],
     { initialEntries: [options.route ?? '/'] },
   );
   const result = render(

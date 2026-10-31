@@ -98,6 +98,7 @@ interface ZonedParts {
 const partsFormatters = new Map<string, Intl.DateTimeFormat>();
 const offsetFormatters = new Map<string, Intl.DateTimeFormat>();
 const abbreviationFormatters = new Map<string, Intl.DateTimeFormat>();
+const weekdayFormatters = new Map<string, Intl.DateTimeFormat>();
 
 function cached(
   cache: Map<string, Intl.DateTimeFormat>,
@@ -231,6 +232,62 @@ export function formatCalendarDate(value: string | null | undefined): string {
   }
   const [, year, month, day] = match;
   return `${Number(day)} ${monthName(Number(month))} ${year}`;
+}
+
+/** The pieces of a date for a date badge: `{ day: '14', month: 'Oct', year: '2026' }`. */
+export interface DateParts {
+  readonly day: string;
+  readonly month: string;
+  readonly year: string;
+  /** ISO weekday 1 (Monday) … 7 (Sunday). */
+  readonly weekday: number;
+}
+
+/** The parts of a calendar date `2026-10-14` (no zone involved); `null` for a malformed value. */
+export function calendarDateParts(value: string): DateParts | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (match === null) {
+    return null;
+  }
+  const [, year, month, day] = match;
+  const utc = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+  return {
+    day: String(Number(day)),
+    month: monthName(Number(month)),
+    year: String(year),
+    weekday: ((utc.getUTCDay() + 6) % 7) + 1,
+  };
+}
+
+/** The parts of an instant shown in a zone (the official zone of a deadline). */
+export function instantDateParts(at: string | Date, timeZone: string): DateParts {
+  const date = toDate(at);
+  const parts = zonedParts(date, timeZone);
+  const weekdayName = cached(weekdayFormatters, timeZone, { weekday: 'short' }).format(date);
+  const index = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].indexOf(weekdayName);
+  return {
+    day: parts.day,
+    month: monthName(parts.month),
+    year: parts.year,
+    weekday: index === -1 ? 1 : index + 1,
+  };
+}
+
+/** The calendar date `YYYY-MM-DD` of an instant in a zone (to compare "today" and group by day). */
+export function calendarDateOf(at: string | Date, timeZone: string): string {
+  const parts = zonedParts(toDate(at), timeZone);
+  return `${parts.year}-${String(parts.month).padStart(2, '0')}-${parts.day.padStart(2, '0')}`;
+}
+
+/** The calendar date `days` days after a calendar date (UTC arithmetic, no zone involved). */
+export function addCalendarDays(value: string, days: number): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (match === null) {
+    return value;
+  }
+  const [, year, month, day] = match;
+  const utc = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day) + days));
+  return utc.toISOString().slice(0, 10);
 }
 
 const MINUTE = 60_000;

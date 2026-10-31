@@ -2,7 +2,7 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { businessError, callsTo, renderPage, routeCalls } from '../../tasks/test/kit';
-import { approvalDetail } from '../../tasks/test/workspaceData';
+import { approvalDetail, page } from '../../tasks/test/workspaceData';
 import ApprovalDecisionPage from './ApprovalDecisionPage';
 
 vi.mock('../../../api/client', async (original) => ({
@@ -231,8 +231,67 @@ describe('ApprovalDecisionPage (COM-05)', () => {
   });
 
   it('shows the not-found state for an unknown approval', async () => {
-    routeCalls({});
+    routeCalls({ 'me.approvals.list': () => page([]) });
     renderPage(<ApprovalDecisionPage />, PATH);
     expect(await screen.findByText('This could not be loaded')).toBeInTheDocument();
+  });
+
+  it('shows a passed check only when the data establishes it', async () => {
+    routeCalls({
+      'me.approvals.get': () => approvalDetail(),
+      'buyer.audit.entityHistory': () => ({ items: [], total: 0, page: 1, pageSize: 10 }),
+    });
+    const { unmount } = renderPage(<ApprovalDecisionPage />, PATH);
+    const checks = await screen.findByRole('list', { name: 'Checks' });
+    expect(within(checks).getByText('Within your authority of BWP 2,000,000')).toBeInTheDocument();
+    expect(
+      within(checks).getByText('Version 1 is the current version of the record'),
+    ).toBeInTheDocument();
+    expect(within(checks).getByText('No declaration is required.')).toBeInTheDocument();
+    expect(within(checks).getAllByText('Passed:').length).toBe(4);
+    unmount();
+    // A requester who is not a decider: only the record's own checks, nothing about an authority they lack.
+    routeCalls({
+      'me.approvals.get': () =>
+        approvalDetail({ allowedDecisions: [], myStep: null, authority: null }),
+    });
+    renderPage(<ApprovalDecisionPage />, PATH);
+    const own = await screen.findByRole('list', { name: 'Checks' });
+    expect(within(own).queryByText(/authority/)).not.toBeInTheDocument();
+    expect(within(own).getAllByText('Passed:').length).toBe(1);
+  });
+
+  it('draws the approval path from the steps and names the caller’s step', async () => {
+    routeCalls({
+      'me.approvals.get': () =>
+        approvalDetail({
+          steps: [
+            {
+              id: 330,
+              sequence: 1,
+              approver: { userId: 9, fullName: 'Naledi Seretse' },
+              committee: null,
+              requiredDecisionType: 'request_approval',
+              status: 'approved',
+              decidedBy: { userId: 9, fullName: 'Naledi Seretse' },
+              actingFor: null,
+              delegationId: null,
+              decisionReason: null,
+              conditions: null,
+              decidedAt: '2026-10-02T09:00:00Z',
+              authorityCheckedAmount: null,
+            },
+            ...approvalDetail().steps,
+          ],
+          currentStep: approvalDetail().steps[0] ?? null,
+        }),
+      'buyer.audit.entityHistory': () => ({ items: [], total: 0, page: 1, pageSize: 10 }),
+    });
+    renderPage(<ApprovalDecisionPage />, PATH);
+    const path = await screen.findByRole('list', { name: 'Approval path' });
+    const nodes = within(path).getAllByRole('listitem');
+    expect(nodes[0]).toHaveTextContent('Approved: Naledi Seretse');
+    expect(nodes[1]).toHaveTextContent('Pending: You (Mpho Dikgang)');
+    expect(nodes[1]).toHaveAttribute('aria-current', 'step');
   });
 });

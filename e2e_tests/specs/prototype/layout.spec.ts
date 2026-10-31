@@ -3,9 +3,9 @@
  * - KPI values never overflow their card; long amounts such as "BWP 1,920,000" shrink to fit (KpiCard).
  * - Flush cards keep tables edge to edge, but every other block keeps the card gutter, so text never touches
  *   the card border (`.tiq-card--flush` in theme/components.css).
- * - The top bar's search box and icons never move between pages; the only button in the top bar is the section
- *   action of the active sidebar destination, to the left of search, and it stays while the user drills in. A page's
- *   own buttons render in its content area (DD-46).
+ * - The buyer utility bar's search box and icons never move between pages, and it holds no buttons at all: the
+ *   section action of the active sidebar destination renders in the page head on every page of the destination,
+ *   beside the page's own buttons, never twice (DD-46 as amended by docs/plan/design1).
  * - Tabs start at the same height on every tab of a section, whether or not the tab's page has buttons in its head row.
  * - A record header keeps its buttons on the first row, beside the text, at the same place on every tab: the record
  *   meta runs full width below the buttons, so it never pushes them onto a row of their own.
@@ -67,7 +67,7 @@ test.describe('shared layout', () => {
 
   test('short KPI values keep the full size; only values that do not fit are scaled down', async ({ page }) => {
     await page.setViewportSize({ width: 1600, height: 1000 });
-    await page.goto('/buyer');
+    await page.goto('/buyer/requests');
     const active = page.locator('.tiq-kpi-value').first();
     await expect(active).toBeVisible();
     await expect(active).not.toHaveClass(/tiq-kpi-value--fit/);
@@ -82,7 +82,7 @@ async function topbarAnchors(page: Page): Promise<number[]> {
   );
 }
 
-test.describe('top bar placement (DD-46)', () => {
+test.describe('utility bar and section action placement (DD-46, design1)', () => {
   test.beforeEach(async ({ page }) => {
     await signInAsOfficer(page);
     await page.setViewportSize({ width: 1600, height: 1000 });
@@ -101,16 +101,29 @@ test.describe('top bar placement (DD-46)', () => {
     }
   });
 
-  test('shows the section action left of search on every page of the destination', async ({ page }) => {
+  test('shows the section action once, in the page head, on every page of the destination', async ({ page }) => {
     for (const path of ['/buyer/tenders', '/buyer/tenders/5', '/buyer/tenders/5/scope', '/buyer/tenders/5/evaluation']) {
       await page.goto(path);
-      const action = page.locator('.tiq-topbar .tiq-topbar-section-action');
+      const action = page.locator('main .tiq-page-section-action');
       await expect(action, path).toHaveText('New tender');
       await expect(action).toHaveAttribute('href', '/buyer/tenders/new');
-      const actionBox = await action.boundingBox();
-      const searchBox = await page.locator('.tiq-topbar form[role="search"]').boundingBox();
-      expect((actionBox?.x ?? 0) + (actionBox?.width ?? 0), path).toBeLessThanOrEqual(searchBox?.x ?? 0);
+      await expect(page.locator('.tiq-topbar .tiq-btn'), path).toHaveCount(0);
+      await expect(page.getByRole('link', { name: 'New tender' }), path).toHaveCount(1);
     }
+    await page.goto('/buyer/tenders/new');
+    await expect(page.locator('main .tiq-page-section-action')).toHaveCount(0);
+  });
+
+  test('shows the organization switcher in the utility bar and enters another organization from it', async ({ page }) => {
+    await page.goto('/buyer/tenders');
+    const switcher = page.getByRole('button', { name: /Switch organization/ });
+    await expect(switcher).toContainText('Kalahari Water Utilities (Pilot)');
+    await switcher.click();
+    const menu = page.getByRole('menu', { name: 'Your organizations' });
+    await expect(menu.getByRole('menuitem', { name: /Kalahari Water Utilities/ })).toHaveAttribute('aria-current', 'true');
+    await expect(menu.getByRole('menuitem', { name: 'All organizations…' })).toHaveAttribute('href', '/select-organization');
+    await page.keyboard.press('Escape');
+    await expect(switcher).toBeFocused();
   });
 
   test('keeps the page and record buttons in the content area, never in the top bar', async ({ page }) => {
@@ -125,7 +138,7 @@ test.describe('top bar placement (DD-46)', () => {
       await expect(button, path).toBeVisible();
       await expect(page.locator('main').getByRole('button', { name, exact: true })).toBeVisible();
       await expect(page.locator('.tiq-topbar').getByRole('button', { name, exact: true })).toHaveCount(0);
-      await expect(page.locator('.tiq-topbar .tiq-btn')).toHaveCount(1);
+      await expect(page.locator('.tiq-topbar .tiq-btn')).toHaveCount(0);
     }
   });
 });
@@ -143,15 +156,17 @@ test.describe('tab position within a section', () => {
       await page.goto(start);
       await expect(page.getByRole('heading', { level: 1 })).not.toBeEmpty();
       await page.waitForLoadState('networkidle');
-      const tabs = page.locator('main nav.tiq-tabs').first();
+      const tabs = page.locator('main nav.tiq-tabs, main nav.tiq-segmented').first();
       if ((await tabs.count()) === 0) continue;
       tabbed += 1;
-      const hrefs = await tabs.locator('a.tiq-tab').evaluateAll((links) => links.map((link) => link.getAttribute('href') ?? ''));
+      const hrefs = await tabs
+        .locator('a.tiq-tab, a.tiq-segmented-item')
+        .evaluateAll((links) => links.map((link) => link.getAttribute('href') ?? ''));
       const tops: Record<string, number> = {};
       for (const href of hrefs) {
         await page.goto(href);
         await page.waitForLoadState('networkidle');
-        const box = await page.locator('main nav.tiq-tabs').first().boundingBox();
+        const box = await page.locator('main nav.tiq-tabs, main nav.tiq-segmented').first().boundingBox();
         tops[href] = Math.round(box?.y ?? -1);
       }
       const first = Object.values(tops)[0];

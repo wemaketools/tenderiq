@@ -1,0 +1,43 @@
+/* Page-specific rules of the contracts screen (docs/plan/design1). Tokens only (DD-34). */
+
+.tiq-contracts-nowrap {
+  white-space: nowrap;
+}
+.tiq-contracts-upcoming-note {
+  font-size: 13px;
+}
+.tiq-contracts-summary {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--tiq-space-5);
+  flex-wrap: wrap;
+  padding-top: var(--tiq-space-4);
+}
+.tiq-contracts-summary-stats {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--tiq-space-7);
+  flex-wrap: wrap;
+}
+.tiq-contracts-summary-counts {
+  display: flex;
+  gap: var(--tiq-space-5);
+  margin: 0;
+  flex-wrap: wrap;
+}
+.tiq-contracts-summary-counts > div {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tiq-space-0-5);
+}
+.tiq-contracts-summary-counts dt {
+  font-size: 12.5px;
+  color: var(--tiq-text-secondary);
+}
+.tiq-contracts-summary-counts dd {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}

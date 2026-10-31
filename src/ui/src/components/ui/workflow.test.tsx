@@ -192,7 +192,7 @@ describe('PageHeader', () => {
     const title = document.createElement('h1');
     document.body.append(title);
     renderWithProviders(
-      <PageSlotsContext.Provider value={{ title }}>
+      <PageSlotsContext.Provider value={{ presentation: 'default', title, sectionAction: null }}>
         <PageHeader
           title="Water treatment chemicals framework"
           subtitle="Overview and team"
@@ -220,7 +220,7 @@ describe('PageHeader', () => {
     const title = document.createElement('h1');
     document.body.append(title);
     renderWithProviders(
-      <PageSlotsContext.Provider value={{ title }}>
+      <PageSlotsContext.Provider value={{ presentation: 'default', title, sectionAction: null }}>
         <PageHeader title="Tenders" />
       </PageSlotsContext.Provider>,
     );

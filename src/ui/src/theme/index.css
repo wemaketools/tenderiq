@@ -4,6 +4,13 @@
  */
 @import './tokens.css';
 @import './components.css';
+@import './buyer.css';
+@import './pages/dashboard.css';
+@import './pages/tenders.css';
+@import './pages/approvals.css';
+@import './pages/evaluation.css';
+@import './pages/awards.css';
+@import './pages/contracts.css';
 
 /* Inter (variable, weights 100-900) and JetBrains Mono, both SIL Open Font License 1.1 (see /fonts/*-OFL.txt). */
 @font-face {

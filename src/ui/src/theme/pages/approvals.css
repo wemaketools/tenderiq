@@ -1,0 +1,49 @@
+/* Page-specific rules of the approvals workspace (docs/plan/design1 §4). Tokens only (DD-34). */
+
+.tiq-approval-detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tiq-space-5);
+  min-width: 0;
+}
+.tiq-approval-head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--tiq-space-4);
+}
+.tiq-approval-head-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tiq-space-2);
+  min-width: 0;
+}
+.tiq-approval-title {
+  font-size: 28px;
+  font-weight: 750;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+.tiq-approval-scope {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tiq-space-2);
+  max-width: 48rem;
+}
+.tiq-approval-summary {
+  font-size: 17px;
+  line-height: 1.45;
+}
+.tiq-approval-decide {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tiq-space-3);
+}
+.tiq-approval-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--tiq-space-3);
+}
+.tiq-approval-filters {
+  flex-basis: 100%;
+}

@@ -8,11 +8,15 @@ import { useId, useRef } from 'react';
 import type { KeyboardEvent, ReactNode } from 'react';
 import { NavLink } from 'react-router';
 
+export type TabsVariant = 'default' | 'segmented';
+
 export interface TabItem {
   readonly id: string;
   readonly label: ReactNode;
   /** Optional count badge. */
   readonly count?: number;
+  /** Shows the count as a solid accent badge (for example "To review 8"). */
+  readonly countBadge?: boolean;
   readonly disabled?: boolean;
 }
 
@@ -24,9 +28,49 @@ export interface TabsProps {
   readonly label: string;
   /** Renders the selected panel. */
   readonly children: ReactNode;
+  /** `segmented`: the silver segmented control of the buyer workspace (docs/plan/design1). */
+  readonly variant?: TabsVariant;
 }
 
-export function Tabs({ tabs, selected, onSelect, label, children }: TabsProps) {
+function tabClass(variant: TabsVariant, active: boolean): string {
+  if (variant === 'segmented') {
+    return active ? 'tiq-segmented-item tiq-segmented-item--active' : 'tiq-segmented-item';
+  }
+  return active ? 'tiq-tab tiq-tab--active' : 'tiq-tab';
+}
+
+function TabCount({
+  count,
+  badge,
+  variant,
+}: {
+  readonly count: number | undefined;
+  readonly badge: boolean | undefined;
+  readonly variant: TabsVariant;
+}) {
+  if (count === undefined) return null;
+  if (variant === 'segmented') {
+    return (
+      <span
+        className={
+          badge === true ? 'tiq-segmented-count tiq-segmented-count--badge' : 'tiq-segmented-count'
+        }
+      >
+        {count}
+      </span>
+    );
+  }
+  return <span className="tiq-tab-count">{count}</span>;
+}
+
+export function Tabs({
+  tabs,
+  selected,
+  onSelect,
+  label,
+  children,
+  variant = 'default',
+}: TabsProps) {
   const baseId = useId();
   const listRef = useRef<HTMLDivElement>(null);
   const enabled = tabs.filter((tab) => tab.disabled !== true);
@@ -56,7 +100,7 @@ export function Tabs({ tabs, selected, onSelect, label, children }: TabsProps) {
   return (
     <div>
       <div
-        className="tiq-tabs"
+        className={variant === 'segmented' ? 'tiq-segmented' : 'tiq-tabs'}
         role="tablist"
         aria-label={label}
         ref={listRef}
@@ -75,11 +119,11 @@ export function Tabs({ tabs, selected, onSelect, label, children }: TabsProps) {
               aria-controls={`${baseId}-panel`}
               tabIndex={active ? 0 : -1}
               disabled={tab.disabled}
-              className={active ? 'tiq-tab tiq-tab--active' : 'tiq-tab'}
+              className={tabClass(variant, active)}
               onClick={() => onSelect(tab.id)}
             >
               {tab.label}
-              {tab.count !== undefined && <span className="tiq-tab-count">{tab.count}</span>}
+              <TabCount count={tab.count} badge={tab.countBadge} variant={variant} />
             </button>
           );
         })}
@@ -101,6 +145,7 @@ export interface LinkTabItem {
   readonly to: string;
   readonly label: ReactNode;
   readonly count?: number;
+  readonly countBadge?: boolean;
   /** Active only on an exact match. */
   readonly end?: boolean;
 }
@@ -108,20 +153,21 @@ export interface LinkTabItem {
 export interface LinkTabsProps {
   readonly tabs: readonly LinkTabItem[];
   readonly label: string;
+  readonly variant?: TabsVariant;
 }
 
-export function LinkTabs({ tabs, label }: LinkTabsProps) {
+export function LinkTabs({ tabs, label, variant = 'default' }: LinkTabsProps) {
   return (
-    <nav className="tiq-tabs" aria-label={label}>
+    <nav className={variant === 'segmented' ? 'tiq-segmented' : 'tiq-tabs'} aria-label={label}>
       {tabs.map((tab) => (
         <NavLink
           key={tab.to}
           to={tab.to}
           end={tab.end}
-          className={({ isActive }) => (isActive ? 'tiq-tab tiq-tab--active' : 'tiq-tab')}
+          className={({ isActive }) => tabClass(variant, isActive)}
         >
           {tab.label}
-          {tab.count !== undefined && <span className="tiq-tab-count">{tab.count}</span>}
+          <TabCount count={tab.count} badge={tab.countBadge} variant={variant} />
         </NavLink>
       ))}
     </nav>

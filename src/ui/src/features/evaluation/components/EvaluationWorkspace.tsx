@@ -1,9 +1,10 @@
 /**
- * The workspace frame of one evaluation (a tender, or one lot of it): the page header with the record context of
- * PRD §19 (organization, reference, stage, next due date and the caller's own next action, which the API derives
- * from their role: the chair's committee step, an evaluator's own step, none for an observer) and the route tabs to the
- * overview, commercial comparison (EVA-04), moderation (EVA-05) and ranking and report (EVA-06). Tabs are offered by
- * permission; the API still limits every record to the caller's assignments (BR-26).
+ * The workspace frame of one evaluation (a tender, or one lot of it; docs/plan/design1): the page heading with the
+ * record context of PRD §19 (organization, reference, stage, next due date and the caller's own next action, which
+ * the API derives from their role: the chair's committee step, an evaluator's own step, none for an observer) and the
+ * segmented route tabs to the overview, commercial comparison (EVA-04), moderation (EVA-05) and ranking and report
+ * (EVA-06). Tabs are offered by permission; the API still limits every record to the caller's assignments (BR-26).
+ * The overview passes a friendlier `headline`; the other screens keep their plain titles.
  */
 import type { ReactNode } from 'react';
 
@@ -29,8 +30,10 @@ import { PriceGateChip, StageChip } from './chips';
 export interface EvaluationWorkspaceProps {
   readonly tenderId: number;
   readonly lotId: number | null;
-  /** The screen title (top bar and document title). */
+  /** The screen title (document title, and the eyebrow when a headline is given). */
   readonly title: string;
+  /** A friendlier headline for the H1 (buyer presentation); the plain title stays as the eyebrow. */
+  readonly headline?: string;
   /** The record as the page's own query returned it (shown before the overview query settles). */
   readonly tender?: EvaluationTenderRef;
   readonly lot?: EvaluationLotRef | null;
@@ -43,6 +46,7 @@ export function EvaluationWorkspace({
   tenderId,
   lotId,
   title,
+  headline,
   tender,
   lot,
   primaryAction,
@@ -92,12 +96,15 @@ export function EvaluationWorkspace({
   const subtitle =
     record === undefined
       ? undefined
-      : [record.title, lotLabel(recordLot)].filter((part) => part !== null).join(' · ');
+      : [record.title, record.reference, lotLabel(recordLot)]
+          .filter((part) => part !== null)
+          .join(' · ');
 
   return (
     <div className="tiq-page">
       <PageHeader
         title={title}
+        headline={headline}
         subtitle={subtitle}
         back={{ to: evaluationPaths.list, label: t('evaluation.list.title') }}
         primaryAction={primaryAction}
@@ -129,7 +136,9 @@ export function EvaluationWorkspace({
           )
         }
       />
-      {tabs.length > 1 && <LinkTabs tabs={tabs} label={t('evaluation.tabs.label')} />}
+      {tabs.length > 1 && (
+        <LinkTabs tabs={tabs} label={t('evaluation.tabs.label')} variant="segmented" />
+      )}
       {children}
     </div>
   );

@@ -18,6 +18,9 @@ export const shellCatalog = {
     nav: {
       label: 'Main navigation',
       labelWithBadge: '{label}, {count} waiting',
+      more: 'More',
+      moreLabel: 'More destinations',
+      moreCurrent: 'More, current page inside',
       section: {
         home: 'Home',
         work: 'My work',
@@ -32,6 +35,15 @@ export const shellCatalog = {
         platform: 'Platform operations',
         admin: 'Administration',
       },
+    },
+    org: {
+      switch: 'Switch organization',
+      switchFor: 'Organization: {organization}. Switch organization',
+      menu: 'Your organizations',
+      current: 'Current organization',
+      choose: 'All organizations…',
+      entering: 'Entering {organization}…',
+      failed: '{organization} could not be entered.',
     },
     topbar: {
       openMenu: 'Open navigation',
@@ -164,6 +176,18 @@ export const shellCatalog = {
     filters: {
       label: 'Filters',
       clear: 'Clear filters',
+      advanced: 'Filters',
+      advancedActive_one: 'Filters ({count} active)',
+      advancedActive_other: 'Filters ({count} active)',
+      hideAdvanced: 'Hide filters',
+    },
+    disclosure: {
+      expand: 'Show details for {label}',
+      collapse: 'Hide details for {label}',
+    },
+    progress: {
+      ofTotal: '{done} of {total}',
+      of: 'of',
     },
     form: {
       date: 'Date',
@@ -239,6 +263,15 @@ export const shellCatalog = {
     },
   },
   format: {
+    weekday: {
+      1: 'Mon',
+      2: 'Tue',
+      3: 'Wed',
+      4: 'Thu',
+      5: 'Fri',
+      6: 'Sat',
+      7: 'Sun',
+    },
     month: {
       1: 'Jan',
       2: 'Feb',

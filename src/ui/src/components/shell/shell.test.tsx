@@ -8,6 +8,7 @@ import { initialSessionState } from '../../app/slices/session';
 import { installFetch, problem } from '../../test/fetchMock';
 import { makeContext, makeMembership, makeTenant, signedInSession } from '../../test/fixtures';
 import { LocationProbe, renderWithProviders, stubAuth } from '../../test/render';
+import { PageHeader } from '../ui/PageHeader';
 import { AppShell } from './AppShell';
 import { PrototypeBanner } from './PrototypeBanner';
 import { PublicShell } from './PublicShell';
@@ -80,6 +81,20 @@ const modules: FeatureModule[] = [
     ],
   },
 ];
+
+/** The same destinations for a supplier organization, which keeps the default (top bar) presentation. */
+const supplierModules: FeatureModule[] = modules.map((module) => ({
+  ...module,
+  id: `${module.id}-s`,
+  area: module.area === 'buyer' ? 'supplier' : 'buyer',
+  nav: (module.nav ?? []).map((item) => ({ ...item, id: `${item.id}.s` })),
+}));
+
+function supplierSession() {
+  return signedInSession({
+    activeTenant: makeTenant({ kind: 'supplier', name: 'Tsodilo Engineering', slug: 'tsodilo' }),
+  });
+}
 
 describe('Sidebar', () => {
   it('shows the tenant label, wordmark and nav for the active kind and permissions, with the admin group last', async () => {
@@ -340,7 +355,7 @@ describe('AppShell and user card', () => {
   });
 });
 
-describe('AppShell top bar layout (DD-46)', () => {
+describe('AppShell top bar layout (DD-46, default presentation)', () => {
   function topbarItems(): string[] {
     const bar = document.querySelector('.tiq-topbar');
     return [
@@ -355,9 +370,9 @@ describe('AppShell top bar layout (DD-46)', () => {
   }
 
   it('shows the section action of the active destination to the left of search, the icons last', () => {
-    renderWithProviders(<AppShell modules={modules} />, {
-      state: { session: signedInSession() },
-      route: '/buyer/clarifications',
+    renderWithProviders(<AppShell modules={supplierModules} />, {
+      state: { session: supplierSession() },
+      route: '/supplier/clarifications',
     });
     expect(topbarItems()).toEqual([
       'Switch organization',
@@ -368,40 +383,40 @@ describe('AppShell top bar layout (DD-46)', () => {
     ]);
     const action = document.querySelector('.tiq-topbar-section-action');
     expect(action).toHaveClass('tiq-btn--primary');
-    expect(action).toHaveAttribute('href', '/buyer/clarifications/new');
+    expect(action).toHaveAttribute('href', '/supplier/clarifications/new');
   });
 
   it('keeps the section action on every page below the destination, while the user drills in', () => {
-    renderWithProviders(<AppShell modules={modules} />, {
-      state: { session: signedInSession() },
-      route: '/buyer/clarifications/42/answers',
+    renderWithProviders(<AppShell modules={supplierModules} />, {
+      state: { session: supplierSession() },
+      route: '/supplier/clarifications/42/answers',
     });
     expect(document.querySelector('.tiq-topbar-section-action')).toHaveAttribute(
       'href',
-      '/buyer/clarifications/new',
+      '/supplier/clarifications/new',
     );
   });
 
   it('hides the section action on the page it leads to', () => {
-    renderWithProviders(<AppShell modules={modules} />, {
-      state: { session: signedInSession() },
-      route: '/buyer/clarifications/new',
+    renderWithProviders(<AppShell modules={supplierModules} />, {
+      state: { session: supplierSession() },
+      route: '/supplier/clarifications/new',
     });
     expect(document.querySelector('.tiq-topbar-section-action')).toBeNull();
   });
 
   it('leaves the search box and icons in place when the destination has no section action', () => {
-    renderWithProviders(<AppShell modules={modules} />, {
-      state: { session: signedInSession() },
-      route: '/buyer/overview',
+    renderWithProviders(<AppShell modules={supplierModules} />, {
+      state: { session: supplierSession() },
+      route: '/supplier/overview',
     });
     expect(topbarItems()).toEqual(['search', 'My tasks', 'Notifications', 'Help and support']);
   });
 
   it('hides a section action the membership lacks the permission for', () => {
-    renderWithProviders(<AppShell modules={modules} />, {
-      state: { session: signedInSession() },
-      route: '/buyer/settings',
+    renderWithProviders(<AppShell modules={supplierModules} />, {
+      state: { session: supplierSession() },
+      route: '/supplier/settings',
     });
     expect(document.querySelector('.tiq-topbar-section-action')).toBeNull();
   });
@@ -452,13 +467,240 @@ describe('AppShell navigation drawer (below 768px)', () => {
 
   it('shows the section action as an accent icon button at phone width, so the top bar fits', () => {
     phoneWidth();
-    renderWithProviders(<AppShell modules={modules} />, {
-      state: { session: signedInSession() },
-      route: '/buyer/clarifications',
+    renderWithProviders(<AppShell modules={supplierModules} />, {
+      state: { session: supplierSession() },
+      route: '/supplier/clarifications',
     });
     const action = screen.getByRole('link', { name: 'Switch organization' });
     expect(action).toHaveClass('tiq-icon-btn', 'tiq-topbar-section-action');
-    expect(action).toHaveAttribute('href', '/buyer/clarifications/new');
+    expect(action).toHaveAttribute('href', '/supplier/clarifications/new');
+  });
+
+  it('gives the buyer the full grouped list in the drawer, where there is room for every destination', async () => {
+    phoneWidth();
+    renderWithProviders(<AppShell modules={railModules} />, {
+      state: { session: signedInSession() },
+      route: '/buyer/dashboard',
+    });
+    await userEvent.click(screen.getByRole('button', { name: 'Open navigation' }));
+    const nav = screen.getByRole('navigation', { name: 'Main navigation' });
+    expect(within(nav).queryByRole('button', { name: /More/ })).not.toBeInTheDocument();
+    expect(within(nav).getByRole('link', { name: 'Help and support' })).toHaveAttribute(
+      'href',
+      '/buyer/reports',
+    );
+  });
+});
+
+/** Buyer destinations: the six pinned ones plus two that go to "More". */
+const railModules: FeatureModule[] = [
+  {
+    id: 'rail',
+    area: 'buyer',
+    routes: [],
+    nav: [
+      {
+        id: 'buyer.dashboard',
+        label: 'shell.brand.sub',
+        path: 'dashboard',
+        section: 'home',
+        order: 1,
+        icon: 'dashboard',
+      },
+      {
+        id: 'buyer.tenders',
+        label: 'shell.topbar.tasks',
+        path: 'tenders',
+        section: 'sourcing',
+        order: 1,
+        icon: 'fileText',
+        sectionAction: { label: 'shell.user.switch', path: 'tenders/new', icon: 'plus' },
+      },
+      {
+        id: 'buyer.awards',
+        label: 'shell.public.awards',
+        path: 'awards',
+        section: 'award',
+        order: 1,
+        icon: 'award',
+      },
+      {
+        id: 'buyer.reports',
+        label: 'shell.topbar.help',
+        path: 'reports',
+        section: 'insights',
+        order: 1,
+        icon: 'barChart',
+        badge: { navBadgeId: 'reports' },
+      },
+      {
+        id: 'buyer.settings',
+        label: 'shell.user.profile',
+        path: 'settings',
+        section: 'admin',
+        order: 1,
+        icon: 'settings',
+      },
+    ],
+  },
+  {
+    id: 'rail-common',
+    area: 'common',
+    routes: [],
+    nav: [
+      {
+        id: 'me.approvals',
+        label: 'shell.public.plans',
+        path: 'approvals',
+        section: 'work',
+        order: 1,
+        icon: 'checkSquare',
+        tenantKinds: ['buyer'],
+      },
+    ],
+  },
+];
+
+describe('AppShell buyer presentation (design1)', () => {
+  it('pins the core destinations on a labelled rail, puts the rest in More and marks the html element', async () => {
+    const { store, unmount } = renderWithProviders(<AppShell modules={railModules} />, {
+      state: { session: signedInSession() },
+      route: '/buyer/dashboard',
+    });
+    store.dispatch(navBadgeSet({ id: 'reports', count: 2 }));
+    expect(document.documentElement).toHaveAttribute('data-presentation', 'buyer');
+    const nav = screen.getByRole('navigation', { name: 'Main navigation' });
+    const rail = within(nav).getAllByRole('link');
+    expect(rail.map((link) => link.getAttribute('href'))).toEqual([
+      '/buyer/dashboard',
+      '/buyer/tenders',
+      '/me/approvals',
+      '/buyer/awards',
+    ]);
+    expect(rail[0]).toHaveClass('tiq-rail-item--active');
+    const more = await within(nav).findByRole('button', { name: 'More destinations, 2 waiting' });
+    await userEvent.click(more);
+    const menu = screen.getByRole('menu', { name: 'More destinations' });
+    expect(within(menu).getByText('Reports and records')).toBeInTheDocument();
+    expect(within(menu).getByText('Administration')).toBeInTheDocument();
+    await userEvent.click(within(menu).getByRole('menuitem', { name: /Help and support/ }));
+    expect(within(nav).getByRole('button', { name: 'More, current page inside' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    unmount();
+    expect(document.documentElement).not.toHaveAttribute('data-presentation');
+  });
+
+  it('shows the organization switcher instead of a title and no action in the utility bar', () => {
+    renderWithProviders(<AppShell modules={railModules} />, {
+      state: { session: signedInSession() },
+      route: '/buyer/tenders',
+    });
+    const bar = document.querySelector('.tiq-topbar');
+    expect(bar?.querySelector('.tiq-topbar-title')).toBeNull();
+    expect(bar?.querySelector('.tiq-topbar-section-action')).toBeNull();
+    expect(
+      screen.getByRole('button', {
+        name: 'Organization: Kalahari Water Utilities (Pilot). Switch organization',
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('searchbox')).toBeInTheDocument();
+  });
+
+  it('enters another organization from the switcher and lands on its home', async () => {
+    const memberships = [
+      makeMembership(),
+      makeMembership({
+        membershipId: 12,
+        tenantId: 5,
+        tenantKind: 'supplier',
+        tenantName: 'Tsodilo Engineering',
+        tenantSlug: 'tsodilo',
+        capacity: 'Technical Contributor',
+      }),
+    ];
+    installFetch({
+      'GET /api/v1/me/context': () => ({
+        body: makeContext({
+          memberships,
+          activeTenant: makeTenant({
+            tenantId: 5,
+            kind: 'supplier',
+            name: 'Tsodilo Engineering',
+            slug: 'tsodilo',
+          }),
+        }),
+      }),
+    });
+    const { store } = renderWithProviders(<AppShell modules={railModules} />, {
+      state: { session: signedInSession({ memberships }) },
+      route: '/buyer/tenders',
+      routes: [{ path: '/supplier', element: <LocationProbe label="supplier home" /> }],
+    });
+    await userEvent.click(screen.getByRole('button', { name: /Switch organization/ }));
+    const menu = screen.getByRole('menu', { name: 'Your organizations' });
+    expect(within(menu).getByRole('menuitem', { name: /Kalahari Water/ })).toHaveAttribute(
+      'aria-current',
+      'true',
+    );
+    expect(within(menu).getByRole('menuitem', { name: 'All organizations…' })).toHaveAttribute(
+      'href',
+      '/select-organization',
+    );
+    await userEvent.click(within(menu).getByRole('menuitem', { name: /Tsodilo Engineering/ }));
+    expect(await screen.findByTestId('location-probe')).toHaveTextContent('supplier home');
+    expect(store.getState().session.activeTenant?.name).toBe('Tsodilo Engineering');
+  });
+
+  it('renders the page heading in the content with the section action as its primary action', () => {
+    renderWithProviders(<AppShell modules={railModules} />, {
+      state: { session: signedInSession() },
+      route: '/buyer/tenders',
+      path: '/',
+      children: [
+        {
+          path: 'buyer/tenders',
+          element: (
+            <PageHeader title="Tenders" headline="Good work starts here." subtitle="A lede" />
+          ),
+        },
+      ],
+    });
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Good work starts here.' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Tenders', { selector: '.tiq-hero-eyebrow' })).toBeInTheDocument();
+    const action = screen.getByRole('link', { name: 'Switch organization' });
+    expect(action).toHaveClass('tiq-btn--primary');
+    expect(action.closest('.tiq-hero-actions')).not.toBeNull();
+    expect(document.title).toBe('Tenders · TenderIQ');
+  });
+
+  it('demotes the section action to a secondary button when the page has its own primary action', () => {
+    renderWithProviders(<AppShell modules={railModules} />, {
+      state: { session: signedInSession() },
+      route: '/buyer/tenders/42',
+      path: '/',
+      children: [
+        {
+          path: 'buyer/tenders/:id',
+          element: (
+            <PageHeader
+              title="A tender"
+              primaryAction={<button type="button">Edit details</button>}
+            />
+          ),
+        },
+      ],
+    });
+    const buttons = [
+      ...(document.querySelector('.tiq-hero-actions')?.querySelectorAll('a, button') ?? []),
+    ].map((element) => element.textContent);
+    expect(buttons).toEqual(['Switch organization', 'Edit details']);
+    expect(screen.getByRole('link', { name: 'Switch organization' })).not.toHaveClass(
+      'tiq-btn--primary',
+    );
   });
 });
 

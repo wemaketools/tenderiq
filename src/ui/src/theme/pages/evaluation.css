@@ -1,0 +1,4 @@
+/* Page-specific rules of the evaluation workspace (docs/plan/design1). Tokens only (DD-34). */
+.tiq-evaluation-flags {
+  gap: var(--tiq-space-4);
+}

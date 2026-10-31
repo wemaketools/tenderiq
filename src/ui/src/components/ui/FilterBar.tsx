@@ -19,6 +19,8 @@ export interface FilterBarProps {
   /** Accessible name of the filter region. */
   readonly label?: string;
   readonly quickRanges?: ReactNode;
+  /** `panel`: the soft, unframed panel of a filter disclosure (docs/plan/design1); default: a card. */
+  readonly variant?: 'card' | 'panel';
 }
 
 export function FilterBar({
@@ -27,7 +29,23 @@ export function FilterBar({
   canClear = true,
   label,
   quickRanges,
+  variant = 'card',
 }: FilterBarProps) {
+  if (variant === 'panel') {
+    return (
+      <section className="tiq-toolbar-panel" aria-label={label ?? t('ui.filters.label')}>
+        {quickRanges}
+        {children}
+        {onClear !== undefined && (
+          <div className="tiq-toolbar-panel-actions">
+            <Button size="sm" onClick={onClear} disabled={!canClear}>
+              {t('ui.filters.clear')}
+            </Button>
+          </div>
+        )}
+      </section>
+    );
+  }
   return (
     <section className="tiq-card" aria-label={label ?? t('ui.filters.label')}>
       <div className="tiq-filterbar">

@@ -2,8 +2,41 @@ export default {
   nav: {
     approvals: 'Approvals',
   },
+  workspace: {
+    headline: 'A few things need your say.',
+    lede_one: '{formatted} approval waiting for you.',
+    lede_other: '{formatted} approvals waiting for you.',
+    ledeUnknown: 'Your approvals in every organization you belong to.',
+    views: 'Approval views',
+    view: {
+      all: 'All',
+      review: 'To review',
+      sent: 'Sent',
+      history: 'History',
+    },
+    pickTitle: 'Choose an approval',
+    pickBody: 'Select an approval on the left to read it and record your decision.',
+  },
+  checks: {
+    title: 'Checks',
+    version: 'Version {version} is the current version of the record',
+    withinLimit: 'Within your authority of {limit}',
+    state: {
+      done: 'Passed',
+      pending: 'Not yet',
+      warning: 'Attention',
+      danger: 'Failed',
+    },
+  },
+  path: {
+    title: 'Approval path',
+    you: 'You ({name})',
+  },
   list: {
     filters: 'Approval filters',
+    open: 'Open {title}',
+    dueToday: 'Today',
+    dueTomorrow: 'Tomorrow',
     search: 'Search',
     searchPlaceholder: 'Title or reference',
     organization: 'Organization',
@@ -60,6 +93,9 @@ export default {
     back: 'Back to approvals',
     loadingTitle: 'Approval',
     version: 'Version {version}',
+    dueLine: 'Due {time}',
+    noAmount: 'No amount',
+    amountCaption: 'Exact version {version} · {type}',
     currentVersion: 'Current record version: {version}',
     nextAction: 'Next: {action}',
     next: {

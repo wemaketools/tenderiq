@@ -6,16 +6,22 @@
  * Search and the three icons are always the last items, so they never move between pages: the section action sits
  * to the LEFT of the search box and, when a destination has none, the space stays empty. Pages never put actions
  * here; their primary action renders in the page head (PageHeader).
+ *
+ * Buyer presentation (docs/plan/design1): a utility bar. The organization switcher takes the title's place (titles
+ * are content there), the search box sits in the middle and the personal icons stay last. It shows no actions at
+ * all: the section action belongs to the page head.
  */
 import { useState } from 'react';
 import type { FormEvent, Ref } from 'react';
 import { useNavigate } from 'react-router';
 
 import type { ResolvedSectionAction } from '../../app/featureRegistry';
-import { useAppSelector } from '../../app/hooks';
+import { useActiveTenant, useAppSelector } from '../../app/hooks';
 import { t } from '../../lib/i18n';
 import { ButtonLink, IconButton, IconLink } from '../ui/Button';
 import { Icon } from '../ui/Icon';
+import type { Presentation } from '../ui/pageSlots';
+import { OrgSwitcher } from './OrgSwitcher';
 
 export interface TopbarProps {
   /** Receives the title slot element (PageHeader portals the page title into it). */
@@ -30,6 +36,7 @@ export interface TopbarProps {
   readonly menuButtonRef?: Ref<HTMLButtonElement>;
   /** True below 768px: the section action shows as an accent icon button so the top bar fits a phone. */
   readonly compact?: boolean;
+  readonly presentation?: Presentation;
 }
 
 export function Topbar({
@@ -40,8 +47,10 @@ export function Topbar({
   sidebarId,
   menuButtonRef,
   compact = false,
+  presentation = 'default',
 }: TopbarProps) {
   const navigate = useNavigate();
+  const tenant = useActiveTenant();
   const [query, setQuery] = useState('');
   const unread = useAppSelector((state) => state.badges.me.notificationsUnread);
   const openTasks = useAppSelector((state) => state.badges.me.tasksOpen);
@@ -60,9 +69,10 @@ export function Topbar({
     openTasks !== null && openTasks > 0
       ? t('shell.topbar.tasksCount', { count: openTasks })
       : t('shell.topbar.tasks');
+  const buyer = presentation === 'buyer';
 
   return (
-    <header className="tiq-topbar">
+    <header className={buyer ? 'tiq-topbar tiq-topbar--buyer' : 'tiq-topbar'}>
       <IconButton
         ref={menuButtonRef}
         icon="menu"
@@ -72,9 +82,16 @@ export function Topbar({
         aria-expanded={menuOpen}
         aria-controls={sidebarId}
       />
-      <h1 className="tiq-topbar-title" ref={titleRef} />
-      <div className="tiq-topbar-spacer" />
-      {sectionAction !== null &&
+      {buyer && tenant !== null ? (
+        <OrgSwitcher tenant={tenant} />
+      ) : (
+        <>
+          <h1 className="tiq-topbar-title" ref={titleRef} />
+          <div className="tiq-topbar-spacer" />
+        </>
+      )}
+      {!buyer &&
+        sectionAction !== null &&
         (compact ? (
           <IconLink
             to={sectionAction.to}

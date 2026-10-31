@@ -1,0 +1,1821 @@
+/*
+ * Buyer presentation (docs/plan/design1/implementation-plan.md): the labelled navigation rail, the organization
+ * utility bar, content headings and the open, hairline-separated surfaces of the buyer workspace, plus the shared
+ * primitives the six redesigned screens compose (hero heading, segmented control, work rows, icon tiles, progress
+ * dots and meters, date badges, the day strip, the stage summary, numbered steps, the approval path, the split
+ * inbox/detail layout and the plain table). Every rule reads tokens only (DD-34); the primitives are unscoped so a
+ * screen keeps working in the default presentation, while the shell overrides apply under
+ * `html[data-presentation='buyer']` only (AppShell sets the attribute while a buyer organization is active).
+ */
+
+/* ============================================================
+   Shell: labelled rail, utility bar, content gutters
+   ============================================================ */
+
+html[data-presentation='buyer'] body {
+  font-size: 15px;
+  line-height: 1.5;
+  font-feature-settings: normal;
+}
+
+html[data-presentation='buyer'] .tiq-sidebar {
+  border-right: 1px solid var(--tiq-border-subtle);
+}
+html[data-presentation='buyer'] .tiq-brand {
+  padding: var(--tiq-space-4) var(--tiq-space-2) var(--tiq-space-3);
+  text-align: center;
+}
+html[data-presentation='buyer'] .tiq-brand-tenant,
+html[data-presentation='buyer'] .tiq-brand-name,
+html[data-presentation='buyer'] .tiq-brand-sub {
+  display: none;
+}
+html[data-presentation='buyer'] .tiq-brand-mark {
+  display: block;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--tiq-accent);
+}
+html[data-presentation='buyer'] .tiq-brand-mark .tiq-brand-iq {
+  color: var(--tiq-accent);
+}
+
+/* Rail items: icon above a short label, 64px tall, the active one on a soft blue tile. */
+.tiq-rail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tiq-space-1);
+  list-style: none;
+  margin: 0;
+  padding: 0 var(--tiq-space-2);
+}
+.tiq-rail-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--tiq-space-1);
+  min-height: 64px;
+  padding: var(--tiq-space-2) var(--tiq-space-0-5);
+  border-radius: var(--tiq-radius-card);
+  border: none;
+  background: transparent;
+  color: var(--tiq-text-on-sidebar);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  text-decoration: none;
+  text-align: center;
+  line-height: 1.2;
+  width: 100%;
+  cursor: pointer;
+  transition:
+    background 0.14s,
+    color 0.14s;
+}
+.tiq-rail-item:hover {
+  background: var(--tiq-sidebar-hover);
+  color: var(--tiq-sidebar-text-strong);
+  text-decoration: none;
+}
+.tiq-rail-item .tiq-icon {
+  width: 22px;
+  height: 22px;
+}
+.tiq-rail-item--active,
+.tiq-rail-item--active:hover,
+.tiq-rail-item[aria-expanded='true'] {
+  background: var(--tiq-accent-soft);
+  color: var(--tiq-accent-text);
+}
+.tiq-rail-label {
+  max-width: 100%;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow-wrap: normal;
+  word-break: keep-all;
+}
+.tiq-rail-item .tiq-nav-badge {
+  position: absolute;
+  top: var(--tiq-space-1-5);
+  right: var(--tiq-space-2);
+  margin: 0;
+  min-width: 18px;
+  height: 18px;
+  font-size: 10.5px;
+}
+.tiq-rail-more {
+  position: relative;
+  margin-top: var(--tiq-space-1);
+}
+/* The "More" surface: every remaining destination, grouped by section, beside the rail. */
+.tiq-rail-more .tiq-menu {
+  position: absolute;
+  left: calc(100% + var(--tiq-space-2));
+  bottom: 0;
+  width: 280px;
+  max-height: min(70vh, 640px);
+  overflow-y: auto;
+  padding: var(--tiq-space-2);
+}
+.tiq-rail-more .tiq-menu-context {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding-top: var(--tiq-space-3);
+}
+.tiq-rail-more .tiq-menu-item {
+  font-size: 13.5px;
+  padding: var(--tiq-space-2) var(--tiq-space-3);
+}
+.tiq-rail-more .tiq-menu-item[aria-current] {
+  background: var(--tiq-accent-soft);
+  color: var(--tiq-accent-text);
+}
+.tiq-rail-more .tiq-menu-item .tiq-nav-badge {
+  margin-left: auto;
+}
+html[data-presentation='buyer'] .tiq-user-card {
+  margin: auto var(--tiq-space-2) var(--tiq-space-3);
+}
+html[data-presentation='buyer'] .tiq-user-card-btn {
+  flex-direction: column;
+  gap: var(--tiq-space-1);
+  padding: var(--tiq-space-2) var(--tiq-space-1);
+  text-align: center;
+  color: var(--tiq-text-on-sidebar);
+}
+html[data-presentation='buyer'] .tiq-user-card .tiq-avatar {
+  width: 40px;
+  height: 40px;
+  background: var(--tiq-neutral-soft);
+  color: var(--tiq-text-primary);
+  border: 1px solid var(--tiq-border-subtle);
+}
+html[data-presentation='buyer'] .tiq-user-card-who {
+  flex: none;
+  width: 100%;
+  text-align: center;
+}
+html[data-presentation='buyer'] .tiq-user-card-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--tiq-text-on-sidebar);
+}
+html[data-presentation='buyer'] .tiq-user-card-sub,
+html[data-presentation='buyer'] .tiq-user-card-chevron {
+  display: none;
+}
+html[data-presentation='buyer'] .tiq-user-card .tiq-menu {
+  left: var(--tiq-space-2);
+  right: auto;
+  width: 260px;
+}
+
+/* Utility bar: organization switcher, centred search, personal icons. */
+html[data-presentation='buyer'] .tiq-topbar {
+  padding: 0 var(--tiq-space-6);
+  gap: var(--tiq-space-4);
+}
+html[data-presentation='buyer'] .tiq-topbar-title {
+  display: none;
+}
+.tiq-org-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--tiq-space-2);
+  padding: var(--tiq-space-2) var(--tiq-space-2-5);
+  border: none;
+  border-radius: var(--tiq-radius-control);
+  background: transparent;
+  color: var(--tiq-text-primary);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  min-width: 0;
+  max-width: 320px;
+}
+.tiq-org-switch:hover {
+  background: var(--tiq-surface-hover);
+}
+.tiq-org-switch > .tiq-icon:first-child {
+  color: var(--tiq-text-secondary);
+}
+.tiq-org-switch-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tiq-org-switch-chevron {
+  width: 14px;
+  height: 14px;
+  color: var(--tiq-text-secondary);
+}
+.tiq-org-menu .tiq-menu {
+  min-width: 300px;
+}
+.tiq-org-menu .tiq-menu-item[aria-current='true'] {
+  background: var(--tiq-accent-soft);
+  color: var(--tiq-accent-text);
+}
+.tiq-org-menu-entry {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.tiq-org-menu-capacity {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--tiq-text-secondary);
+}
+.tiq-org-menu .tiq-menu-item[aria-current='true'] .tiq-org-menu-capacity {
+  color: inherit;
+}
+html[data-presentation='buyer'] .tiq-topbar .tiq-searchbox {
+  flex: 1 1 auto;
+  justify-content: center;
+}
+html[data-presentation='buyer'] .tiq-topbar .tiq-searchbox input {
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  font-size: 14px;
+  padding-block: var(--tiq-space-2-5);
+  border-radius: var(--tiq-radius-control);
+}
+html[data-presentation='buyer'] .tiq-topbar .tiq-searchbox .tiq-icon {
+  left: calc(50% - 260px + var(--tiq-space-3));
+}
+@media (max-width: 1279px) {
+  html[data-presentation='buyer'] .tiq-topbar .tiq-searchbox .tiq-icon {
+    left: var(--tiq-space-3);
+  }
+}
+html[data-presentation='buyer'] .tiq-topbar .tiq-icon-btn {
+  border-color: transparent;
+  background: transparent;
+  color: var(--tiq-text-primary);
+}
+html[data-presentation='buyer'] .tiq-topbar .tiq-icon-btn:hover {
+  background: var(--tiq-surface-hover);
+}
+html[data-presentation='buyer'] .tiq-topbar .tiq-count {
+  top: var(--tiq-space-1);
+  right: var(--tiq-space-1);
+  min-width: 9px;
+  height: 9px;
+  padding: 0;
+  font-size: 0;
+  border-width: 1.5px;
+  background: var(--tiq-accent);
+}
+html[data-presentation='buyer'] .tiq-prototype-banner {
+  background: var(--tiq-surface-inset);
+  color: var(--tiq-text-secondary);
+  border-bottom: 1px solid var(--tiq-border-subtle);
+  font-weight: 600;
+}
+html[data-presentation='buyer'] .tiq-content {
+  padding: var(--tiq-space-6) var(--tiq-space-7) var(--tiq-space-7);
+}
+html[data-presentation='buyer'] .tiq-content > * {
+  margin-inline: auto;
+}
+html[data-presentation='buyer'] .tiq-page {
+  gap: var(--tiq-space-6);
+}
+@media (max-width: 1279px) {
+  html[data-presentation='buyer'] .tiq-content {
+    padding: var(--tiq-space-5) var(--tiq-space-6) var(--tiq-space-6);
+  }
+}
+@media (max-width: 767px) {
+  html[data-presentation='buyer'] .tiq-content {
+    padding: var(--tiq-space-4) var(--tiq-space-4) var(--tiq-space-6);
+  }
+  html[data-presentation='buyer'] .tiq-page {
+    gap: var(--tiq-space-5);
+  }
+  html[data-presentation='buyer'] .tiq-topbar {
+    padding: 0 var(--tiq-space-3);
+    gap: var(--tiq-space-2);
+  }
+  /* The organization name takes what is left between the menu button and the icons, and truncates. */
+  html[data-presentation='buyer'] .tiq-org-menu {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  html[data-presentation='buyer'] .tiq-org-switch {
+    max-width: 100%;
+    width: 100%;
+    padding-inline: var(--tiq-space-1);
+    font-size: 14px;
+  }
+  html[data-presentation='buyer'] .tiq-topbar-actions {
+    gap: var(--tiq-space-1);
+  }
+  /* The drawer shows the full grouped list, so the rail classes give way to the default sidebar styling. */
+  html[data-presentation='buyer'] .tiq-brand-tenant,
+  html[data-presentation='buyer'] .tiq-brand-name,
+  html[data-presentation='buyer'] .tiq-brand-sub {
+    display: block;
+  }
+  html[data-presentation='buyer'] .tiq-brand {
+    text-align: left;
+  }
+  html[data-presentation='buyer'] .tiq-brand-mark {
+    display: none;
+  }
+  html[data-presentation='buyer'] .tiq-user-card-btn {
+    flex-direction: row;
+    text-align: left;
+  }
+  html[data-presentation='buyer'] .tiq-user-card-who {
+    flex: 1;
+    text-align: left;
+  }
+  html[data-presentation='buyer'] .tiq-user-card-sub,
+  html[data-presentation='buyer'] .tiq-user-card-chevron {
+    display: block;
+  }
+  html[data-presentation='buyer'] .tiq-user-card .tiq-menu {
+    width: auto;
+    right: var(--tiq-space-2);
+  }
+}
+
+/* Flatter surfaces: hairline cards without shadows, roomier controls. */
+html[data-presentation='buyer'] .tiq-card {
+  box-shadow: none;
+}
+html[data-presentation='buyer'] .tiq-btn {
+  font-size: 14px;
+  padding: var(--tiq-space-2) var(--tiq-space-4);
+}
+html[data-presentation='buyer'] .tiq-btn--sm {
+  font-size: 13px;
+  padding: var(--tiq-space-1-5) var(--tiq-space-3);
+}
+html[data-presentation='buyer'] .tiq-btn--primary {
+  border-color: transparent;
+}
+html[data-presentation='buyer']
+  .tiq-btn:not(.tiq-btn--primary):not(.tiq-btn--danger):not(.tiq-btn--danger-soft):not(
+    .tiq-btn--ghost
+  ):not(.tiq-btn--link) {
+  background: var(--tiq-surface-inset);
+  border-color: transparent;
+}
+html[data-presentation='buyer']
+  .tiq-btn:not(.tiq-btn--primary):not(.tiq-btn--danger):not(.tiq-btn--danger-soft):not(
+    .tiq-btn--ghost
+  ):not(.tiq-btn--link):hover:not(:disabled) {
+  background: var(--tiq-border-subtle);
+  border-color: transparent;
+}
+html[data-presentation='buyer'] th {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 13px;
+  font-weight: 500;
+}
+html[data-presentation='buyer'] table {
+  font-size: 14px;
+}
+html[data-presentation='buyer'] .tiq-chip {
+  font-weight: 600;
+}
+
+/* ============================================================
+   Content heading (hero): eyebrow label, headline, lede, actions
+   ============================================================ */
+
+.tiq-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--tiq-space-5);
+  flex-wrap: wrap;
+}
+.tiq-hero-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tiq-space-1-5);
+  flex: 1 1 20rem;
+  min-width: 0;
+}
+.tiq-hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--tiq-space-2);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--tiq-text-secondary);
+}
+.tiq-hero-eyebrow .tiq-icon {
+  width: 18px;
+  height: 18px;
+  color: var(--tiq-accent);
+}
+.tiq-page-title {
+  font-size: clamp(28px, 3.2vw, 40px);
+  font-weight: 750;
+  letter-spacing: -0.035em;
+  line-height: 1.08;
+  color: var(--tiq-text-primary);
+  overflow-wrap: anywhere;
+}
+/* A record workspace (a header with meta and tabs): a smaller heading across the full width, then the actions on a
+   row of their own (right-aligned, always one button tall), then the meta, so the meta and the tabs start at the
+   same height on every tab whatever the buttons (DD-46). */
+.tiq-hero--record {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--tiq-space-3);
+}
+.tiq-hero--record .tiq-page-title {
+  font-size: clamp(24px, 2.4vw, 30px);
+  letter-spacing: -0.025em;
+}
+.tiq-hero--record .tiq-hero-text {
+  flex-basis: auto;
+}
+.tiq-hero--record .tiq-hero-lede {
+  font-size: 16px;
+}
+.tiq-hero--record .tiq-hero-actions {
+  width: 100%;
+  padding-top: 0;
+  min-height: calc(14px * 1.3 + 2 * var(--tiq-space-2) + 2px);
+}
+.tiq-hero-lede {
+  font-size: clamp(16px, 1.5vw, 20px);
+  line-height: 1.4;
+  font-weight: 450;
+  color: var(--tiq-text-secondary);
+  letter-spacing: -0.01em;
+  max-width: 48rem;
+}
+.tiq-hero-lede strong,
+.tiq-hero-lede a {
+  color: var(--tiq-accent-text);
+  font-weight: 650;
+}
+.tiq-hero-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--tiq-space-3);
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  padding-top: var(--tiq-space-1);
+}
+.tiq-hero-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--tiq-space-3);
+  flex-wrap: wrap;
+  flex-basis: 100%;
+  font-size: 14px;
+  color: var(--tiq-text-secondary);
+}
+.tiq-hero .tiq-back-link {
+  font-size: 13.5px;
+}
+
+/* Section headings inside a page: 22-24px, with an optional count and a trailing link. */
+.tiq-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tiq-space-3);
+  min-width: 0;
+}
+.tiq-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--tiq-space-3);
+  flex-wrap: wrap;
+}
+.tiq-section-title {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--tiq-space-2-5);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+.tiq-section-count {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--tiq-text-secondary);
+  letter-spacing: 0;
+}
+.tiq-section-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--tiq-space-1);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--tiq-accent-text);
+}
+.tiq-section-link .tiq-icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* ============================================================
+   Segmented control (Tabs / LinkTabs variant="segmented")
+   ============================================================ */
+
+.tiq-segmented {
+  display: inline-flex;
+  gap: var(--tiq-space-0-5);
+  padding: var(--tiq-space-1);
+  background: var(--tiq-surface-inset);
+  border-radius: var(--tiq-radius-card);
+  max-width: 100%;
+  overflow-x: auto;
+}
+.tiq-segmented-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--tiq-space-2);
+  padding: var(--tiq-space-2) var(--tiq-space-4);
+  border: none;
+  border-radius: var(--tiq-radius-control);
+  background: transparent;
+  color: var(--tiq-text-primary);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 550;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background 0.14s,
+    color 0.14s;
+}
+.tiq-segmented-item:hover {
+  color: var(--tiq-text-primary);
+  background: var(--tiq-sidebar-hover);
+  text-decoration: none;
+}
+.tiq-segmented-item:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.tiq-segmented-item--active,
+.tiq-segmented-item[aria-selected='true'],
+.tiq-segmented-item[aria-current='page'] {
+  background: var(--tiq-surface-card);
+  color: var(--tiq-accent-text);
+  box-shadow: var(--tiq-shadow-card);
+}
+.tiq-segmented-item--active:focus-visible,
+.tiq-segmented-item[aria-selected='true']:focus-visible {
+  box-shadow: var(--tiq-focus-ring), var(--tiq-shadow-card);
+}
+.tiq-segmented-count {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--tiq-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.tiq-segmented-item--active .tiq-segmented-count,
+.tiq-segmented-item[aria-selected='true'] .tiq-segmented-count,
+.tiq-segmented-item[aria-current='page'] .tiq-segmented-count {
+  color: var(--tiq-accent-text);
+}
+.tiq-segmented-count--badge {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 var(--tiq-space-1-5);
+  border-radius: var(--tiq-radius-chip);
+  background: var(--tiq-accent-fill);
+  color: var(--tiq-on-solid);
+  display: inline-grid;
+  place-items: center;
+  font-size: 11.5px;
+}
+
+/* ============================================================
+   Toolbar (compact filters) and disclosure of advanced filters
+   ============================================================ */
+
+.tiq-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--tiq-space-3);
+  flex-wrap: wrap;
+}
+/* Toolbar controls explain themselves (placeholder, icon): their labels stay for assistive technology only. */
+.tiq-toolbar .tiq-field > label:not(.tiq-visually-hidden) {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.tiq-toolbar .tiq-searchbox input,
+.tiq-toolbar select,
+.tiq-toolbar input[type='date'] {
+  font-size: 14px;
+  padding-block: var(--tiq-space-2-5);
+  background: var(--tiq-surface-card);
+  border-color: var(--tiq-border-subtle);
+}
+.tiq-toolbar .tiq-searchbox input {
+  width: 100%;
+}
+.tiq-toolbar-search {
+  flex: 1 1 18rem;
+  max-width: 30rem;
+}
+.tiq-toolbar-end {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--tiq-space-2);
+  flex-wrap: wrap;
+}
+.tiq-toolbar-toggle[aria-expanded='true'] {
+  background: var(--tiq-accent-soft);
+  color: var(--tiq-accent-text);
+  border-color: transparent;
+}
+.tiq-toolbar-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--tiq-space-3);
+  align-items: flex-end;
+  padding: var(--tiq-space-4);
+  background: var(--tiq-surface-inset);
+  border-radius: var(--tiq-radius-card);
+}
+.tiq-toolbar-panel .tiq-field {
+  min-width: 150px;
+}
+.tiq-toolbar-panel .tiq-field > label {
+  display: block;
+}
+.tiq-toolbar-panel-actions {
+  display: flex;
+  gap: var(--tiq-space-2);
+  align-items: center;
+  margin-left: auto;
+}
+
+/* ============================================================
+   Work rows (lists of 64-80px rows with short secondary lines)
+   ============================================================ */
+
+.tiq-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.tiq-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--tiq-space-4);
+  min-height: 72px;
+  padding: var(--tiq-space-3) var(--tiq-space-2);
+  border-bottom: 1px solid var(--tiq-border-subtle);
+  position: relative;
+  border-radius: var(--tiq-radius-sm);
+  transition: background 0.12s;
+}
+.tiq-rows > .tiq-row:last-child {
+  border-bottom: none;
+}
+.tiq-row--link:hover {
+  background: var(--tiq-surface-hover);
+}
+.tiq-row--selected,
+.tiq-row--selected:hover {
+  background: var(--tiq-accent-soft);
+}
+.tiq-row--compact {
+  min-height: 56px;
+  gap: var(--tiq-space-3);
+}
+.tiq-row--no-lead {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+.tiq-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tiq-space-0-5);
+  min-width: 0;
+}
+.tiq-row-title {
+  font-size: 15.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--tiq-text-primary);
+  overflow-wrap: anywhere;
+}
+.tiq-row-title a {
+  color: inherit;
+}
+.tiq-row-title a:hover {
+  color: var(--tiq-accent-text);
+  text-decoration: none;
+}
+/* A stretched link: the whole row is the link's hit area; other controls in the row stay above it. */
+.tiq-row-title a.tiq-row-stretch::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+.tiq-row .tiq-btn,
+.tiq-row .tiq-icon-btn,
+.tiq-row .tiq-disclosure-toggle,
+.tiq-row .tiq-row-aside a {
+  position: relative;
+  z-index: 1;
+}
+.tiq-row-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--tiq-space-2);
+  flex-wrap: wrap;
+  font-size: 13.5px;
+  color: var(--tiq-text-secondary);
+}
+.tiq-dotsep {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--tiq-space-2);
+}
+.tiq-dotsep > * + *::before {
+  content: '·';
+  margin-right: var(--tiq-space-2);
+  color: var(--tiq-text-secondary);
+}
+/* The status column: a fixed share of the row, so the labels line up down the list. */
+.tiq-row--status {
+  grid-template-columns: auto minmax(0, 1fr) minmax(12rem, 0.6fr) auto auto;
+}
+.tiq-row--status.tiq-row--no-lead {
+  grid-template-columns: minmax(0, 1fr) minmax(12rem, 0.6fr) auto auto;
+}
+.tiq-row-status {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tiq-space-0-5);
+  min-width: 0;
+  font-size: 14px;
+}
+.tiq-row-status .tiq-status {
+  white-space: normal;
+  align-items: flex-start;
+}
+.tiq-row-status .tiq-status-dot {
+  margin-top: var(--tiq-space-1-5);
+}
+.tiq-row-aside {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--tiq-space-0-5);
+  text-align: right;
+  font-size: 14px;
+  color: var(--tiq-text-secondary);
+  white-space: nowrap;
+}
+.tiq-row-aside--strong {
+  font-weight: 600;
+  color: var(--tiq-text-primary);
+}
+.tiq-row-open {
+  position: relative;
+}
+.tiq-row-arrow {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--tiq-border-subtle);
+  background: var(--tiq-surface-card);
+  color: var(--tiq-text-primary);
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  text-decoration: none;
+  transition:
+    background 0.14s,
+    border-color 0.14s;
+}
+.tiq-row-arrow:hover {
+  background: var(--tiq-surface-hover);
+  border-color: var(--tiq-border-strong);
+  text-decoration: none;
+}
+.tiq-row-arrow .tiq-icon {
+  width: 16px;
+  height: 16px;
+}
+@media (max-width: 767px) {
+  .tiq-row {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: var(--tiq-space-3);
+    padding-inline: 0;
+  }
+  .tiq-row--no-lead {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .tiq-row--status,
+  .tiq-row--status.tiq-row--no-lead {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+  .tiq-row-status {
+    grid-column: 2;
+  }
+  .tiq-row--no-lead .tiq-row-status {
+    grid-column: 1;
+  }
+  .tiq-row-aside {
+    grid-column: 2;
+    align-items: flex-start;
+    text-align: left;
+    white-space: normal;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: var(--tiq-space-2);
+  }
+  .tiq-row--no-lead .tiq-row-aside {
+    grid-column: 1;
+  }
+  .tiq-row-open {
+    grid-row: 1;
+    grid-column: 3;
+  }
+  .tiq-row--no-lead .tiq-row-open {
+    grid-column: 2;
+  }
+}
+
+/* ============================================================
+   Icon tiles, avatars, status labels, checks
+   ============================================================ */
+
+.tiq-tile {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--tiq-radius-card);
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  background: var(--tiq-accent-soft);
+  color: var(--tiq-accent-text);
+}
+.tiq-tile .tiq-icon {
+  width: 20px;
+  height: 20px;
+}
+.tiq-tile--sm {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--tiq-radius-control);
+}
+.tiq-tile--sm .tiq-icon {
+  width: 17px;
+  height: 17px;
+}
+.tiq-tile--lg {
+  width: 52px;
+  height: 52px;
+}
+.tiq-tile--lg .tiq-icon {
+  width: 24px;
+  height: 24px;
+}
+.tiq-tile--warning {
+  background: var(--tiq-warning-soft);
+  color: var(--tiq-warning-text);
+}
+.tiq-tile--danger {
+  background: var(--tiq-danger-soft);
+  color: var(--tiq-danger-text);
+}
+.tiq-tile--info {
+  background: var(--tiq-info-soft);
+  color: var(--tiq-info-text);
+}
+.tiq-tile--success {
+  background: var(--tiq-success-soft);
+  color: var(--tiq-success-text);
+}
+.tiq-tile--neutral {
+  background: var(--tiq-neutral-soft);
+  color: var(--tiq-neutral-text);
+}
+
+.tiq-avatar--soft {
+  background: var(--tiq-accent-soft);
+  color: var(--tiq-accent-text);
+}
+.tiq-avatar--info {
+  background: var(--tiq-info-soft);
+  color: var(--tiq-info-text);
+}
+.tiq-avatar--warning {
+  background: var(--tiq-warning-soft);
+  color: var(--tiq-warning-text);
+}
+.tiq-avatar--neutral {
+  background: var(--tiq-neutral-soft);
+  color: var(--tiq-neutral-text);
+}
+.tiq-avatar--sm {
+  width: 30px;
+  height: 30px;
+  font-size: 11.5px;
+}
+.tiq-person {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--tiq-space-2-5);
+  min-width: 0;
+}
+.tiq-person-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A coloured dot that is never alone: the label always follows (plan: small dots never the only indication). */
+.tiq-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--tiq-space-2);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--tiq-text-primary);
+  white-space: nowrap;
+}
+.tiq-status-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--tiq-neutral);
+  flex: none;
+}
+.tiq-status--accent .tiq-status-dot,
+.tiq-status--success .tiq-status-dot {
+  background: var(--tiq-accent);
+}
+.tiq-status--info .tiq-status-dot {
+  background: var(--tiq-info);
+}
+.tiq-status--warning .tiq-status-dot {
+  background: var(--tiq-warning);
+}
+.tiq-status--danger .tiq-status-dot {
+  background: var(--tiq-danger);
+}
+.tiq-status--neutral-outlined .tiq-status-dot {
+  background: transparent;
+  box-shadow: inset 0 0 0 2px var(--tiq-neutral);
+}
+.tiq-status-sub {
+  display: block;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--tiq-text-secondary);
+  white-space: normal;
+}
+
+.tiq-checkitem {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--tiq-space-3);
+  font-size: 15px;
+  color: var(--tiq-text-primary);
+}
+.tiq-check-mark {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  background: var(--tiq-accent-fill);
+  color: var(--tiq-on-solid);
+}
+.tiq-check-mark .tiq-icon {
+  width: 14px;
+  height: 14px;
+  stroke-width: 3;
+}
+.tiq-check-mark--pending {
+  background: transparent;
+  color: transparent;
+  box-shadow: inset 0 0 0 2px var(--tiq-border-strong);
+}
+.tiq-check-mark--warning {
+  background: var(--tiq-warning);
+}
+.tiq-check-mark--danger {
+  background: var(--tiq-danger);
+}
+.tiq-check-list-plain {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--tiq-space-2-5);
+}
+.tiq-check-detail {
+  display: block;
+  font-size: 13px;
+  color: var(--tiq-text-secondary);
+}
+
+/* Attention line: amber or red with text, as in the references (orange "2 overdue", "Today"). */
+.tiq-attention {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--tiq-space-1-5);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--tiq-warning-text);
+}
+.tiq-attention .tiq-icon {
+  width: 16px;
+  height: 16px;
+}
+.tiq-attention--danger {
+  color: var(--tiq-danger-text);
+}
+.tiq-attention--accent {
+  color: var(--tiq-accent-text);
+}
+
+/* ============================================================
+   Progress dots, meters, stage bars, counts
+   ============================================================ */
+
+.tiq-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--tiq-space-2-5);
+  white-space: nowrap;
+}
+.tiq-dots-track {
+  display: inline-flex;
+  gap: var(--tiq-space-1-5);
+}
+.tiq-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: inset 0 0 0 2px var(--tiq-border-strong);
+}
+.tiq-dot--done {
+  background: var(--tiq-accent);
+  box-shadow: none;
+}
+.tiq-dots-frac {
+  font-size: 14px;
+  color: var(--tiq-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.tiq-meter {
+  display: block;
+  width: 100%;
+  height: 8px;
+  border-radius: var(--tiq-radius-chip);
+  background: var(--tiq-surface-inset);
+  overflow: hidden;
+}
+.tiq-meter--thin {
+  height: 5px;
+}
+.tiq-meter-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--tiq-accent);
+  transition: width 0.3s ease;
+}
+.tiq-meter-fill--neutral {
+  background: var(--tiq-border-strong);
+}
+.tiq-meter-fill--warning {
+  background: var(--tiq-warning);
+}
+.tiq-meter-fill--info {
+  background: var(--tiq-info);
+}
+.tiq-meter-fill--danger {
+  background: var(--tiq-danger);
+}
+
+/* "18 of 24 assessments submitted" with a meter below. */
+.tiq-bigcount {
+  display: flex;
+  align-items: baseline;
+  gap: var(--tiq-space-2);
+  flex-wrap: wrap;
+  line-height: 1;
+}
+.tiq-bigcount-value {
+  font-size: 44px;
+  font-weight: 750;
+  letter-spacing: -0.04em;
+  color: var(--tiq-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.tiq-bigcount-of {
+  font-size: 28px;
+  font-weight: 500;
+  color: var(--tiq-text-secondary);
+  letter-spacing: -0.02em;
+}
+.tiq-bigcount-total {
+  font-size: 44px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  color: var(--tiq-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.tiq-bigcount-label {
+  font-size: 17px;
+  color: var(--tiq-text-secondary);
+  margin-left: var(--tiq-space-2);
+}
+.tiq-bigcount-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--tiq-space-4);
+  flex-wrap: wrap;
+}
+
+/* A stat figure: "BWP 12.4M" over its caption, optional trend line. */
+.tiq-stat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tiq-space-1);
+}
+.tiq-stat-value {
+  font-size: clamp(28px, 3vw, 44px);
+  font-weight: 750;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+  color: var(--tiq-text-primary);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.tiq-stat-value small {
+  font-size: 0.55em;
+  font-weight: 600;
+  color: var(--tiq-text-secondary);
+  letter-spacing: -0.01em;
+  margin-left: var(--tiq-space-2);
+}
+.tiq-stat-caption {
+  font-size: 15px;
+  color: var(--tiq-text-secondary);
+}
+
+/* Stage glance: a column per stage with its label, count and bar (the pipeline "at a glance"). */
+.tiq-stagebar {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: var(--tiq-space-3);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.tiq-stagebar-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tiq-space-1);
+  min-width: 0;
+  text-decoration: none;
+  color: inherit;
+  border-radius: var(--tiq-radius-sm);
+}
+.tiq-stagebar-item:hover {
+  text-decoration: none;
+}
+.tiq-stagebar-item:hover .tiq-stagebar-label {
+  color: var(--tiq-accent-text);
+}
+.tiq-stagebar-label {
+  font-size: 13.5px;
+  color: var(--tiq-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tiq-stagebar-count {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+@media (max-width: 767px) {
+  .tiq-stagebar {
+    grid-auto-flow: row;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ============================================================
+   Dates: badge, day strip, calendar list
+   ============================================================ */
+
+.tiq-datebadge {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  line-height: 1;
+  flex: none;
+}
+.tiq-datebadge-day {
+  font-size: 26px;
+  font-weight: 750;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  color: var(--tiq-text-primary);
+}
+.tiq-datebadge-month {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tiq-text-secondary);
+  margin-top: var(--tiq-space-1);
+}
+.tiq-datebadge--lg .tiq-datebadge-day {
+  font-size: 40px;
+}
+.tiq-datebadge--lg .tiq-datebadge-month {
+  font-size: 13px;
+}
+
+.tiq-daystrip {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--tiq-space-1);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  text-align: center;
+}
+.tiq-daystrip-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--tiq-space-1-5);
+  font-size: 12.5px;
+  color: var(--tiq-text-secondary);
+}
+.tiq-daystrip-num {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: inline-grid;
+  place-items: center;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--tiq-text-primary);
+  font-variant-numeric: tabular-nums;
+  position: relative;
+}
+.tiq-daystrip-item--today .tiq-daystrip-num {
+  background: var(--tiq-accent-fill);
+  color: var(--tiq-on-solid);
+}
+.tiq-daystrip-item--today {
+  color: var(--tiq-accent-text);
+  font-weight: 600;
+}
+.tiq-daystrip-item--busy .tiq-daystrip-num::after {
+  content: '';
+  position: absolute;
+  bottom: 3px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* Coming up: a horizontal set of date + title + note, separated by hairlines. */
+.tiq-upcoming {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: var(--tiq-space-4);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.tiq-upcoming-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--tiq-space-4);
+  padding-right: var(--tiq-space-4);
+  border-right: 1px solid var(--tiq-border-subtle);
+  min-width: 0;
+}
+.tiq-upcoming-item:last-child {
+  border-right: none;
+}
+.tiq-upcoming-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tiq-space-1);
+  min-width: 0;
+}
+.tiq-upcoming-kind {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--tiq-space-1-5);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--tiq-accent-text);
+}
+.tiq-upcoming-kind .tiq-icon {
+  width: 15px;
+  height: 15px;
+}
+.tiq-upcoming-kind--warning {
+  color: var(--tiq-warning-text);
+}
+.tiq-upcoming-title {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.tiq-upcoming-title a {
+  color: inherit;
+}
+.tiq-upcoming-note {
+  font-size: 13.5px;
+  color: var(--tiq-text-secondary);
+}
+@media (max-width: 767px) {
+  .tiq-upcoming-item {
+    border-right: none;
+    border-bottom: 1px solid var(--tiq-border-subtle);
+    padding: 0 0 var(--tiq-space-3);
+  }
+  .tiq-upcoming-item:last-child {
+    border-bottom: none;
+  }
+}
+
+/* ============================================================
+   Stage summary (filter / count view), numbered steps, approval path
+   ============================================================ */
+
+.tiq-stages {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: var(--tiq-space-2);
+}
+.tiq-stages > li {
+  flex: 1 1 0;
+  min-width: 0;
+  position: relative;
+}
+.tiq-stages > li:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 17px;
+  left: calc(50% + 24px);
+  right: calc(-50% + 24px);
+  height: 1px;
+  background: var(--tiq-border-subtle);
+}
+.tiq-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--tiq-space-1-5);
+  width: 100%;
+  padding: var(--tiq-space-2) var(--tiq-space-1);
+  border: none;
+  border-radius: var(--tiq-radius-card);
+  background: transparent;
+  font: inherit;
+  color: var(--tiq-text-primary);
+  text-align: center;
+  cursor: pointer;
+}
+.tiq-stage:hover {
+  background: var(--tiq-surface-hover);
+}
+.tiq-stage-count {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: inline-grid;
+  place-items: center;
+  background: var(--tiq-surface-inset);
+  color: var(--tiq-text-primary);
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.tiq-stage[aria-pressed='true'] .tiq-stage-count {
+  background: var(--tiq-accent-fill);
+  color: var(--tiq-on-solid);
+}
+.tiq-stage-count .tiq-icon {
+  width: 16px;
+  height: 16px;
+}
+.tiq-stage-label {
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+.tiq-stage[aria-pressed='true'] .tiq-stage-label {
+  color: var(--tiq-accent-text);
+}
+.tiq-stage-note {
+  font-size: 13px;
+  color: var(--tiq-text-secondary);
+}
+@media (max-width: 767px) {
+  .tiq-stages {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .tiq-stages > li::after {
+    display: none;
+  }
+}
+
+.tiq-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--tiq-space-5);
+}
+.tiq-steps > li {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: var(--tiq-space-4);
+  position: relative;
+}
+.tiq-steps > li:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: 22px;
+  top: 48px;
+  bottom: calc(-1 * var(--tiq-space-5));
+  width: 1px;
+  background: var(--tiq-border-subtle);
+}
+.tiq-steps-no {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: inline-grid;
+  place-items: center;
+  background: var(--tiq-surface-inset);
+  color: var(--tiq-text-primary);
+  font-size: 15px;
+  font-weight: 700;
+}
+.tiq-steps > li[aria-current='step'] .tiq-steps-no {
+  background: var(--tiq-accent-fill);
+  color: var(--tiq-on-solid);
+}
+.tiq-steps-no .tiq-icon {
+  width: 18px;
+  height: 18px;
+}
+.tiq-steps-title {
+  font-size: 17px;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+}
+.tiq-steps-text {
+  font-size: 15px;
+  color: var(--tiq-text-secondary);
+  margin-top: var(--tiq-space-1);
+}
+
+/* The approval path: nodes joined by hairlines; the current step is a hollow circle with its name. */
+.tiq-path {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--tiq-space-3);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.tiq-path > li {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--tiq-space-3);
+  font-size: 15px;
+}
+.tiq-path > li:not(:last-child)::after {
+  content: '';
+  width: 56px;
+  height: 1px;
+  background: var(--tiq-border-strong);
+}
+.tiq-path-current {
+  font-weight: 650;
+}
+.tiq-path-note {
+  font-size: 12.5px;
+  color: var(--tiq-text-secondary);
+}
+
+/* Award progress inside an expanded row: milestones in a row, each with a check, label and date. */
+.tiq-milestones {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: var(--tiq-space-3);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.tiq-milestone {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tiq-space-2);
+  position: relative;
+  min-width: 0;
+}
+.tiq-milestone:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 12px;
+  left: 32px;
+  right: var(--tiq-space-2);
+  height: 1px;
+  background: var(--tiq-border-strong);
+}
+.tiq-milestone-label {
+  font-size: 14px;
+  font-weight: 600;
+}
+.tiq-milestone-note {
+  font-size: 13px;
+  color: var(--tiq-text-secondary);
+}
+@media (max-width: 1023px) {
+  .tiq-milestones {
+    grid-auto-flow: row;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .tiq-milestone::after {
+    display: none;
+  }
+}
+
+/* ============================================================
+   Soft surfaces: callout, disclosure panel, split layout
+   ============================================================ */
+
+.tiq-callout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tiq-space-3);
+  padding: var(--tiq-space-5);
+  background: var(--tiq-surface-inset);
+  border-radius: var(--tiq-radius-card);
+}
+.tiq-callout-title {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+.tiq-callout-text {
+  font-size: 15px;
+  color: var(--tiq-text-secondary);
+}
+.tiq-callout .tiq-tile {
+  margin-bottom: var(--tiq-space-2);
+}
+
+.tiq-disclosure-toggle {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--tiq-text-secondary);
+  cursor: pointer;
+}
+.tiq-disclosure-toggle:hover {
+  background: var(--tiq-surface-hover);
+  color: var(--tiq-text-primary);
+}
+.tiq-disclosure-toggle .tiq-icon {
+  transition: transform 0.18s ease;
+}
+.tiq-disclosure-toggle[aria-expanded='true'] .tiq-icon {
+  transform: rotate(180deg);
+}
+.tiq-disclosure-panel {
+  grid-column: 1 / -1;
+  padding: var(--tiq-space-4) var(--tiq-space-5);
+  background: var(--tiq-surface-inset);
+  border-radius: var(--tiq-radius-card);
+  margin: var(--tiq-space-2) 0 var(--tiq-space-3);
+}
+.tiq-disclosure-panel-title {
+  font-size: 15px;
+  font-weight: 650;
+  margin-bottom: var(--tiq-space-4);
+}
+
+/* Inbox beside its record. Below 1024px one of them shows at a time (the page decides which). */
+.tiq-split {
+  display: grid;
+  grid-template-columns: minmax(18rem, 2fr) minmax(0, 3fr);
+  gap: var(--tiq-space-6);
+  align-items: start;
+}
+.tiq-split-list {
+  min-width: 0;
+}
+.tiq-split-detail {
+  min-width: 0;
+  border-left: 1px solid var(--tiq-border-subtle);
+  padding-left: var(--tiq-space-6);
+}
+@media (max-width: 1023px) {
+  .tiq-split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .tiq-split-detail {
+    border-left: none;
+    padding-left: 0;
+  }
+}
+
+/* Two-column page body: main content and a narrower side column. */
+.tiq-cols {
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(16rem, 3fr);
+  gap: var(--tiq-space-7);
+  align-items: start;
+}
+.tiq-cols-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tiq-space-6);
+  min-width: 0;
+}
+.tiq-cols-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tiq-space-6);
+  min-width: 0;
+}
+@media (max-width: 1199px) {
+  .tiq-cols {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--tiq-space-6);
+  }
+}
+
+/* Hairline separators between stacked sections. */
+.tiq-hr {
+  border: none;
+  border-top: 1px solid var(--tiq-border-subtle);
+  margin: 0;
+}
+
+/* ============================================================
+   Plain table (DataTable variant="plain"): unframed, roomy rows
+   ============================================================ */
+
+.tiq-datatable--plain .tiq-table-wrap {
+  border-top: 1px solid var(--tiq-border-subtle);
+}
+.tiq-datatable--plain th {
+  padding: var(--tiq-space-3) var(--tiq-space-3);
+  font-size: 13px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--tiq-text-secondary);
+}
+.tiq-datatable--plain td {
+  padding: var(--tiq-space-4) var(--tiq-space-3);
+  font-size: 14.5px;
+}
+.tiq-datatable--plain tbody tr:last-child td {
+  border-bottom: 1px solid var(--tiq-border-subtle);
+}
+.tiq-datatable--plain .tiq-cell-sub {
+  font-size: 13px;
+  margin-top: var(--tiq-space-0-5);
+}
+.tiq-datatable--plain .tiq-cell-title {
+  display: block;
+  font-size: 15.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--tiq-text-primary);
+}
+.tiq-datatable--plain .tiq-cell-title a {
+  color: inherit;
+}
+.tiq-datatable--plain .tiq-cell-title a:hover {
+  color: var(--tiq-accent-text);
+  text-decoration: none;
+}
+.tiq-datatable--plain .tiq-cell-lead {
+  display: flex;
+  align-items: center;
+  gap: var(--tiq-space-3);
+  min-width: 0;
+}
+.tiq-datatable--plain .tiq-person-name {
+  white-space: normal;
+}
+.tiq-datatable--plain .tiq-table-open {
+  width: 56px;
+}
+.tiq-datatable--plain .tiq-row-open {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--tiq-border-subtle);
+  background: var(--tiq-surface-card);
+  color: var(--tiq-text-primary);
+}
+.tiq-datatable--plain .tiq-row-open:hover {
+  background: var(--tiq-surface-hover);
+}
+.tiq-datatable--plain .tiq-table-footer {
+  border-top: none;
+  padding-inline: 0;
+  font-size: 13.5px;
+}
+.tiq-datatable--plain .tiq-table-state {
+  padding-inline: 0;
+}
+.tiq-datatable--plain .tiq-table-toolbar {
+  border-radius: var(--tiq-radius-control);
+  margin-bottom: var(--tiq-space-2);
+}
+
+/* Register foot line: "24 tenders" on the left, pagination on the right. */
+.tiq-register-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--tiq-space-3);
+  flex-wrap: wrap;
+  font-size: 13.5px;
+  color: var(--tiq-text-secondary);
+}
+
+/* Reduced motion: no transitions on the pieces that animate. */
+@media (prefers-reduced-motion: reduce) {
+  .tiq-disclosure-toggle .tiq-icon,
+  .tiq-meter-fill,
+  .tiq-row,
+  .tiq-rail-item,
+  .tiq-segmented-item {
+    transition: none;
+  }
+}

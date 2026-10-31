@@ -128,6 +128,129 @@ html[data-theme='dark'] {
   --tiq-on-solid: #08202a;
 }
 
+/*
+ * Buyer presentation (docs/plan/design1): the white / silver / system-blue direction of the buyer workspace. The shell
+ * sets `data-presentation="buyer"` on <html> while a buyer organization is active (AppShell), so every token below
+ * re-themes the whole tree, dialogs and toasts included. Supplier, operator and public surfaces keep the defaults.
+ * Small text and button fills use the darker accessible blue (WCAG AA); the pure system blue is kept for icons,
+ * meters and large figures. "Completed" is blue, never green (plan: no forest-green treatment).
+ */
+html[data-presentation='buyer'] {
+  color-scheme: light;
+
+  --tiq-surface-sidebar: #f5f5f7;
+  --tiq-surface-app: #ffffff;
+  --tiq-surface-card: #ffffff;
+  --tiq-surface-raised: #ffffff;
+  --tiq-surface-hover: #f5f5f7;
+  --tiq-surface-inset: #f5f5f7;
+  --tiq-border-subtle: #e5e5ea;
+  --tiq-border-strong: #d2d2d7;
+  --tiq-text-primary: #1d1d1f;
+  --tiq-text-secondary: #6e6e73;
+  --tiq-text-on-sidebar: #515154;
+  --tiq-sidebar-text-strong: #1d1d1f;
+  --tiq-sidebar-hover: rgba(0, 0, 0, 0.05);
+  --tiq-sidebar-separator: rgba(0, 0, 0, 0.08);
+
+  --tiq-accent: #007aff;
+  --tiq-accent-strong: #0066d6;
+  --tiq-accent-contrast: #ffffff;
+  --tiq-accent-soft: #e8f1ff;
+  --tiq-accent-fill: #0066d6;
+  --tiq-accent-fill-hover: #0058bf;
+  --tiq-accent-text: #0062cc;
+
+  --tiq-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --tiq-shadow-raised: 0 12px 32px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.06);
+  --tiq-scrim: rgba(29, 29, 31, 0.4);
+  --tiq-focus-ring: 0 0 0 2px var(--tiq-surface-card), 0 0 0 4px var(--tiq-accent);
+  --tiq-select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236e6e73' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+
+  --tiq-success: #0066d6;
+  --tiq-success-soft: #e8f1ff;
+  --tiq-warning: #ff9500;
+  --tiq-warning-soft: #fff4e5;
+  --tiq-danger: #ff3b30;
+  --tiq-danger-soft: #ffecea;
+  --tiq-info: #5e5ce6;
+  --tiq-info-soft: #eeeefc;
+  --tiq-neutral: #8e8e93;
+  --tiq-neutral-soft: #f2f2f7;
+  --tiq-success-text: #0057b8;
+  --tiq-warning-text: #a85400;
+  --tiq-danger-text: #c62a20;
+  --tiq-info-text: #4b49c4;
+  --tiq-neutral-text: #6e6e73;
+
+  --tiq-on-solid: #ffffff;
+
+  --tiq-font-sans:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    system-ui, sans-serif;
+  --tiq-radius-sm: 8px;
+  --tiq-radius-control: 10px;
+  --tiq-radius-card: 14px;
+  --tiq-radius-menu: 14px;
+  --tiq-radius-dialog: 18px;
+
+  --tiq-sidebar-width: 88px;
+  --tiq-sidebar-rail-width: 88px;
+  --tiq-topbar-height: 60px;
+  --tiq-content-max-width: 1600px;
+}
+
+html[data-theme='dark'][data-presentation='buyer'] {
+  color-scheme: dark;
+
+  --tiq-surface-sidebar: #161618;
+  --tiq-surface-app: #1c1c1e;
+  --tiq-surface-card: #1c1c1e;
+  --tiq-surface-raised: #2c2c2e;
+  --tiq-surface-hover: #2c2c2e;
+  --tiq-surface-inset: #2c2c2e;
+  --tiq-border-subtle: #3a3a3c;
+  --tiq-border-strong: #48484a;
+  --tiq-text-primary: #f5f5f7;
+  --tiq-text-secondary: #a1a1a6;
+  --tiq-text-on-sidebar: #c7c7cc;
+  --tiq-sidebar-text-strong: #f5f5f7;
+  --tiq-sidebar-hover: rgba(255, 255, 255, 0.07);
+  --tiq-sidebar-separator: rgba(255, 255, 255, 0.1);
+
+  --tiq-accent: #0a84ff;
+  --tiq-accent-strong: #5ea9ff;
+  --tiq-accent-contrast: #04111f;
+  --tiq-accent-soft: #15314f;
+  --tiq-accent-fill: #3395ff;
+  --tiq-accent-fill-hover: #5ea9ff;
+  --tiq-accent-text: #7fb8ff;
+
+  --tiq-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --tiq-shadow-raised: 0 12px 40px rgba(0, 0, 0, 0.6);
+  --tiq-scrim: rgba(0, 0, 0, 0.6);
+  --tiq-focus-ring: 0 0 0 2px var(--tiq-surface-card), 0 0 0 4px var(--tiq-accent);
+  --tiq-select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a1a1a6' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+
+  --tiq-success: #3395ff;
+  --tiq-success-soft: #15314f;
+  --tiq-warning: #ffb340;
+  --tiq-warning-soft: #3d2c10;
+  --tiq-danger: #ff6961;
+  --tiq-danger-soft: #42201d;
+  --tiq-info: #8e8cff;
+  --tiq-info-soft: #2a2a4d;
+  --tiq-neutral: #98989d;
+  --tiq-neutral-soft: #2c2c2e;
+  --tiq-success-text: #7fb8ff;
+  --tiq-warning-text: #ffb340;
+  --tiq-danger-text: #ff6961;
+  --tiq-info-text: #a9a8ff;
+  --tiq-neutral-text: #aeaeb2;
+
+  --tiq-on-solid: #04111f;
+}
+
 :root {
   /* Typography (fonts are self-hosted, DD-35) */
   --tiq-font-sans: Inter, 'Segoe UI', system-ui, -apple-system, sans-serif;
@@ -155,6 +278,8 @@ html[data-theme='dark'] {
   /* Shell layout (DD-36 breakpoints: rail below 1280px, drawer below 768px) */
   --tiq-sidebar-width: 244px;
   --tiq-sidebar-rail-width: 72px;
+  /* The navigation drawer below 768px always has room for the full grouped list, whatever the sidebar width. */
+  --tiq-drawer-width: 244px;
   --tiq-topbar-height: 64px;
   --tiq-content-max-width: 1680px;
 

@@ -76,6 +76,8 @@ export interface DataTableProps<T> {
   readonly pagination?: PaginationProps;
   /** Rows shown while loading. */
   readonly skeletonRows?: number;
+  /** `plain`: unframed, roomy rows with hairline separators (docs/plan/design1); default: the card table. */
+  readonly variant?: 'card' | 'plain';
 }
 
 function SortArrows({ state }: { readonly state: 'ascending' | 'descending' | 'none' }) {
@@ -118,6 +120,7 @@ export function DataTable<T>({
   empty,
   pagination,
   skeletonRows = 5,
+  variant = 'card',
 }: DataTableProps<T>) {
   const opens = onRowClick !== undefined || rowHref !== undefined;
   const columnCount = columns.length + (selection === undefined ? 0 : 1) + (opens ? 1 : 0);
@@ -166,7 +169,7 @@ export function DataTable<T>({
   }
 
   return (
-    <div className="tiq-datatable">
+    <div className={variant === 'plain' ? 'tiq-datatable tiq-datatable--plain' : 'tiq-datatable'}>
       {selection !== undefined && selection.selected.size > 0 && (
         <div className="tiq-table-toolbar" role="status">
           <span>{t('ui.table.selected', { count: selection.selected.size })}</span>

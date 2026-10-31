@@ -1,0 +1,10 @@
+/* Page-specific rules of the awards screen (docs/plan/design1). Tokens only (DD-34). */
+
+/* The award row: the disclosure toggle and the open arrow share the end of the row. */
+.tiq-award-row-controls {
+  flex-wrap: nowrap;
+  gap: var(--tiq-space-1);
+}
+.tiq-row-aside .tiq-btn--link {
+  font-size: 13.5px;
+}

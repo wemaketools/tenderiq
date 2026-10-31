@@ -18,6 +18,8 @@ export type MenuEntry =
       readonly onSelect: () => void;
       readonly danger?: boolean;
       readonly disabled?: boolean;
+      /** Marks the entry as the current one (`aria-current="true"`), for example the active organization. */
+      readonly current?: boolean;
     }
   | {
       readonly kind: 'link';
@@ -25,6 +27,8 @@ export type MenuEntry =
       readonly label: ReactNode;
       readonly icon?: IconName;
       readonly to: string;
+      /** Marks the entry as the current page (`aria-current="page"`). */
+      readonly current?: boolean;
     }
   | { readonly kind: 'separator'; readonly id: string }
   | { readonly kind: 'text'; readonly id: string; readonly label: ReactNode };
@@ -45,9 +49,18 @@ export interface MenuProps {
   /** `floating` positions below the trigger (right aligned); `none` leaves positioning to the parent CSS. */
   readonly placement?: 'floating' | 'none';
   readonly className?: string;
+  /** Called after a link entry is followed (for example to close a navigation drawer). */
+  readonly onNavigate?: () => void;
 }
 
-export function Menu({ entries, trigger, label, placement = 'floating', className }: MenuProps) {
+export function Menu({
+  entries,
+  trigger,
+  label,
+  placement = 'floating',
+  className,
+  onNavigate,
+}: MenuProps) {
   const [open, setOpen] = useState(false);
   const menuId = useId();
   const triggerId = useId();
@@ -159,7 +172,11 @@ export function Menu({ entries, trigger, label, placement = 'floating', classNam
                     to={entry.to}
                     className="tiq-menu-item"
                     tabIndex={-1}
-                    onClick={() => setOpen(false)}
+                    aria-current={entry.current === true ? 'page' : undefined}
+                    onClick={() => {
+                      setOpen(false);
+                      onNavigate?.();
+                    }}
                   >
                     {entry.icon !== undefined && <Icon name={entry.icon} />}
                     {entry.label}
@@ -174,6 +191,7 @@ export function Menu({ entries, trigger, label, placement = 'floating', classNam
                   role="menuitem"
                   tabIndex={-1}
                   disabled={entry.disabled}
+                  aria-current={entry.current === true ? 'true' : undefined}
                   className={
                     entry.danger === true ? 'tiq-menu-item tiq-menu-item--danger' : 'tiq-menu-item'
                   }

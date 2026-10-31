@@ -1,0 +1,10 @@
+/* Page-specific rules of the dashboard screen (docs/plan/design1). Tokens only (DD-34). */
+
+/* Nine pipeline stages share the main column: labels wrap instead of truncating, so every stage stays readable. */
+.tiq-dashboard-glance .tiq-stagebar-label {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  line-height: 1.25;
+  min-height: calc(2 * 1.25em);
+}
