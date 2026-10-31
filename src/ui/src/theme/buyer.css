@@ -113,15 +113,19 @@ html[data-presentation='buyer'] .tiq-brand-mark .tiq-brand-iq {
   position: relative;
   margin-top: var(--tiq-space-1);
 }
-/* The "More" surface: every remaining destination, grouped by section, beside the rail. */
+/* The "More" surface: every remaining destination, grouped by section, as a popover beside the rail. It is fixed
+   to the viewport (the sidebar clips its own overflow and scrolls), under the utility bar, and scrolls on its own
+   when the list is taller than the window. */
 .tiq-rail-more .tiq-menu {
-  position: absolute;
-  left: calc(100% + var(--tiq-space-2));
-  bottom: 0;
-  width: 280px;
-  max-height: min(70vh, 640px);
+  position: fixed;
+  left: calc(var(--tiq-sidebar-width) + var(--tiq-space-2));
+  top: calc(var(--tiq-topbar-height) + var(--tiq-space-2));
+  bottom: auto;
+  width: 300px;
+  max-height: calc(100vh - var(--tiq-topbar-height) - 2 * var(--tiq-space-2));
   overflow-y: auto;
   padding: var(--tiq-space-2);
+  z-index: 70;
 }
 .tiq-rail-more .tiq-menu-context {
   font-size: 11px;
@@ -138,8 +142,13 @@ html[data-presentation='buyer'] .tiq-brand-mark .tiq-brand-iq {
   background: var(--tiq-accent-soft);
   color: var(--tiq-accent-text);
 }
+/* Badges inside the popover stay inline at every width (the icon-rail rule below 1280px would pin them). */
 .tiq-rail-more .tiq-menu-item .tiq-nav-badge {
+  position: static;
   margin-left: auto;
+  min-width: 20px;
+  height: 20px;
+  font-size: 11px;
 }
 html[data-presentation='buyer'] .tiq-user-card {
   margin: auto var(--tiq-space-2) var(--tiq-space-3);
