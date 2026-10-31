@@ -1,19 +1,11 @@
 /**
- * The demo accounts of the local development quick-pick (DD-43, docs/technical/09-frontend.md §11).
+ * The demo personas of the sign-in page's persona picker (DD-50, docs/plan/demo-storyline.md).
  *
- * DEVELOPMENT BUILDS ONLY: this module is reached only through the dynamic import in SignInPage, which sits behind
- * `import.meta.env.DEV`, so Vite drops it from production builds. `scan-bundle` fails the build if
- * `DEMO_ACCOUNTS_MARKER` appears in `src/ui/dist`.
- *
- * The accounts are the demo personas of docs/plan/demo-storyline.md, created in LOCAL Supabase Auth by
- * `npm run auth:personas` with the password `test1234`. This list only fills the sign-in form: signing in is real
- * (supabase-js), and the mock API maps the verified email to its fixture persona. Business data never comes from here.
+ * The prototype has no passwords: choosing a persona signs in as that persona, and the in-browser mock API maps its
+ * e-mail to the fixture persona (a deactivated one gets 401, AC-04). This list only labels the choices; business
+ * data never comes from here. `src/mock-api/testing/tests/demo-accounts.test.ts` keeps it equal to the fixture
+ * personas.
  */
-
-export const DEMO_ACCOUNTS_MARKER = 'tiq-demo-accounts-dev-only-quick-pick';
-
-/** The local-only password of every demo persona (never valid outside the local Docker stack). */
-export const DEMO_PASSWORD = 'test1234';
 
 export interface DemoAccount {
   readonly email: string;

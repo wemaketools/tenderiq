@@ -13,7 +13,7 @@ const EMAIL = (login: string): string => `${login}@tenderiq.local`;
 let api: TestMockApp;
 
 beforeAll(async () => {
-  api = await createTestMockApp({ auth: 'fixture', modules: [{ name: 'tasks', register }] });
+  api = await createTestMockApp({ modules: [{ name: 'tasks', register }] });
 });
 
 describe('tasks module', () => {

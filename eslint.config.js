@@ -13,7 +13,10 @@
  * - src/contracts is pure TypeScript + zod shared by the SPA, the mock API and the backend
  *   (architecture-plan §3.10): no Node or browser APIs, no imports other than zod and sibling
  *   contract files. Contract tests (*.test.ts) may use Node APIs.
- * - The mock API is dev/test only and never reachable from src/server or api/ (plan §11 item 1).
+ * - The mock API is never reachable from src/server or api/ (plan §11 item 1).
+ * - The mock API's runtime code also runs in the browser (the Stage A static prototype, DD-50): no Node built-ins,
+ *   no src/server modules and no Node globals. Only its tests, the test helpers and the on-disk discovery used by
+ *   tests (registry-discovery.ts, fixtures/approvals/spa-routes.ts) may use Node.
  */
 import js from '@eslint/js';
 import { defineConfig, globalIgnores } from 'eslint/config';
@@ -32,7 +35,12 @@ const processEnvImportPaths = [
 const MOCK_API_BOUNDARY = {
   group: ['**/mock-api', '**/mock-api/**'],
   message:
-    'The mock API is a dev/test tool. The real backend and api/ never import it (architecture-plan §11 item 1).',
+    'The mock API is the Stage A prototype and a test tool. The real backend and api/ never import it (architecture-plan §11 item 1).',
+};
+const BROWSER_SAFE_MOCK_API = {
+  regex: '^(node:|(\\.\\./)+server/)',
+  message:
+    'Mock API runtime code also runs in the browser (DD-50): no Node built-ins and no src/server modules. Use src/mock-api/sha256.ts, TextEncoder or Uint8Array.',
 };
 const SPA_BOUNDARY = {
   group: ['**/ui/src', '**/ui/src/**'],
@@ -120,6 +128,27 @@ export default defineConfig([
         ].map((name) => ({
           name,
           message: 'src/contracts is pure (architecture-plan §3.10): no Node or browser APIs.',
+        })),
+      ],
+    },
+  },
+  {
+    name: 'tenderiq/mock-api-browser-safe',
+    files: ['src/mock-api/**/*.ts'],
+    ignores: [
+      'src/mock-api/**/*.test.ts',
+      'src/mock-api/testing/**',
+      'src/mock-api/registry-discovery.ts',
+      'src/mock-api/fixtures/approvals/spa-routes.ts',
+    ],
+    languageOptions: { globals: { ...globals.browser } },
+    rules: {
+      'no-restricted-imports': ['error', { paths: processEnvImportPaths, patterns: [BROWSER_SAFE_MOCK_API] }],
+      'no-restricted-globals': [
+        'error',
+        ...['process', 'Buffer', 'require', '__dirname', '__filename', 'global', 'setImmediate'].map((name) => ({
+          name,
+          message: 'Mock API runtime code also runs in the browser (DD-50): no Node globals.',
         })),
       ],
     },

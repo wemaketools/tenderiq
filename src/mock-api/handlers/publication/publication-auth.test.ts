@@ -1,7 +1,6 @@
 /**
- * Publication handlers with REAL authentication (DD-43): a signed-in buyer officer and supplier bid manager reach
- * their own rows through local Supabase Auth, and a supplier cannot enter a buyer tenant.
- * Needs `npm run supabase:start` and `npm run auth:personas`.
+ * Publication handlers through the full authentication chain (prototype persona token, DD-50): a signed-in buyer
+ * officer and supplier bid manager reach their own rows, and a supplier cannot enter a buyer tenant.
  */
 import { beforeAll, describe, expect, it } from 'vitest';
 

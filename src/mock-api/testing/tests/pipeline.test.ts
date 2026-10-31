@@ -1,26 +1,13 @@
 /**
- * The mock API middleware chain end to end, with REAL Supabase JWT verification against the local stack (DD-43):
- * 401 cases, the identical tenant 403, prefix/kind enforcement, permission 403, 422 shape, response validation,
- * declared/undeclared business errors, sanitized 500s, headers, correlation ids and the request log.
- *
- * Requires `npm run supabase:start` and `npm run auth:personas`.
+ * The mock API middleware chain end to end, with the prototype persona token (DD-50): 401 cases, the identical
+ * tenant 403, prefix/kind enforcement, permission 403, 422 shape, response validation, declared/undeclared business
+ * errors, sanitized 500s, headers, correlation ids and the request log.
  */
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import { Problem, SANITIZED_SERVER_ERROR_DETAIL } from '../../../contracts/common.js';
-import { getConfig } from '../../../server/lib/config/index.js';
-import {
-  decodeJwt,
-  generateEs256KeyPair,
-  localStackSigningKey,
-  sessionClaims,
-  signEs256,
-  signHs256,
-  tamperPayload,
-  unsignedToken,
-} from '../../../server/tests/unit/platform-auth/jwt-helpers.js';
-import { UNMAPPED_AUTH_ACCOUNT } from '../../fixtures/platform.js';
-import { createTestMockApp, signInAs, tenantIdOf } from '../index.js';
+import { personaToken } from '../../prototype-auth.js';
+import { createTestMockApp, tenantIdOf } from '../index.js';
 import type { TestMockApp, TestResponse } from '../index.js';
 import { sessionModule } from './session-module.js';
 import { EXPLOSION_MESSAGE, platformTestModule } from './platform-endpoints.js';
@@ -92,17 +79,20 @@ describe('health and routing', () => {
   });
 });
 
-describe('authentication (real Supabase JWT verification)', () => {
-  let realToken: string;
+describe('authentication (prototype persona token, DD-50)', () => {
   let expectedBody: Record<string, unknown>;
 
   beforeAll(async () => {
-    realToken = await signInAs(TEBOGO);
     expectedBody = stable(await api.request('GET', '/api/v1/me/context'));
   });
 
-  it('accepts a token issued by local Supabase Auth for a persona', async () => {
-    const response = await api.request('GET', '/api/v1/me/context', { token: realToken });
+  it('accepts the persona token of a demo persona', async () => {
+    const response = await api.request('GET', '/api/v1/me/context', { token: personaToken(TEBOGO) });
+    expect(response.status).toBe(200);
+  });
+
+  it('maps a token to its persona whatever the letter case of the e-mail', async () => {
+    const response = await api.request('GET', '/api/v1/me/context', { token: 'Tebogo.Officer@TenderIQ.local' });
     expect(response.status).toBe(200);
   });
 
@@ -113,46 +103,12 @@ describe('authentication (real Supabase JWT verification)', () => {
     expect(expectedBody).toMatchObject({ status: 401, code: 'UNAUTHENTICATED' });
   });
 
-  it.each<[string, () => Promise<string>]>([
-    ['a tampered (forged) payload', async () => tamperPayload(realToken, { email: 'admin.kwu@tenderiq.local' })],
-    ['alg none', async () => unsignedToken(decodeJwt(realToken).payload, String(decodeJwt(realToken).header.kid))],
-    [
-      'an HS256 downgrade',
-      async () => signHs256({ alg: 'HS256', typ: 'JWT', kid: decodeJwt(realToken).header.kid }, decodeJwt(realToken).payload, getConfig().supabase.anonKey),
-    ],
-    [
-      'an unknown kid',
-      async () => {
-        const attacker = await generateEs256KeyPair('attacker-kid');
-        return signEs256({ alg: 'ES256', typ: 'JWT', kid: attacker.kid }, decodeJwt(realToken).payload, attacker.privateJwk);
-      },
-    ],
-    [
-      'an expired token signed with the stack key',
-      async () => {
-        const key = localStackSigningKey();
-        const now = Math.floor(Date.now() / 1000);
-        return signEs256({ alg: 'ES256', typ: 'JWT', kid: key.kid }, sessionClaims(getConfig().supabase.authIssuer, { iat: now - 7200, exp: now - 1 }), key);
-      },
-    ],
-    [
-      'a valid token for an e-mail with no fixture persona',
-      async () => {
-        const key = localStackSigningKey();
-        return signEs256(
-          { alg: 'ES256', typ: 'JWT', kid: key.kid },
-          sessionClaims(getConfig().supabase.authIssuer, { email: 'stranger@example.com' }),
-          key,
-        );
-      },
-    ],
-    ['a real Auth account that maps to no persona', async () => signInAs(UNMAPPED_AUTH_ACCOUNT.email)],
-    ['a deactivated persona (departed employee)', async () => signInAs('former.officer@tenderiq.local')],
-    ['garbage', async () => 'not-a-jwt'],
-  ])('rejects %s with the same 401 body', async (_label, makeToken) => {
-    // Arrange
-    const token = await makeToken();
-
+  it.each<[string, string]>([
+    ['an e-mail with no fixture persona', 'stranger@example.com'],
+    ['a deactivated persona (departed employee)', 'former.officer@tenderiq.local'],
+    ['a token that is not a persona e-mail', 'not-a-persona'],
+    ['an over-long token', `${'a'.repeat(320)}@tenderiq.local`],
+  ])('rejects %s with the same 401 body', async (_label, token) => {
     // Act
     const response = await api.request('GET', '/api/v1/me/context', { token });
 
@@ -166,14 +122,16 @@ describe('authentication (real Supabase JWT verification)', () => {
     const before = api.logs.length;
 
     // Act
-    const response = await api.request('GET', '/api/v1/me/context', { token: tamperPayload(realToken, { email: 'x@y.z' }) });
+    const unknown = await api.request('GET', '/api/v1/me/context', { token: 'stranger@example.com' });
+    const malformed = await api.request('GET', '/api/v1/me/context', { token: 'not-a-persona' });
 
     // Assert
     const lines = api.logs.slice(before).join('\n');
-    expect(JSON.stringify(response.body)).not.toContain('invalid_signature');
-    expect(lines).toContain('invalid_signature_or_expired');
-    expect(lines).not.toContain(realToken.split('.')[2] ?? 'unreachable');
-    expect(lines).not.toContain('tebogo.officer');
+    expect(JSON.stringify(unknown.body)).not.toContain('unknown_account');
+    expect(JSON.stringify(malformed.body)).not.toContain('malformed');
+    expect(lines).toContain('unknown_account');
+    expect(lines).toContain('malformed');
+    expect(lines).not.toContain('stranger');
   });
 });
 
@@ -298,7 +256,7 @@ describe('request validation (422)', () => {
 
   it('rejects a body that is not JSON with INVALID_JSON', async () => {
     // Arrange
-    const token = await signInAs(TEBOGO);
+    const token = personaToken(TEBOGO);
     const request = new Request('http://mock.test/api/v1/buyer/test-platform/items/7?mode=draft', {
       method: 'POST',
       headers: { authorization: `Bearer ${token}`, 'x-tenant-id': String(tenantIdOf('kwu')), 'content-type': 'application/json' },

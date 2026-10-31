@@ -18,11 +18,8 @@ import { ToastProvider } from '../components/ui/ToastProvider';
 
 export function stubAuth(overrides: Partial<AuthActions> = {}): AuthActions {
   return {
-    signIn: vi.fn(() => Promise.resolve({ ok: true })),
+    signIn: vi.fn(),
     signOut: vi.fn(() => Promise.resolve()),
-    requestPasswordReset: vi.fn(() => Promise.resolve()),
-    updatePassword: vi.fn(() => Promise.resolve({ ok: true })),
-    recoverySession: false,
     reloadContext: vi.fn(),
     ...overrides,
   };

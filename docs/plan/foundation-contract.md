@@ -5,6 +5,10 @@ and every example was compiled or run against the foundation (`npm run typecheck
 `lint:ui`, `test:unit` 709 tests, `test:ui` 182 tests, `build`, `ci:security`, `test:e2e:prototype` 5/5, and a
 runtime smoke of the mock API on port 4190 with real Supabase Auth).
 
+**Amended 2026-10-30 (DD-50):** Stage A is a fully static prototype. The mock API runs in the browser (no server, no
+port), sign-in is a persona picker, and no Docker or Supabase is used. §2, §2.1, §2.5, §4, §5 and §6 describe the
+current APIs; the verification note above records the original foundation run.
+
 Domain agents MUST use these APIs as written. When one does not fit, report a follow-up; do not fork a helper.
 
 Contents: [1 Contracts](#1-contracts-srccontracts) · [2 Mock API](#2-mock-api-srcmock-api) ·
@@ -192,16 +196,27 @@ today, so the top-bar badges and the shared widgets show their error/empty state
 ## 2. Mock API (`src/mock-api`)
 
 Hono app with the brief §5.1 order: security headers → correlation id → request log → problem+json boundary →
-route resolution (unknown route = 404 **before** auth) → real Supabase JWT verification + persona mapping (401) →
+route resolution (unknown route = 404 **before** auth) → persona token check + persona mapping (401) →
 tenant context (one identical 403 `TENANT_ACCESS_DENIED`) → permission (403 `FORBIDDEN`) → your handler → response
 validated against the contract. **Nothing persists.** Handlers are pure functions over static fixtures.
 
-### 2.1 Handler module shape (auto-discovery)
+In Stage A the app runs **in the browser** (DD-50): `src/mock-api/browser.ts` (`createBrowserMockApi`) builds it,
+and the SPA's `src/ui/src/api/prototypeTransport.ts` lazy-loads it and answers every `/api/v1` request in the page.
+The bearer token is the chosen persona's e-mail; `src/mock-api/prototype-auth.ts` (`personaTokenVerifier`) accepts
+it and the chain maps it to the fixture persona. An unknown or deactivated persona (`former.officer`, AC-04) gets the
+same 401. There is no JWT in Stage A. Mock-API runtime code must stay browser-safe (lint rule
+`tenderiq/mock-api-browser-safe`: no `node:*`, no `src/server`, no Node globals; tests, `testing/**`,
+`registry-discovery.ts` and `fixtures/approvals/spa-routes.ts` are exempt). Hash with `src/mock-api/sha256.ts`, not
+`node:crypto`.
 
-`registry.ts` imports every `src/mock-api/handlers/*.ts` and `src/mock-api/handlers/<name>/index.ts` (`*.test.ts`
-excluded) and calls its `register(app)`. There is no list to edit. A module that fails to import, has no `register`,
-throws while registering, or claims a route/id another module owns is logged and skipped (the server still starts;
-the startup line reports skipped modules — treat any skip as a bug).
+### 2.1 Handler module shape (static list)
+
+`src/mock-api/handler-modules.ts` (`HANDLER_MODULES`) imports every handler module (`handlers/*.ts` and
+`handlers/<name>/index.ts`) and names its `register(app)`, in alphabetical order. The browser cannot read the
+directory, so the list is static: **add your module there**. `handler-modules.test.ts` fails when the list and the
+modules on disk differ (on-disk discovery lives in `registry-discovery.ts`, for tests only). A module that throws
+while registering, or claims a route/id another module owns, is logged and skipped (the app still builds; the boot
+log reports skipped modules — treat any skip as a bug).
 
 Recommended layout for domain `<contract>` (all inside your owned paths):
 
@@ -254,7 +269,7 @@ never loosen the contract.
   after the action). The next GET still returns the fixture; the SPA shows the command result it received.
 - The one storyline "now" is `DEMO_AS_OF = 2026-10-06T08:00:00Z` (`src/mock-api/fixtures/demo-clock.ts`). Every
   fixture is written as of that instant: what has happened is before it, what is pending or scheduled is after it.
-  The mock API serves each request on `storylineNow()` (never earlier than `DEMO_AS_OF`), exposes it as
+  The mock API serves each request at `frozenStorylineNow()` (always `DEMO_AS_OF`), exposes it as
   `ctx.now`, as `serverTime` of `/api/v1/me/context` and as the `x-server-time` response header; handlers and tests
   compare against that clock, never against `Date.now()`.
 - Buyer categories come only from `src/mock-api/fixtures/categories.ts`; other domains reference them by id.
@@ -304,7 +319,7 @@ import type { TestMockApp } from '../../testing/index.js';
 
 let api: TestMockApp;
 beforeAll(async () => {
-  api = await createTestMockApp(); // auto-discovers handlers; REAL auth (needs supabase:start + auth:personas)
+  api = await createTestMockApp(); // every module of HANDLER_MODULES; prototype persona auth, no Docker
 });
 
 describe('buyer.widgets.list', () => {
@@ -318,12 +333,12 @@ describe('buyer.widgets.list', () => {
 });
 ```
 
-`src/mock-api/testing/index.js` exports `createTestMockApp(options?)` (`{ auth: 'real' | 'fixture', modules?:
-[{ name, register }], now?, appEnv? }`), `signInAs(email, password?)`, `tenantIdOf(slug)`, `fixtureToken(email)`,
-`DEMO_PERSONA_PASSWORD`. The app offers `callAs(email, endpoint, { params, query, body, tenant, headers })`,
-`requestAs(email, method, path, options)`, `request(method, path, { token, tenant, query, body, headers })` → `{
-status, headers, body, text }`, plus `logs` (captured JSON log lines), `loaded`, `failed`, `endpointIds`.
-`{ auth: 'fixture' }` runs offline (test-only verifier). Assert `api.failed` is empty and `api.loaded` contains your
+`src/mock-api/testing/index.js` exports `createTestMockApp(options?)` (`{ modules?: [{ name, register }],
+handlersDir?, verifyToken?, now?, appEnv?, logLevel? }`) and `tenantIdOf(slug)`. The app offers `callAs(email,
+endpoint, { params, query, body, tenant, headers })`, `requestAs(email, method, path, options)` (both send the
+persona token the SPA sends, `personaToken(email)` from `prototype-auth.ts`), `request(method, path, { token, tenant,
+query, body, headers })` → `{ status, headers, body, text }`, plus `logs` (captured JSON log lines), `loaded`,
+`failed`, `endpointIds`. Everything runs offline (DD-50). Assert `api.failed` is empty and `api.loaded` contains your
 module. Cover: per-tenant isolation, supplier isolation, permission denial, every declared error code, 422s.
 
 ---
@@ -534,7 +549,7 @@ expect(await screen.findByText('Release T-2026-0005')).toBeInTheDocument();
 | URL | Rendered by | Owner |
 |---|---|---|
 | `/` (+ public feature routes: `/b/:buyerSlug`, `/opportunities[/:buyerSlug/:ref]`, `/clarifications/:buyerSlug/:ref`, `/awards[/:buyerSlug/:ref]`, `/plans`, `/guidance/*`, `/register`, `/invite/:token`) | `PublicShell`; without a public home, `/` → `/signin` | shell + publication, suppliers, org-admin, operations |
-| `/signin`, `/forgot-password`, `/reset-password` | auth pages (supabase-js; demo accounts only in dev builds) | shell |
+| `/signin` | persona picker (DD-50; no password). Stage B adds supabase-js sign-in and `/forgot-password`, `/reset-password` | shell |
 | `/select-organization` | COM-02 | shell |
 | `/buyer/*`, `/supplier/*`, `/ops/*` | `AppShell` inside `RouteGuard` (signed in, active organization, area kind matches) | features |
 | `/me/*` (`profile`, `tasks`, `approvals/:id`, `notifications`, `documents/:id`, `search`, `help`) | `AppShell`; matches every tenant kind | account, workspace, reporting, operations features |
@@ -547,8 +562,10 @@ API audiences mirror it: `/api/v1/public/*`, `/api/v1/me/*`, `/api/v1/buyer/*`, 
 
 ## 5. Personas, tenants and ports
 
-Every persona signs in with password `test1234` (local Supabase only; `npm run auth:personas` creates them).
-Emails are `<login>@tenderiq.local`. `unmapped.account@tenderiq.local` exists in Auth with no persona (→ 401).
+Every persona signs in by choosing it in the sign-in page's persona picker (`src/ui/src/auth/PersonaPicker.tsx`,
+list in `demoAccountList.ts`); there are no passwords (DD-50). The choice is kept in `sessionStorage`
+(`tiq.prototype.persona`, `src/ui/src/auth/prototypeSession.ts`) and sent as the bearer token. Emails are
+`<login>@tenderiq.local`. Any e-mail with no fixture persona gets 401.
 
 | Tenant id | Slug | Kind | Name | Currency |
 |---|---|---|---|---|
@@ -598,29 +615,27 @@ Emails are `<login>@tenderiq.local`. `unmapped.account@tenderiq.local` exists in
 KWU also has a custom role "Opening witness" (fixtures `TENANT_ROLES`). Effective permissions per tenant come from
 `permissionsForTemplates` over the membership's roles; `GET /api/v1/me/context?tenantId=<id>` returns them.
 
-**Ports** (never 3001/5173, the owner's). Mock API port P, Vite port Q:
+**Ports** (never 5173, the owner's). Only Vite listens (DD-50: the mock API runs in the page); Vite port Q:
 
-| Who | P / Q |
+| Who | Q |
 |---|---|
-| mock-platform, ui-shell | 4101/5201, 4102/5202 |
-| domain `NN` (workspace 00, org-admin 01, policy 02, suppliers 03, qualification 04, requests 05, tenders 06, publication 07, clarifications 08, bids 09, opening 10, evaluation 11, selection 12, awards 13, contracts 14, reporting 15, operations 16) | `41NN` / `52NN` (e.g. tenders 4106/5206) |
-| verification gates, foundation-integrate | 4190/5290 |
-| Playwright `prototype` project | 4180/5280 (`PROTOTYPE_API_PORT`/`PROTOTYPE_WEB_PORT`) |
+| mock-platform, ui-shell | 5201, 5202 |
+| domain `NN` (workspace 00, org-admin 01, policy 02, suppliers 03, qualification 04, requests 05, tenders 06, publication 07, clarifications 08, bids 09, opening 10, evaluation 11, selection 12, awards 13, contracts 14, reporting 15, operations 16) | `52NN` (e.g. tenders 5206) |
+| verification gates, foundation-integrate | 5290 |
+| Playwright `prototype` project | 5280 (`PROTOTYPE_WEB_PORT`) |
 
 ---
 
 ## 6. Running, screenshots and gates
 
-Prerequisites once per machine session: `npm run supabase:start` then `npm run auth:personas` (idempotent).
+No prerequisites: Stage A needs no Docker, no Supabase and no environment file (DD-50).
 
 ```bash
-# from the repo root: mock API (loads .env.local itself; binds 127.0.0.1)
-npx tsx scripts/dev/serve-mock-api.ts --port 4106
-# from src/ui: SPA proxied to that mock API (Vite listens on localhost, i.e. ::1 on Windows)
-VITE_API_PROXY_TARGET=http://127.0.0.1:4106 npx vite --port 5206
+# from src/ui: the SPA with the in-browser mock API (Vite listens on localhost, i.e. ::1 on Windows)
+npx vite --port 5206
 ```
 
-Stop both servers when done (and check that nothing still listens on your ports: a background `npx` can leave its
+Stop the server when done (and check that nothing still listens on your port: a background `npx` can leave its
 `node` child running).
 
 **Screenshot a page with Playwright** (verified; put the script under `.qa-scratch/<label>/`). In Git Bash set
@@ -638,9 +653,7 @@ const problems = [];
 page.on('pageerror', (error) => problems.push(`pageerror: ${error.message}`));
 page.on('console', (message) => { if (message.type() === 'error') problems.push(`console: ${message.text()}`); });
 await page.goto(`${base}/signin`);
-await page.getByLabel('Email address').fill(`${who}@tenderiq.local`);
-await page.getByLabel('Password').fill('test1234');
-await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+await page.locator(`[data-persona="${who}@tenderiq.local"]`).click(); // the persona picker (DD-50)
 await page.waitForURL((url) => !url.pathname.startsWith('/signin'));
 if (path !== '-') await page.goto(`${base}${path}`);
 if (theme === 'dark') await page.evaluate(() => { document.documentElement.dataset.theme = 'dark'; });
@@ -654,7 +667,7 @@ A persona with several memberships (`sam.dual`) lands on `/select-organization`;
 `page.getByRole('button', { name: /Tsodilo Engineering/ })` or see `e2e_tests/specs/prototype/shell.spec.ts`, which
 also shows the axe pattern (`new AxeBuilder({ page }).withTags(['wcag2a','wcag2aa','wcag21a','wcag21aa'])`). Open
 the PNG and compare it with `docs/screenshots/*.png`. E2E specs go in `e2e_tests/specs/prototype/**/*.spec.ts` and run
-with `npm run test:e2e:prototype` (starts its own servers on 4180/5280).
+with `npm run test:e2e:prototype` (starts its own Vite server on 5280).
 
 **Gates** (filter output to your paths while others work): `npm run typecheck`, `npm run typecheck:ui`,
 `npm run lint`, `npm run lint:ui` (ESLint `--max-warnings 0` + Prettier: run `npx prettier --write <files>` from

@@ -36,7 +36,7 @@ import {
   operationsEndpoints as ops,
 } from '../../../contracts/operations.js';
 import { pageOf } from '../../../contracts/common.js';
-import { storylineNow } from '../../fixtures/demo-clock.js';
+import { frozenStorylineNow } from '../../fixtures/demo-clock.js';
 import { createTestMockApp } from '../../testing/index.js';
 import type { TestMockApp, TestResponse } from '../../testing/index.js';
 
@@ -360,7 +360,7 @@ describe('customer authorization of support access', () => {
   });
 
   it('lets the ODC administrator authorize the pending request for a limited window', async () => {
-    const expiresAt = new Date(storylineNow(new Date()).getTime() + 3 * 86_400_000).toISOString().replace(/\.\d{3}Z$/, 'Z');
+    const expiresAt = new Date(frozenStorylineNow().getTime() + 3 * 86_400_000).toISOString().replace(/\.\d{3}Z$/, 'Z');
     const response = await api.callAs(ADMIN_ODC, ops.authorizeSupportGrant, {
       tenant: 'odc',
       params: { grantId: 2 },
@@ -373,7 +373,7 @@ describe('customer authorization of support access', () => {
   });
 
   it('refuses a window longer than the maximum', async () => {
-    const expiresAt = new Date(storylineNow(new Date()).getTime() + 30 * 86_400_000).toISOString().replace(/\.\d{3}Z$/, 'Z');
+    const expiresAt = new Date(frozenStorylineNow().getTime() + 30 * 86_400_000).toISOString().replace(/\.\d{3}Z$/, 'Z');
     const response = await api.callAs(ADMIN_ODC, ops.authorizeSupportGrant, {
       tenant: 'odc',
       params: { grantId: 2 },

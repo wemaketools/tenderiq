@@ -10,7 +10,7 @@ const ADMIN = 'admin.kwu@tenderiq.local';
 let api: TestMockApp;
 
 beforeAll(async () => {
-  api = await createTestMockApp({ auth: 'fixture', modules: [{ name: 'notification-rules', register }] });
+  api = await createTestMockApp({ modules: [{ name: 'notification-rules', register }] });
 });
 
 const rule = {

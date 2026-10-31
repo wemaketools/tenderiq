@@ -76,7 +76,7 @@ function revisionHash(revisionId: number): string {
 describe('bids module registration', () => {
   it('registers every endpoint of the contract when auto-discovered', async () => {
     // Arrange
-    const discovered = await createTestMockApp({ auth: 'fixture' });
+    const discovered = await createTestMockApp();
 
     // Assert
     expect(discovered.loaded).toContain('bids/index');

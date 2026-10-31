@@ -8,7 +8,7 @@ Sources:
 - `docs/architecture-brief.md`: §5.6 tenant scoping; §6.1 to §6.3.
 - `docs/PRD.md`: §3 business concepts (amount distinctions); FR-04 (§7.1); FR-05 (§7.2); §8.1 procurement request lifecycle; BR-01, BR-06, BR-10; screens BUY-02 to BUY-06, PUB-06; AC-05, AC-39.
 - `docs/plan/demo-storyline.md`: Requests and planning; Tenders (T-2026-0004, T-2026-0009).
-- `docs/plan/design-decisions.md`: DD-01 (forward FKs), DD-03 (`[S]` and `[R]` tags), DD-09 (reference formats), DD-10 (identity defaults), DD-16 (unowned tables), DD-18 (grant and approval expiry jobs), DD-24 (approver permissions), DD-39 (idempotency), DD-40 (deferred procedure value), DD-43 (real Supabase Auth from Stage A), DD-44 (email channel); §E owner decisions of 2026-09-29 (item 8 prototype behaviour).
+- `docs/plan/design-decisions.md`: DD-01 (forward FKs), DD-03 (`[S]` and `[R]` tags), DD-09 (reference formats), DD-10 (identity defaults), DD-16 (unowned tables), DD-18 (grant and approval expiry jobs), DD-24 (approver permissions), DD-39 (idempotency), DD-40 (deferred procedure value), DD-43 (real Supabase Auth; superseded for Stage A by DD-50 and moved to Stage B), DD-50 (Stage A is a static prototype: persona picker, mock API in the browser, no Supabase or Docker), DD-44 (email channel); §E owner decisions of 2026-09-29 (item 8 prototype behaviour).
 
 Contents:
 - [1. Scope, tenancy and ownership](#1-scope-tenancy-and-ownership)
@@ -534,7 +534,7 @@ Operators have no routine access (PRD §4.1). Requesters cannot publish or award
 | Jobs | none specific | No job in architecture-plan §3.9 sweeps these tables. `deadline-reminders` covers approval-due reminders through `approval_requests`, and `expire-approvals` (owner approvals, `5 * * * *`) expires approval requests past `expires_at` and notifies owners (DD-18). |
 | Idempotent creates | `request_idempotency` ([12-records-reporting-operations.md](12-records-reporting-operations.md)) | Commands that create records (for example creating a request) accept an optional `Idempotency-Key` header, kept for 24 hours (DD-39). |
 
-**Stage A.** The mock API serves `src/mock-api/fixtures/requests.ts` (and planning fixtures), typed against `src/contracts/requests.ts`. Commands such as submit and approve validate the request and return a static contract-valid response; nothing persists (architecture-plan §0; owner decision 2026-09-29). Buyer personas such as `mpho.manager` and `keabetswe.approver` are real accounts in the local Supabase Auth, created by `npm run auth:personas`. The mock API verifies each Supabase JWT and maps the verified email to its fixture persona (DD-43).
+**Stage A.** The mock API serves `src/mock-api/fixtures/requests.ts` (and planning fixtures), typed against `src/contracts/requests.ts`. Commands such as submit and approve validate the request and return a static contract-valid response; nothing persists (architecture-plan §0; owner decision 2026-09-29). Buyer personas such as `mpho.manager` and `keabetswe.approver` are chosen in the sign-in page's persona picker; the in-browser mock API maps the chosen persona to its fixture persona, and Stage A uses no Supabase and no Docker (DD-50).
 
 ## 10. Demo storyline coverage
 

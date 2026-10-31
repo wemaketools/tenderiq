@@ -35,7 +35,6 @@ let api: TestMockApp;
 
 beforeAll(async () => {
   api = await createTestMockApp({
-    auth: 'fixture',
     modules: [{ name: 'requests', register }],
     now: () => new Date('2026-09-30T08:00:00Z'),
   });

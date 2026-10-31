@@ -1,6 +1,8 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { syncServerClock } from '../../../../lib/clock';
 
 import { installFetch, problem } from '../../../../test/fetchMock';
 import { renderWithProviders } from '../../../../test/render';
@@ -38,6 +40,11 @@ function render() {
     route: '/buyer/clarifications/questions',
   });
 }
+
+beforeEach(() => {
+  // The application clock at the session's server time, so "overdue" is judged on the fixtures' dates, not today's.
+  syncServerClock('2026-09-29T08:00:00Z');
+});
 
 afterEach(() => {
   vi.unstubAllGlobals();

@@ -43,10 +43,8 @@ export default {
     acceptedTitle: 'This invitation was already accepted',
     acceptedBody: 'Sign in and choose the organization to continue.',
     contactAdmin: 'This link cannot be used. Nothing else about the organization is shown.',
-    signInFirst:
-      'Sign in with the invited address ({email}) to accept. If you do not have a password yet, recover access first.',
+    signInFirst: 'Sign in as the invited person ({email}) to accept.',
     signIn: 'Sign in to accept',
-    recover: 'Recover access',
     signedInAs: 'Signed in as {email}.',
     confirmCapacity: 'I will act for {organization} as {capacity}.',
     accept: 'Accept invitation',

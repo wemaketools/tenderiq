@@ -1,8 +1,8 @@
 # TenderIQ CI (architecture brief §12, technical docs 10-deployment-environments §9).
 #
-# Stage A (UI prototype): one `verify` job. The local Supabase stack runs for AUTHENTICATION ONLY (DD-43): the
-# mock API tests and the Playwright prototype project sign in with real ES256 tokens from it. There is no
-# application schema, so there is no reset, integration suite or db:validate yet.
+# Stage A (static UI prototype): one `verify` job. It needs no Docker and no environment file (DD-50): the mock API
+# runs in the browser and sign-in is the persona picker. There is no Supabase, application schema, reset,
+# integration suite or db:validate yet.
 # Stage B extends `verify` to the full brief §12 step list and enables the `migrate` job reserved at the end.
 # App deploys are not a CI step: Vercel's Git integration builds on push (brief §12).
 
@@ -51,29 +51,7 @@ jobs:
           npx tsc --version
           npx vitest --version
           npx eslint --version
-          npx supabase --version
           npx playwright --version
-
-      - name: Start the local Supabase stack (Auth for real sign-in, DD-43)
-        run: npm run supabase:start
-
-      - name: Write a throwaway .env.local from supabase status
-        run: |
-          eval "$(npx supabase status -o env | grep -E '^(API_URL|ANON_KEY|SERVICE_ROLE_KEY)=')"
-          test -n "$API_URL" && test -n "$ANON_KEY" && test -n "$SERVICE_ROLE_KEY"
-          echo "::add-mask::$SERVICE_ROLE_KEY"
-          {
-            echo "APP_ENV=local"
-            echo "LOG_LEVEL=info"
-            echo "SUPABASE_URL=$API_URL"
-            echo "SUPABASE_ANON_KEY=$ANON_KEY"
-            echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
-            echo "VITE_SUPABASE_URL=$API_URL"
-            echo "VITE_SUPABASE_ANON_KEY=$ANON_KEY"
-          } > .env.local
-
-      - name: Create the demo accounts in local Supabase Auth
-        run: npm run auth:personas
 
       - name: Typecheck (backend, contracts, mock API, scripts)
         run: npm run typecheck
@@ -87,7 +65,7 @@ jobs:
       - name: Lint (SPA, including Prettier)
         run: npm run lint:ui
 
-      - name: Unit tests (contracts, mock API with real JWT verification, scripts)
+      - name: Unit tests (contracts, mock API with the prototype persona token, scripts)
         run: npm run test:unit
 
       - name: SPA tests (fail on skipped tests, enforce the count floor)
@@ -113,10 +91,6 @@ jobs:
           name: playwright-report
           path: e2e_tests/playwright-report
           retention-days: 7
-
-      - name: Stop the local Supabase stack
-        if: always()
-        run: npm run supabase:stop
 
   # ── Reserved for Stage B (brief §12) ─────────────────────────────────────────────────────────────────────────
   # The schema deploy job needs supabase/migrations, which exist only from Stage B. Stage B's scaffold step enables
@@ -152,7 +126,7 @@ jobs:
   #         node-version: 24
   #         cache: npm
   #     - run: npm ci
-  #     - name: Generate a local signing key (only to satisfy CLI config parsing)
+  #     - name: Generate a local signing key (only to satisfy CLI config parsing; the script returns in Stage B)
   #       run: node scripts/db/ensure-signing-keys.mjs
   #     - run: npx supabase link --project-ref "$SUPABASE_PROJECT_REF"
   #     - name: Pending migrations (audit trail)

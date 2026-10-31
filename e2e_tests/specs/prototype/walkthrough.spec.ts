@@ -11,7 +11,7 @@
  * error state, and (unless the capture demonstrates it) no restricted state. The checks are soft, so one broken
  * screen is reported without hiding the remaining screenshots.
  *
- * Prerequisites: as shell.spec.ts (local Supabase running, `npm run auth:personas`).
+ * No prerequisites: Playwright starts Vite, and the mock API runs in the page (DD-50).
  * Run: `npm run test:e2e:prototype -- walkthrough.spec.ts` (the servers start on the prototype port pair).
  */
 import { mkdirSync } from 'node:fs';
@@ -19,7 +19,6 @@ import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
-const PASSWORD = 'test1234';
 const WIDTH = 1600;
 const HEIGHT = 1000;
 /** The tallest capture; longer pages are cut here so the walkthrough stays readable. */
@@ -53,7 +52,6 @@ async function openDialog(page: Page, button: RegExp): Promise<void> {
 const SHOTS: readonly Shot[] = [
   // Common screens (COM).
   { id: 'COM-01', persona: null, path: '/signin' },
-  { id: 'COM-01', persona: null, path: '/forgot-password', variant: 'recovery' },
   { id: 'COM-02', persona: 'sam.dual', path: '/select-organization' },
   { id: 'COM-03', persona: 'tebogo.officer', path: '/me/profile' },
   { id: 'COM-04', persona: 'tebogo.officer', path: '/me/tasks' },
@@ -258,9 +256,7 @@ function fileName(shot: Shot): string {
 
 async function signIn(page: Page, localPart: string, organization?: string): Promise<void> {
   await page.goto('/signin');
-  await page.getByLabel('Email address').fill(`${localPart}@tenderiq.local`);
-  await page.getByLabel('Password').fill(PASSWORD);
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await page.locator(`[data-persona="${localPart}@tenderiq.local"]`).click();
   await expect(page).not.toHaveURL(/\/signin/);
   const chooser = page.getByRole('list', { name: 'Your organizations' });
   await expect(page.locator('#tiq-main').or(chooser)).toBeVisible();

@@ -1,5 +1,5 @@
 /**
- * Handler auto-discovery and isolation (registry.ts): a module that fails to import, has no `register`, throws while
+ * Handler discovery and isolation (registry-discovery.ts, registry.ts): a module that fails to import, has no `register`, throws while
  * registering or claims another module's route is logged and skipped; the others keep serving.
  */
 import { fileURLToPath } from 'node:url';
@@ -7,7 +7,8 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 import { createTestMockApp } from '../index.js';
-import { DEFAULT_HANDLERS_DIR, discoverHandlerModules, listHandlerFiles, registerModules } from '../../registry.js';
+import { registerModules } from '../../registry.js';
+import { DEFAULT_HANDLERS_DIR, discoverHandlerModules, listHandlerFiles } from '../../registry-discovery.js';
 import { MockRouteCollector, mockRoute } from '../../middleware/routes.js';
 import { updateTheme } from '../../../contracts/session.js';
 
@@ -44,7 +45,7 @@ describe('listHandlerFiles', () => {
 describe('module isolation', () => {
   it('loads the good modules and reports each broken one with its stage', async () => {
     // Act
-    const api = await createTestMockApp({ handlersDir: SAMPLES, auth: 'fixture' });
+    const api = await createTestMockApp({ handlersDir: SAMPLES });
 
     // Assert
     expect(api.loaded).toEqual(['a-good', 'good-dir/index']);
@@ -59,7 +60,7 @@ describe('module isolation', () => {
 
   it('keeps serving the good modules and drops every route of a module that failed midway', async () => {
     // Arrange
-    const api = await createTestMockApp({ handlersDir: SAMPLES, auth: 'fixture' });
+    const api = await createTestMockApp({ handlersDir: SAMPLES });
 
     // Act
     const good = await api.request('GET', '/api/v1/public/registry-sample/ping');

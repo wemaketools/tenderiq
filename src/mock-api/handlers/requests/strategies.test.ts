@@ -25,7 +25,7 @@ const ODC_OFFICER = 'officer.odc@tenderiq.local';
 let api: TestMockApp;
 
 beforeAll(async () => {
-  api = await createTestMockApp({ auth: 'fixture', modules: [{ name: 'requests', register }], now: () => new Date('2026-09-30T08:00:00Z') });
+  api = await createTestMockApp({ modules: [{ name: 'requests', register }], now: () => new Date('2026-09-30T08:00:00Z') });
 });
 
 type CallOptions = Parameters<TestMockApp['callAs']>[2];

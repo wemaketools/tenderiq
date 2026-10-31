@@ -33,6 +33,7 @@ import {
   PORTAL_SETTINGS,
   PUBLICATIONS,
   TENDERS,
+  base64Of,
   documentBytes,
 } from '../../fixtures/publication.js';
 import type {
@@ -520,7 +521,7 @@ export function isAdvertised(tender: FixtureTender): boolean {
 export function downloadLinkOf(document: FixtureDocument, now: Date) {
   const bytes = documentBytes(document.spec);
   return {
-    url: `data:${document.contentType};base64,${bytes.toString('base64')}`,
+    url: `data:${document.contentType};base64,${base64Of(bytes)}`,
     expiresAt: isoInstant(new Date(now.getTime() + 15 * 60 * 1000)),
     fileName: document.fileName,
     contentType: document.contentType,

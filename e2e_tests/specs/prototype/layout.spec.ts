@@ -10,16 +10,14 @@
  * - A record header keeps its buttons on the first row, beside the text, at the same place on every tab: the record
  *   meta runs full width below the buttons, so it never pushes them onto a row of their own.
  *
- * Prerequisites: the local Supabase stack is running and the demo accounts exist (`npm run auth:personas`).
+ * No prerequisites: Playwright starts Vite, and the mock API runs in the page (DD-50).
  */
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
 async function signInAsOfficer(page: Page): Promise<void> {
   await page.goto('/signin');
-  await page.getByLabel('Email address').fill('tebogo.officer@tenderiq.local');
-  await page.getByLabel('Password').fill('test1234');
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await page.locator('[data-persona="tebogo.officer@tenderiq.local"]').click();
   await expect(page).toHaveURL(/\/buyer/);
 }
 

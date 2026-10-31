@@ -2,7 +2,7 @@
   "name": "tenderiq",
   "version": "0.1.0",
   "private": true,
-  "description": "TenderIQ (Tender Intelligence): multi-organization tender management. Stage A: UI prototype on typed API contracts and a static-data mock API.",
+  "description": "TenderIQ (Tender Intelligence): multi-organization tender management. Stage A: static UI prototype on typed API contracts, with the static-data mock API running in the browser.",
   "type": "module",
   "engines": {
     "node": "24.x"
@@ -12,12 +12,7 @@
     "e2e_tests"
   ],
   "scripts": {
-    "supabase:start": "node scripts/db/ensure-signing-keys.mjs && supabase start",
-    "supabase:stop": "supabase stop",
-    "supabase:status": "supabase status",
-    "auth:personas": "tsx --env-file-if-exists=.env.local scripts/dev/seed-auth-personas.ts",
-    "dev:prototype": "node scripts/dev/dev-prototype.mjs",
-    "dev:mock-api": "tsx watch --clear-screen=false --env-file-if-exists=.env.local scripts/dev/serve-mock-api.ts --port 3001",
+    "dev:prototype": "npm run dev -w @tenderiq/ui",
     "typecheck": "tsc -p tsconfig.server.json",
     "typecheck:ui": "npm run typecheck -w @tenderiq/ui",
     "lint": "eslint --no-error-on-unmatched-pattern api src/server src/contracts src/mock-api scripts",

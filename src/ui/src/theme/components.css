@@ -2655,6 +2655,7 @@ ol.tiq-stack {
 .tiq-demo-accounts {
   width: 100%;
   max-width: 640px;
+  margin-top: var(--tiq-space-4);
 }
 .tiq-demo-group + .tiq-demo-group {
   margin-top: var(--tiq-space-3);

@@ -4,9 +4,9 @@ Status: As-designed (pre-build). Updated to as-built at the end of Stage A and S
 
 Sources:
 - `docs/architecture-brief.md`: §1 (platform summary and exclusions), §2 (layout of `api/cron`, `api/queue`, `src/server/jobs`, `scripts/jobs`), §3.1 (`vercel.json` functions and the ban on `crons`), §3.3 (serverless constraints), §4.3 (npm scripts), §5.6 (pooler rules), §7.4 and §7.5 (local jobs), §8.1 (`CRON_SECRET`, `INTERNAL_JOB_SECRET`, `JOB_CRON_BASE_URL`), §9 (scheduling, protection, job state, sweeps, queues, documentation), §11 (guard tests), §12 (CI `migrate` job), §13 (smoke tests, rollback, pausing)
-- `docs/plan/architecture-plan.md` (revision 3): §0 (jobs are Stage B; Stage A uses only Supabase Auth), §3.8 (notifications queue; `in_app` and `email` channels), §3.9 (job catalog and queues, as amended by DD-18 and DD-19), §3.11 (local Supabase stack from Stage A), §4 (layout, registries `jobs/cron/registry.ts` and `jobs/queue/handlers.ts`, shared table owners), §5 (Stage B ownership: `platform-data-auth` owns `jobs/**`, Integration wires cron and queue), §8 (Stage B tests), §11 (owner decisions of 2026-09-29: item 3 email channel, item 6 Node 24)
+- `docs/plan/architecture-plan.md` (revision 3): §0 (jobs are Stage B; Stage A uses no Supabase, DD-50), §3.8 (notifications queue; `in_app` and `email` channels), §3.9 (job catalog and queues, as amended by DD-18 and DD-19), §3.11 (prototype mode: fully static since DD-50; the local Supabase stack starts in Stage B), §4 (layout, registries `jobs/cron/registry.ts` and `jobs/queue/handlers.ts`, shared table owners), §5 (Stage B ownership: `platform-data-auth` owns `jobs/**`, Integration wires cron and queue), §8 (Stage B tests), §11 (owner decisions of 2026-09-29: item 3 email channel, item 6 Node 24)
 - `docs/plan/schema-blueprint.md`: Migration 00 (extensions), Migration 01 (job platform tables, helpers, queues, buckets), Migration 13 (`request_idempotency`, `exports`, `report_definitions`, `report_runs`), Migration 14 (`cron.schedule` rows), and the tables each job reads (Migrations 01 to 13)
-- `docs/plan/design-decisions.md`: DD-06 (`job_run.status` values), DD-11 (partition tenant of notifications and support-access audit rows), DD-14 (`final_award` approval), DD-15 (release time and deadline authority), DD-16 (owners of `tasks` and `exports`, export registry), DD-18 (expiry jobs split by table owner), DD-19 (added jobs and alert deduplication keys), DD-20 (expiry semantics), DD-39 (`request_idempotency` retention), DD-42 (acknowledgment authority), DD-43 (local Supabase stack from Stage A, Auth only), DD-44 (email channel over SMTP, Mailpit locally, hosted provider deferred), DD-45 (Node 24); §E (owner decisions of 2026-09-29)
+- `docs/plan/design-decisions.md`: DD-06 (`job_run.status` values), DD-11 (partition tenant of notifications and support-access audit rows), DD-14 (`final_award` approval), DD-15 (release time and deadline authority), DD-16 (owners of `tasks` and `exports`, export registry), DD-18 (expiry jobs split by table owner), DD-19 (added jobs and alert deduplication keys), DD-20 (expiry semantics), DD-39 (`request_idempotency` retention), DD-42 (acknowledgment authority), DD-43 (local Supabase stack from Stage A, Auth only; superseded for Stage A by DD-50), DD-44 (email channel over SMTP, Mailpit locally, hosted provider deferred), DD-45 (Node 24), DD-50 (Stage A is a fully static prototype with no Supabase or Docker); §E (owner decisions of 2026-09-29)
 - `docs/plan/email-delivery-options.md`: §1 to §3 (content rule, local Mailpit setup, hosted provider options, deferred)
 - `docs/plan/tenderiq-backend.workflow.js`: tasks `scaffold-b` (email variables in `.env.local`), `platform-http` (`lib/config` extended with the email variables) and `svc-notifications` (the `email` channel, Mailpit's API in integration tests)
 - `docs/PRD.md`: BR-13, BR-25, BR-37, BR-40, BR-41, BR-42, BR-43, BR-47; §14.1 (exports), §14.3 (notification events); AC-09, AC-25, AC-32, AC-35
@@ -34,7 +34,7 @@ Related: [02-architecture.md](02-architecture.md) (components), [06-key-flows.md
 
 ## 1. Scope and stage
 
-- **Stage B only.** Stage A builds no job platform. The local Supabase stack runs in Docker from Stage A, but Stage A uses only its Auth service and has no application schema (DD-43), so there are no job tables, schedules or queues. The mock API persists nothing, so states that jobs would produce in Stage B, such as overdue obligations, expired grants, reminders, expiry triggers and contracts past their dates, appear as static fixtures from the demo storyline (architecture-plan §0, §10).
+- **Stage B only.** Stage A builds no job platform. Stage A is a static prototype with no Supabase, no Docker and no database (DD-50), so there are no job tables, schedules or queues; the local Supabase stack starts in Stage B. The mock API persists nothing, so states that jobs would produce in Stage B, such as overdue obligations, expired grants, reminders, expiry triggers and contracts past their dates, appear as static fixtures from the demo storyline (architecture-plan §0, §10).
 - **Platform rules** (brief §9): no resident worker, no in-memory schedules, no exactly-once assumptions, no Vercel Cron. `vercel.json` never has a `crons` key, and a regression test fails if it gains one (brief §3.1). Supabase Edge Functions and Redis are not used (brief §1).
 - **Two mechanisms.** Scheduled sweeps (pg_cron to a Vercel function per job) reconcile state on a timetable. Queues (pgmq) carry work that follows a committed business transaction: notification fan-out and delivery (the `in_app` channel, and the `email` channel where it is enabled, DD-44), and export generation.
 - **One code path.** The deployed endpoints and the local npm scripts run the same handler code in `src/server/jobs/` and `src/server/domains/<domain>/jobs/`.
@@ -545,7 +545,7 @@ CI `migrate` job (brief §12): after `supabase db push --yes` and `db:seed -- --
 - **Local.** The Stage B `.env.local` sets `EMAIL_ENABLED=true`, `SMTP_HOST=127.0.0.1`, `SMTP_PORT=54325` and `EMAIL_FROM=notices@tenderiq.local`.
 - **Hosted.** The provider is deferred. Until SMTP is configured in a hosted environment, notices there are in-app only (architecture-plan §11 item 3). The same SMTP credentials will also serve Supabase Auth in hosted environments.
 
-`vercel.json` gives `api/cron/*.ts` and `api/queue/*.ts` `maxDuration: 60`, and has no `crons` key.
+From Stage B, `vercel.json` gives `api/cron/*.ts` and `api/queue/*.ts` `maxDuration: 60`, and has no `crons` key. The Stage A `vercel.json` serves static files only and has no `functions` block (DD-50).
 
 ## 11. Local development
 
@@ -560,7 +560,7 @@ CI `migrate` job (brief §12): after `supabase db push --yes` and `db:seed -- --
 | `npm run queue:enqueue:test` | Enqueues a test message |
 | `npm run jobs:status` | Job history, recent failures, stale runs, queue backlog, oldest-message age, dead-letter count. `--json` for machine output. |
 
-Scripts load `.env.local` with `tsx --env-file-if-exists=.env.local`. Vite also proxies `/api/cron` to the local API runner on `127.0.0.1:3001` for manual endpoint testing (brief §7.4).
+Scripts load `.env.local` with `tsx --env-file-if-exists=.env.local`. From Stage B, Vite also proxies `/api/cron` to the local API runner on `127.0.0.1:3001` for manual endpoint testing (brief §7.4); the Stage A Vite config has no proxy (DD-50).
 
 Typical local loop after a change to a job-driven flow:
 1. Exercise the UI.
@@ -568,7 +568,7 @@ Typical local loop after a change to a job-driven flow:
 3. Run `npm run cron:run -- <job>` for the sweep under test.
 4. Check `npm run jobs:status`.
 
-In Stage A (`npm run dev:prototype`), the local Supabase stack runs for Auth only. There is no application schema and no job platform (DD-43). Job outcomes appear only as fixtures, and the prototype sends no notice emails. Mailpit shows only Supabase Auth's password-reset emails; Auth invitation and registration emails arrive from Stage B, when the real API calls the Auth Admin invite.
+In Stage A (`npm run dev:prototype`, Vite only), there is no Supabase stack, no application schema and no job platform (DD-50). Job outcomes appear only as fixtures, and the prototype sends no email of any kind. Mailpit, Supabase Auth's emails and the `email` channel all arrive in Stage B.
 
 ## 12. Observability and verification
 

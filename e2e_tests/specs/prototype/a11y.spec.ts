@@ -8,13 +8,12 @@
  * dialogs (approve, submit) are checked in their open state, and the phone layout (drawer, top bar) is checked at
  * 390px.
  *
- * Prerequisites: as shell.spec.ts (local Supabase running, `npm run auth:personas`).
+ * No prerequisites: Playwright starts Vite, and the mock API runs in the page (DD-50).
  */
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
-const PASSWORD = 'test1234';
 const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
 const THEMES = ['light', 'dark'] as const;
 
@@ -31,9 +30,7 @@ const PERSONAS = [
 
 async function signIn(page: Page, localPart: string): Promise<void> {
   await page.goto('/signin');
-  await page.getByLabel('Email address').fill(`${localPart}@tenderiq.local`);
-  await page.getByLabel('Password').fill(PASSWORD);
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await page.locator(`[data-persona="${localPart}@tenderiq.local"]`).click();
   await expect(page.locator('#tiq-main')).toBeVisible();
 }
 

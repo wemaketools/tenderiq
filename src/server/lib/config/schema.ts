@@ -1,8 +1,8 @@
 /**
  * The typed server environment (architecture brief §5.4, §8.1).
  *
- * Stage A subset (DD-43): the mock API verifies real Supabase JWTs and `npm run auth:personas` provisions the demo
- * accounts, so only these variables exist yet:
+ * Kept for Stage B: the Stage A static prototype reads none of these (DD-50). This is the subset written in Stage A
+ * under DD-43, when the mock API verified real Supabase JWTs; Stage B extends it:
  *
  * | Variable                    | Required | Purpose                                                            |
  * |-----------------------------|----------|--------------------------------------------------------------------|

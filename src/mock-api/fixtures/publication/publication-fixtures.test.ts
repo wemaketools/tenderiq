@@ -103,7 +103,7 @@ describe('publication fixtures are internally consistent', () => {
   it('publishes document sizes and digests of the exact downloadable bytes', () => {
     for (const document of TENDERS.flatMap((tender) => tender.documents)) {
       const bytes = documentBytes(document.spec);
-      expect(bytes.subarray(0, 8).toString('latin1')).toBe('%PDF-1.4');
+      expect(Buffer.from(bytes.subarray(0, 8)).toString('latin1')).toBe('%PDF-1.4');
       expect(bytes.length).toBe(document.sizeBytes);
       expect(createHash('sha256').update(bytes).digest('hex')).toBe(document.sha256);
     }
@@ -291,7 +291,7 @@ describe('every read endpoint answers contract-valid data for the whole demo wor
   let api: TestMockApp;
 
   beforeAll(async () => {
-    api = await createTestMockApp({ auth: 'fixture', modules: [{ name: 'publication', register }], now: () => new Date('2026-09-30T08:00:00Z') });
+    api = await createTestMockApp({ modules: [{ name: 'publication', register }], now: () => new Date('2026-09-30T08:00:00Z') });
   });
 
   it('serves every buyer tender to its owner', async () => {
