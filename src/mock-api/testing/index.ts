@@ -22,12 +22,19 @@ import type { AnyEndpoint, PathParamValue, QueryValue } from '../../contracts/en
 import type { VerifyResult } from '../../server/lib/auth/verify.js';
 import { getConfig } from '../../server/lib/config/index.js';
 import { createMockApp } from '../app.js';
+import { DEMO_AS_OF } from '../fixtures/demo-clock.js';
 import type { CreateMockAppOptions, MockApi } from '../app.js';
 import type { TokenVerifier } from '../middleware/chain.js';
 import { findTenantBySlug } from '../persona.js';
 
 /** The local-only password of every demo persona (docs/plan/demo-storyline.md). */
 export const DEMO_PERSONA_PASSWORD = 'test1234';
+
+/**
+ * The clock of every test app unless a test passes `now`. Fixed inside the seeded support grant window
+ * (2026-09-28 to 2026-10-12): on the real clock those tests would fail once the grant expires.
+ */
+export const TEST_NOW = new Date(DEMO_AS_OF);
 
 const FIXTURE_TOKEN_PREFIX = 'fixture-persona.';
 
@@ -136,6 +143,7 @@ export async function createTestMockApp(options: CreateTestMockAppOptions = {}):
   const api = await createMockApp({
     appEnv: 'local',
     logLevel: 'debug',
+    now: () => TEST_NOW,
     ...rest,
     logSink: (line) => logs.push(line),
     ...(verifyToken !== undefined ? { verifyToken } : auth === 'fixture' ? { verifyToken: fixtureTokenVerifier } : {}),
