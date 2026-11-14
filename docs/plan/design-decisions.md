@@ -138,6 +138,16 @@ Owner review: a procurement officer's dashboard showed a "Workload by owner" car
   - Explanations of state or business rules that are not about the user's role, such as sealed until opening, not yet released, "submit your own assessment first", locked revisions, and redacted audit entries.
 - **Tests.** The Playwright accessibility sweep fails when any sidebar or top bar destination of eight roles shows a restricted placeholder. `shell.spec.ts` checks the officer's dashboard (no Workload by owner) against the manager's.
 
+### DD-50 — Sidebar: the whole account menu and a width toggle in the icon rail (2026-11-14)
+
+Pilot feedback: a tester saw that in the icon rail the account menu was cut off at the edge of the 72px strip, and a screen's name could only be read by hovering its icon. It amends DD-36 and DD-48.
+- **The menu.** `.tiq-sidebar` clipped sideways (`overflow-x: hidden`), so the 240px menu of the user card was cut at 72px. Between 768 and 1279px the sidebar now has `overflow: visible`, and the scrolling for a short window moved to the navigation list (`.tiq-nav`, `overflow-y: auto`), so the brand, the user card and the toggle stay in view. The menu opens in full over the page in both themes. At 1280px and above, and in the drawer below 768px, the layout is as it was.
+- **The toggle.** A button at the bottom of the sidebar, labelled "Full sidebar": icon only in the rail (the label is its tooltip and accessible name), icon and label in the full sidebar. The name stays the same and `aria-expanded` carries the state. It is rendered only from 768 to 1279px (`RAIL_QUERY`, the range of the rail's CSS), so nothing exists to focus at 1280px and above or in the drawer.
+- **Expanded means the full sidebar** of 1280px and above: tenant, wordmark, "Tender Intelligence", the section headings of DD-48 with their open and closed state, and the user card with its name. It **pushes** the content (the grid column becomes `--tiq-sidebar-width`) and does not float over it, because an overlay would hide the left edge of the page with no way to scroll to it. The cost is room: at 768px the content is 524px wide, so below 1200px the top bar gives the page title its own row and the section action, search and icons share a second row. The full sidebar has a hairline on its right edge, so it reads against the page in the dark theme.
+- **Remembered per browser** under `localStorage` `tiq.sidebar` (`readStoredSidebarExpanded` and `storeSidebarExpanded` in `lib/storage.ts`, guarded like `tiq.theme`). Only the value "expanded" expands; no value, "collapsed" or anything else is collapsed. The choice is kept while the window is outside the range and applies again on return; it is a view preference, not part of the session.
+- **Not built:** the toggle at 1280px and above (the full sidebar is the only layout there), a hover-to-expand rail, and closing the full sidebar by clicking the page.
+- Tests: `shell.test.tsx` (the toggle, the stored value, the sectioned sidebar after expanding), Playwright `shell.spec.ts` (the menu in full at 1100px, the toggle and its reload).
+
 ## E. Owner decisions
 
 Status after the owner review of 2026-09-29 (details in architecture-plan §11):

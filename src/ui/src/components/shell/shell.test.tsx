@@ -412,7 +412,7 @@ describe('AppShell navigation drawer (below 768px)', () => {
     const original = window.matchMedia;
     vi.spyOn(window, 'matchMedia').mockImplementation((query: string) => ({
       ...original(query),
-      matches: query === '(max-width: 767px)' || query === '(max-width: 1279px)',
+      matches: query === '(max-width: 767px)',
     }));
   }
 
@@ -459,6 +459,90 @@ describe('AppShell navigation drawer (below 768px)', () => {
     const action = screen.getByRole('link', { name: 'Switch organization' });
     expect(action).toHaveClass('tiq-icon-btn', 'tiq-topbar-section-action');
     expect(action).toHaveAttribute('href', '/buyer/clarifications/new');
+  });
+});
+
+describe('AppShell full-sidebar toggle (768 to 1279px, DD-50)', () => {
+  const sectioned: FeatureModule[] = [
+    {
+      id: 'sectioned',
+      area: 'buyer',
+      routes: [],
+      nav: [
+        {
+          id: 'b.tasks',
+          label: 'shell.topbar.tasks',
+          path: 'tasks',
+          section: 'work',
+          order: 1,
+          icon: 'checkSquare',
+        },
+        {
+          id: 'b.docs',
+          label: 'shell.user.profile',
+          path: 'docs',
+          section: 'work',
+          order: 2,
+          icon: 'folder',
+        },
+      ],
+    },
+  ];
+
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
+  const original = window.matchMedia;
+  function mockRail(rail: boolean): void {
+    vi.spyOn(window, 'matchMedia').mockImplementation((query: string) => ({
+      ...original(query),
+      matches: rail && query === '(min-width: 768px) and (max-width: 1279px)',
+    }));
+  }
+
+  it('offers the toggle only in the icon rail, keeps the choice, swaps the rail for the sectioned sidebar and treats an unknown value as collapsed', async () => {
+    mockRail(false);
+    const wide = renderWithProviders(<AppShell modules={sectioned} />, {
+      state: { session: signedInSession() },
+      route: '/buyer/tasks',
+    });
+    expect(screen.queryByRole('button', { name: 'Full sidebar' })).not.toBeInTheDocument();
+    wide.unmount();
+
+    window.localStorage.setItem('tiq.sidebar', 'sideways');
+    mockRail(true);
+    const rail = renderWithProviders(<AppShell modules={sectioned} />, {
+      state: { session: signedInSession() },
+      route: '/buyer/tasks',
+    });
+    const toggle = screen.getByRole('button', { name: 'Full sidebar' });
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(document.querySelector('.tiq-app')).not.toHaveClass('tiq-app--sidebar-expanded');
+    expect(screen.queryByRole('button', { name: 'My work' })).not.toBeInTheDocument();
+
+    await userEvent.click(toggle);
+
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    expect(toggle).toHaveFocus();
+    expect(document.querySelector('.tiq-app')).toHaveClass('tiq-app--sidebar-expanded');
+    expect(screen.getByRole('button', { name: 'My work' })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+    expect(window.localStorage.getItem('tiq.sidebar')).toBe('expanded');
+    rail.unmount();
+
+    renderWithProviders(<AppShell modules={sectioned} />, {
+      state: { session: signedInSession() },
+      route: '/buyer/tasks',
+    });
+    const restored = screen.getByRole('button', { name: 'Full sidebar' });
+    expect(restored).toHaveAttribute('aria-expanded', 'true');
+    await userEvent.click(restored);
+    expect(restored).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('button', { name: 'My work' })).not.toBeInTheDocument();
+    expect(window.localStorage.getItem('tiq.sidebar')).toBe('collapsed');
   });
 });
 

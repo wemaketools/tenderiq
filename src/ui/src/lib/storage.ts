@@ -1,6 +1,6 @@
 /**
- * localStorage for conveniences only (DD-36): the remembered active tenant per user, the last theme and the open
- * sidebar sections (DD-48). Nothing here is trusted: the active tenant is re-validated by /me/context and the API
+ * localStorage for conveniences only (DD-36): the remembered active tenant per user, the last theme, the sidebar
+ * width (DD-50) and the open sidebar sections (DD-48). Nothing here is trusted: the active tenant is re-validated by /me/context and the API
  * checks X-Tenant-Id on every call.
  * Every access is guarded, because storage can be unavailable (private mode, blocked site data).
  */
@@ -38,6 +38,15 @@ export function readRememberedTenant(userId: number): number | null {
 
 export function rememberTenant(userId: number, tenantId: number | null): void {
   write(`activeTenant.${userId}`, tenantId === null ? null : String(tenantId));
+}
+
+/** Whether the user chose the full sidebar in the icon rail; anything but "expanded" (or no value) means collapsed. */
+export function readStoredSidebarExpanded(): boolean {
+  return read('sidebar') === 'expanded';
+}
+
+export function storeSidebarExpanded(expanded: boolean): void {
+  write('sidebar', expanded ? 'expanded' : 'collapsed');
 }
 
 export type StoredTheme = 'light' | 'dark';

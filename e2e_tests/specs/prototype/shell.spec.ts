@@ -98,12 +98,30 @@ test.describe('prototype shell', () => {
     await expect(page.getByText('This page is for supplier organizations')).toBeVisible();
   });
 
-  test('the shell collapses to an icon rail below 1280px and a drawer below 768px', async ({ page }) => {
+  test('the shell collapses to an icon rail below 1280px, with an account menu that opens in full and a remembered full-sidebar toggle, and a drawer below 768px', async ({ page }) => {
     await signIn(page, 'tebogo.officer');
     await expect(page).toHaveURL(/\/buyer/);
     await page.setViewportSize({ width: 1100, height: 900 });
     await expect(page.locator('.tiq-brand-name')).toBeHidden();
     await expect(page.locator('.tiq-brand-mark')).toBeVisible();
+    await page.getByRole('button', { name: /^Account menu for/ }).click();
+    const accountMenu = page.getByRole('menu', { name: 'Account menu' });
+    const menuBox = await accountMenu.boundingBox();
+    expect(menuBox?.width).toBeGreaterThan(200);
+    await expect(accountMenu.getByRole('menuitem', { name: 'Sign out' })).toBeInViewport({ ratio: 1 });
+    await expect(page.locator('.tiq-sidebar')).toHaveCSS('overflow-x', 'visible');
+    await page.keyboard.press('Escape');
+    const fullSidebar = page.getByRole('button', { name: 'Full sidebar' });
+    await expect(fullSidebar).toHaveAttribute('aria-expanded', 'false');
+    await fullSidebar.click();
+    await expect(fullSidebar).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.locator('.tiq-brand-name')).toBeVisible();
+    await page.reload();
+    await expect(page.getByRole('button', { name: 'Full sidebar' })).toHaveAttribute('aria-expanded', 'true');
+    await page.getByRole('button', { name: 'Full sidebar' }).click();
+    await expect(page.locator('.tiq-brand-name')).toBeHidden();
+    await page.setViewportSize({ width: 1400, height: 900 });
+    await expect(page.getByRole('button', { name: 'Full sidebar' })).toHaveCount(0);
     await page.setViewportSize({ width: 700, height: 900 });
     const menuButton = page.getByRole('button', { name: 'Open navigation' });
     await expect(menuButton).toBeVisible();

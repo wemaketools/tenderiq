@@ -460,7 +460,7 @@ The shell follows `docs/css` and `docs/screenshots/overview.png` (architecture-p
 - Theme: `docs/css/theme/*.css` is ported to `src/ui/src/theme/`, with `--qiq-*`/`.qiq-*` renamed to `--tiq-*`/`.tiq-*`. Light and dark themes are token-driven. The user's choice is stored in `users.theme` through `/me/theme`. Components never contain raw hex values or literal pixel gaps, and a guard test enforces this.
 - CSS port (DD-34): literal pixel gaps become spacing tokens; QuoteIQ-only tokens and chips (`series-*`, `quadrant-*`, `quoted/won/lost`) are dropped; chips are generated per TenderIQ enum tone; in dark mode, brand and nav hover text use a sidebar-legible token. The reference footer bar (amounts currency, "data as of", refresh) is kept for dashboards and reports (PRD §15.2 freshness).
 - Fonts (DD-35): Inter and JetBrains Mono (both OFL) are self-hosted woff2 files in `src/ui/public/fonts`. There is no Google Fonts request and no npm font dependency.
-- Layout (DD-36): below 1280px the sidebar collapses to an icon rail; below 768px it becomes a drawer. Tables scroll horizontally inside their card.
+- Layout (DD-36, DD-50): below 1280px the sidebar collapses to an icon rail whose account menu opens in full over the page, with a "Full sidebar" toggle from 768 to 1279px; below 768px it becomes a drawer. Tables scroll horizontally inside their card.
 - Language (DD-37): English only in this release. All UI strings go through `t()` with per-feature catalogs (`features/<f>/i18n/en.ts`, merged by glob), so languages can be added without refactoring (PRD §19, §25.2).
 - Icons are a hand-rolled inline-SVG set. Printable outputs are print-styled HTML plus XLSX and CSV ([adr/0010-no-icon-or-pdf-dependencies.md](adr/0010-no-icon-or-pdf-dependencies.md)).
 - Accessibility (PRD §19): keyboard operation, a focus-ring token, labelled inputs, `aria-live` for progress, and axe checks in E2E. Deadlines always render with the IANA zone name and the numeric offset from Intl, for example `14 Oct 2026, 12:00 (UTC+02:00) Africa/Gaborone`, and never as a countdown alone. A short abbreviation such as CAT is shown only when Intl provides one (DD-33).
@@ -831,7 +831,7 @@ After the owner review of 2026-09-29, every architecture-plan §11 item is accep
 
 ### 10.4 Design decision log entries applied here
 
-`docs/plan/design-decisions.md` (DD-01 … DD-49; DD-38 is withdrawn) amends the plan and the blueprint and wins on conflict. The entries that shape this document:
+`docs/plan/design-decisions.md` (DD-01 … DD-50; DD-38 is withdrawn) amends the plan and the blueprint and wins on conflict. The entries that shape this document:
 
 | Entry | Decision in one line | Where it applies |
 |---|---|---|
