@@ -45,6 +45,9 @@ const apiOrigin = `http://127.0.0.1:${apiPort}`;
 const webOrigin = `http://127.0.0.1:${webPort}`;
 const isCI = Boolean(process.env.CI);
 
+/** The storyline "as of" of the fixtures: the mock API clock (and so the SPA's) starts here, whatever the real date. */
+const PROTOTYPE_NOW = '2026-10-06T08:00:00Z';
+
 export default defineConfig({
   testDir: './specs',
   outputDir: './test-results',
@@ -78,7 +81,7 @@ export default defineConfig({
   webServer: [
     {
       name: 'mock-api',
-      command: `npx tsx --env-file-if-exists=.env.local scripts/dev/serve-mock-api.ts --port ${apiPort}`,
+      command: `npx tsx --env-file-if-exists=.env.local scripts/dev/serve-mock-api.ts --port ${apiPort} --now ${PROTOTYPE_NOW}`,
       cwd: repoRoot,
       url: `${apiOrigin}/api/v1/health`,
       reuseExistingServer: false,
