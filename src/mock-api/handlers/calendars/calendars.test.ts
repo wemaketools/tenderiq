@@ -11,7 +11,7 @@ const OFFICER = 'tebogo.officer@tenderiq.local';
 let api: TestMockApp;
 
 beforeAll(async () => {
-  api = await createTestMockApp({ auth: 'fixture', modules: [{ name: 'calendars', register }] });
+  api = await createTestMockApp({ modules: [{ name: 'calendars', register }] });
 });
 
 describe('calendars module', () => {

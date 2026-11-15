@@ -816,7 +816,7 @@ button:disabled {
   display: none;
 }
 
-/* Icon rail from 768 to 1279px; `.tiq-app--sidebar-expanded` (the user's choice, DD-50) keeps the full sidebar. */
+/* Icon rail from 768 to 1279px; `.tiq-app--sidebar-expanded` (the user's choice, DD-51) keeps the full sidebar. */
 @media (min-width: 768px) and (max-width: 1279px) {
   .tiq-app {
     grid-template-columns: var(--tiq-sidebar-rail-width) minmax(0, 1fr);
@@ -2727,6 +2727,7 @@ ol.tiq-stack {
 .tiq-demo-accounts {
   width: 100%;
   max-width: 640px;
+  margin-top: var(--tiq-space-4);
 }
 .tiq-demo-group + .tiq-demo-group {
   margin-top: var(--tiq-space-3);

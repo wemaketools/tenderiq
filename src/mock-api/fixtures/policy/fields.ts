@@ -234,7 +234,7 @@ export interface FixtureCustomFieldValues {
 }
 
 /** Custom field values already recorded on storyline records (the owning forms show and edit them). */
-export const CUSTOM_FIELD_VALUES: readonly FixtureCustomFieldValues[] = Object.freeze([
+export const CUSTOM_FIELD_VALUES: readonly FixtureCustomFieldValues[] = Object.freeze<FixtureCustomFieldValues[]>([
   // PR-2026-0001 Borehole pump replacement programme (WTR-PUMP), PR-2026-0003, PR-2026-0005
   { tenantId: kwu, entityType: 'procurement_request', recordId: 1, values: { funding_vote_code: 'CAP-2026-0107', is_emergency: false, asset_register_number: 'AR-PMP-2291', business_priority: 'Critical' } },
   { tenantId: kwu, entityType: 'procurement_request', recordId: 3, values: { funding_vote_code: 'DEV-2026-0412', is_emergency: false, business_priority: 'High' } },

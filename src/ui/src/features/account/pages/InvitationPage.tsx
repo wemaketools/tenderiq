@@ -156,7 +156,6 @@ function PreviewCard({
               >
                 {t('account.invite.signIn')}
               </ButtonLink>
-              <ButtonLink to="/forgot-password">{t('account.invite.recover')}</ButtonLink>
             </div>
           </div>
         ) : (

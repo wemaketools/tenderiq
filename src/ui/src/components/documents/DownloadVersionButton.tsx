@@ -1,12 +1,14 @@
 /**
  * Download of one confirmed document version: asks the API for a short-lived signed URL (the access is recorded
- * server-side) and hands it to the browser. Errors surface as a toast with the sanitized message.
+ * server-side) and hands it to the browser. A link the API itself serves (the Stage A prototype copy, which the
+ * in-browser mock API answers, DD-50) is fetched through the API transport and saved. Errors surface as a toast with
+ * the sanitized message.
  */
 import { getDocumentDownloadLink } from '@contracts/documents';
 
-import { isApiError } from '../../api/client';
+import { fetchApiFile, isApiError, isApiUrl } from '../../api/client';
 import { useApiMutation } from '../../api/hooks';
-import { downloadFromUrl } from '../../lib/download';
+import { downloadBlob, downloadFromUrl } from '../../lib/download';
 import { t } from '../../lib/i18n';
 import { Button } from '../ui/Button';
 import { describeError } from '../ui/errors';
@@ -30,7 +32,11 @@ export function DownloadVersionButton({
   const download = async (): Promise<void> => {
     try {
       const result = await link.mutate({ params: { documentId, versionId } });
-      downloadFromUrl(result.url, result.fileName);
+      if (isApiUrl(result.url)) {
+        downloadBlob(await fetchApiFile(result.url, getDocumentDownloadLink.id), result.fileName);
+      } else {
+        downloadFromUrl(result.url, result.fileName);
+      }
     } catch (error) {
       toast.show(
         isApiError(error) ? describeError(error) : t('documentWidget.downloadFailed'),

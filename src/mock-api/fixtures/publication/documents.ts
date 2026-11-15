@@ -5,7 +5,7 @@
  * `sizeBytes` and `sha256` the contracts publish are the exact size and digest of the bytes a download returns.
  * Nothing is random and nothing changes at runtime.
  */
-import { createHash } from 'node:crypto';
+import { sha256Hex } from '../../sha256.js';
 
 import type { DocumentsClassification } from '../../../contracts/enums.js';
 import type { PackageDocument } from '../../../contracts/publication.js';
@@ -37,7 +37,25 @@ function pdfText(value: string): string {
 }
 
 /** Builds a one-page PDF with a title and a few lines of text. */
-export function prototypePdf(title: string, lines: readonly string[]): Buffer {
+/** The bytes of a Latin-1 string (every character of the generated PDF is below U+0100). */
+export function latin1Bytes(text: string): Uint8Array {
+  const bytes = new Uint8Array(text.length);
+  for (let index = 0; index < text.length; index += 1) {
+    bytes[index] = text.charCodeAt(index) & 0xff;
+  }
+  return bytes;
+}
+
+/** Base64 of raw bytes (for `data:` download links), with no Node `Buffer`, so it also runs in the browser. */
+export function base64Of(bytes: Uint8Array): string {
+  let binary = '';
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+  return btoa(binary);
+}
+
+export function prototypePdf(title: string, lines: readonly string[]): Uint8Array {
   const textOps = [
     'BT',
     '/F1 16 Tf',
@@ -52,21 +70,21 @@ export function prototypePdf(title: string, lines: readonly string[]): Buffer {
     '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
     '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>',
     '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
-    `<< /Length ${Buffer.byteLength(textOps, 'latin1')} >>\nstream\n${textOps}\nendstream`,
+    `<< /Length ${textOps.length} >>\nstream\n${textOps}\nendstream`,
   ];
   let body = '%PDF-1.4\n';
   const offsets: number[] = [];
   objects.forEach((object, index) => {
-    offsets.push(Buffer.byteLength(body, 'latin1'));
+    offsets.push(body.length);
     body += `${index + 1} 0 obj\n${object}\nendobj\n`;
   });
-  const xrefOffset = Buffer.byteLength(body, 'latin1');
+  const xrefOffset = body.length;
   body += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
   for (const offset of offsets) {
     body += `${String(offset).padStart(10, '0')} 00000 n \n`;
   }
   body += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`;
-  return Buffer.from(body, 'latin1');
+  return latin1Bytes(body);
 }
 
 /** The static description of one document version. */
@@ -86,7 +104,7 @@ export interface DocumentSpec {
 }
 
 /** The PDF bytes of a document version. */
-export function documentBytes(spec: DocumentSpec): Buffer {
+export function documentBytes(spec: DocumentSpec): Uint8Array {
   return prototypePdf(spec.title, [
     `${spec.buyerName} - ${spec.tenderReference}`,
     `File: ${spec.fileName} (version ${spec.versionNo})`,
@@ -108,7 +126,7 @@ export function packageDocument(spec: DocumentSpec): FixtureDocument {
     fileName: spec.fileName,
     contentType: 'application/pdf',
     sizeBytes: bytes.length,
-    sha256: createHash('sha256').update(bytes).digest('hex'),
+    sha256: sha256Hex(bytes),
     versionNo: spec.versionNo,
     precedence: spec.precedence,
     publishedAt: spec.publishedAt,

@@ -3,7 +3,8 @@
  *
  * Two projects:
  * - `unit`: pure tests in a node environment: src/server/tests/unit, contract tests, mock API tests and
- *   script tests. Stage A mock-platform tests verify REAL Supabase JWTs against the local stack (DD-43).
+ *   script tests. They need no Docker: the Stage A prototype has no Supabase (DD-50), so the one test that
+ *   verifies tokens against the local Supabase stack (`LOCAL_STACK_TESTS`) is left out until Stage B.
  * - `integration`: Stage B tests against the real local Supabase stack, serial, with 180 s timeouts.
  *
  * Environment: tests see the values of the git-ignored `.env.local` in process.env, mirroring the
@@ -19,7 +20,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { parseEnv } from 'node:util';
-import { defineConfig } from 'vitest/config';
+import { configDefaults, defineConfig } from 'vitest/config';
 
 const fromRoot = (relativePath: string): string => fileURLToPath(new URL(relativePath, import.meta.url));
 
@@ -27,6 +28,9 @@ const envFile = fromRoot('./.env.local');
 const localEnv = existsSync(envFile) ? parseEnv(readFileSync(envFile, 'utf8')) : {};
 
 const integrationSuite = fromRoot('./src/server/tests/integration');
+
+/** Tests that need the local Supabase stack in Docker; Stage B brings them back (DD-50). */
+const LOCAL_STACK_TESTS = ['src/server/tests/unit/platform-auth/verify.local-stack.test.ts'];
 const integrationGlobalSetup = fromRoot('./src/server/tests/helpers/global-setup.ts');
 
 export default defineConfig({
@@ -45,6 +49,7 @@ export default defineConfig({
             'src/mock-api/**/*.test.ts',
             'scripts/**/*.test.ts',
           ],
+          exclude: [...configDefaults.exclude, ...LOCAL_STACK_TESTS],
           testTimeout: 20_000,
           hookTimeout: 30_000,
         },

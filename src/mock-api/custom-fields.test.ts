@@ -20,7 +20,7 @@ const email = (login: string): string => `${login}@tenderiq.local`;
 let api: TestMockApp;
 
 beforeAll(async () => {
-  api = await createTestMockApp({ auth: 'fixture', now: () => NOW });
+  api = await createTestMockApp({ now: () => NOW });
 });
 
 function fieldErrors(response: TestResponse): readonly { field: string; code: string }[] {

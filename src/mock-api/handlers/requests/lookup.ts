@@ -2,7 +2,7 @@
  * Requests domain handlers (05): shared lookups and projections over the fixtures (references, people,
  * authority checks, sorting). Pure functions; nothing is persisted.
  */
-import { createHash } from 'node:crypto';
+import { sha256Hex } from '../../sha256.js';
 
 import type { AuthorityCheck, EligibleApprover } from '../../../contracts/approvals.js';
 import type { ActorRef, Money, PersonRef } from '../../../contracts/common.js';
@@ -208,7 +208,7 @@ export function sumMoney(values: readonly Money[]): Money | null {
 
 /** A stable SHA-256 content hash of a subject version (what an approval binds to, BR-10). */
 export function contentHash(subject: string, id: number, revision: number): string {
-  return createHash('sha256').update(`${subject}:${id}:${revision}`).digest('hex');
+  return sha256Hex(`${subject}:${id}:${revision}`);
 }
 
 const DAY_MS = 86_400_000;

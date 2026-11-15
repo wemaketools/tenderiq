@@ -16,7 +16,7 @@ import type {
   EndpointParsedQuery,
 } from '../../contracts/endpoint.js';
 import { matchPath } from '../../contracts/endpoint.js';
-import type { AppEnvValue } from '../../server/lib/config/index.js';
+import type { AppEnv } from '../../contracts/session.js';
 import type { FixtureMembership, FixtureTenant, Persona, TenantAccess } from '../persona.js';
 import type { OrganizationLabel, PersonRef } from '../../contracts/common.js';
 import type { MockLogger } from './logger.js';
@@ -49,7 +49,7 @@ export interface MockHandlerContext<E extends AnyEndpoint> {
   readonly correlationId: string;
   /** The optional `Idempotency-Key` header of idempotent commands (DD-39). */
   readonly idempotencyKey: string | null;
-  readonly appEnv: AppEnvValue;
+  readonly appEnv: AppEnv;
   readonly logger: MockLogger;
   readonly fixtures: FixtureHelpers;
   /** The caller; throws (500) on a public endpoint, where there is none. */
@@ -94,7 +94,11 @@ export class MockRouteCollector implements MockApp {
   private readonly keys = new Set<string>();
   private readonly ids = new Set<string>();
 
-  constructor(private readonly moduleName: string) {}
+  private readonly moduleName: string;
+
+  constructor(moduleName: string) {
+    this.moduleName = moduleName;
+  }
 
   route<E extends AnyEndpoint>(endpoint: E, handler: NoInfer<MockHandler<E>>): void {
     const key = routeKey(endpoint.method, endpoint.path);

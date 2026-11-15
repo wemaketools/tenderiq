@@ -1,5 +1,7 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { syncServerClock } from '../../../../lib/clock';
 
 import {
   ASSESSOR,
@@ -78,6 +80,11 @@ function categoryOptionTexts(container: HTMLElement): string[] {
     .getAllByRole('option')
     .map((option) => option.textContent ?? '');
 }
+
+beforeEach(() => {
+  // The application clock at the session's server time, so dates are judged on the fixtures' dates, not today's.
+  syncServerClock('2026-09-29T08:00:00Z');
+});
 
 describe('DecisionPage (BUY-35)', () => {
   it('shows scope, dates, conditions, reasons, history, triggers, impacts and expiring evidence (AC-09)', async () => {

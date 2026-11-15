@@ -1,8 +1,7 @@
 /**
  * Handler tests of the org-admin mock API: tenant filtering, supplier isolation, 403 for the wrong tenant kind or a
  * missing permission, `/me` audience isolation, the declared business errors and contract-valid responses.
- * Runs offline with the test-only fixture verifier (`auth: 'fixture'`); real sign-in is covered by the platform
- * tests of the foundation.
+ * Requests carry the prototype persona token (DD-50), as the SPA's persona picker sends it.
  */
 import { beforeAll, describe, expect, it } from 'vitest';
 

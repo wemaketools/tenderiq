@@ -66,9 +66,9 @@ Status: APPROVED with the architecture plan on 2026-09-29 (DD-43 … DD-45 recor
 
 ## D2. Owner decisions recorded as design decisions (2026-09-29)
 
-### DD-43 — Real authentication from Stage A
+### DD-43 — Real authentication from Stage A (SUPERSEDED by DD-50)
 
-The local Supabase CLI stack runs in Docker from Stage A, and Stage A uses Supabase **Auth** only (no application schema yet).
+The local Supabase CLI stack runs in Docker from Stage A, and Stage A uses Supabase **Auth** only (no application schema yet). Stage A no longer uses Supabase or Docker (DD-50). The text below is kept for the record.
 - `npm run auth:personas` creates or updates every demo persona in local Supabase Auth through the Admin API. It is idempotent and local-only, and uses the password `test1234`.
 - The SPA uses supabase-js exactly as in production. The mock API verifies the Supabase JWT with the real `src/server/lib/auth/verify.ts` (brief §5.7 checks, using the real `lib/config` and `lib/supabase` written in Stage A) and maps the verified email to its fixture persona. Unknown accounts get 401.
 - In local development builds only (`import.meta.env.DEV`), the sign-in page lists demo accounts for one-click sign-in. Production builds exclude it, and `scan-bundle` checks this.
@@ -138,7 +138,22 @@ Owner review: a procurement officer's dashboard showed a "Workload by owner" car
   - Explanations of state or business rules that are not about the user's role, such as sealed until opening, not yet released, "submit your own assessment first", locked revisions, and redacted audit entries.
 - **Tests.** The Playwright accessibility sweep fails when any sidebar or top bar destination of eight roles shows a restricted placeholder. `shell.spec.ts` checks the officer's dashboard (no Workload by owner) against the manager's.
 
-### DD-50 — Sidebar: the whole account menu and a width toggle in the icon rail (2026-11-14)
+### DD-50 — Stage A is a fully static prototype (2026-10-30; supersedes DD-43 for Stage A)
+
+Owner decision. Requirement: Stage A runs with **no Supabase and no Docker**, and deploys to **Vercel only** with **no further dependencies**.
+- Stage A builds a **static SPA** (`src/ui/dist`). Vercel serves static files only. Stage A has no `api/` functions, no database and no Supabase.
+- The mock API (`src/mock-api/`) runs **in the browser**. The SPA's API client sends `/api/v1` calls through **one** adapter module that dispatches them to the Hono app (`app.request()`) and attaches the chosen persona id. The contract surface is unchanged. The mock API loads as a lazy chunk.
+- **Sign-in is a persona picker.** The user picks a demo persona from `docs/plan/demo-storyline.md`. The persona id is kept in `sessionStorage` and cleared on sign-out. No password or credential is handled. The mock auth step maps the id to its fixture persona; an unknown or inactive persona gets 401.
+- The picker is available in the public Vercel build (any demo persona). The data is fictional, and no real data is ever loaded in Stage A.
+- **Nothing persists.** Data resets on reload. The "Prototype — static demo data" banner stays on.
+- **The clock is frozen** at the storyline "now" (`DEMO_AS_OF`, 6 Oct 2026, 08:00 UTC): the mock API serves every request at that instant (`frozenStorylineNow()`), so a deployed prototype shows the storyline as written on any real date, with grants still valid and submission windows still open (owner decision, 2026-10-30).
+- Password-reset and invitation pages are removed in Stage A (no Auth exists).
+- The standalone mock-API server and the `dev:mock-api` script are removed. `npm run dev:prototype` runs Vite alone. Playwright's `prototype` project starts Vite only. The Vitest mock-API tests are kept, rewritten without JWT.
+- The JWT path (brief §5.7) is not used in Stage A. `lib/config`, `lib/supabase` and `lib/auth/verify.ts` stay in the repository for Stage B; their local-stack tests leave the Stage A suites.
+- **Stage B uses real Supabase Auth** (DD-43's design, moved to Stage B). Stage B therefore also brings in the local stack, `auth:personas`, supabase-js sign-in and recovery in the SPA, the dev-only demo-accounts quick-pick and the full `scan-bundle` checks.
+- Deviations from brief §3.1 (`vercel.json`), §5.7, §7 and §8 and PRD COM-01, and the amendments to plan §11 items 1, 2 and 5, are recorded in plan §11 item 11.
+
+### DD-51 — Sidebar: the whole account menu and a width toggle in the icon rail (2026-11-14)
 
 Pilot feedback: a tester saw that in the icon rail the account menu was cut off at the edge of the 72px strip, and a screen's name could only be read by hovering its icon. It amends DD-36 and DD-48.
 - **The menu.** `.tiq-sidebar` clipped sideways (`overflow-x: hidden`), so the 240px menu of the user card was cut at 72px. Between 768 and 1279px the sidebar now has `overflow: visible`, and the scrolling for a short window moved to the navigation list (`.tiq-nav`, `overflow-y: auto`), so the brand, the user card and the toggle stay in view. The menu opens in full over the page in both themes. At 1280px and above, and in the drawer below 768px, the layout is as it was.
@@ -153,11 +168,11 @@ Pilot feedback: a tester saw that in the icon rail the account menu was cut off 
 Status after the owner review of 2026-09-29 (details in architecture-plan §11):
 
 1. Approval of the architecture plan, its §11 deviations and this log. **APPROVED by the owner on 2026-09-29.** The ADRs are Accepted, and Stage A was launched.
-2. Hosted prototype for remote reviewers. **Decided: local only.**
+2. Hosted prototype for remote reviewers. **Decided: local only.** Amended 2026-10-30 (DD-50): the static prototype may be hosted on Vercel; the owner creates the project and deploys.
 3. Off-machine backup of the build branch. **Decided: local only (no remote).**
 4. Email delivery. **Decided (DD-44):** an SMTP email channel with nodemailer, and Mailpit locally. **The hosted provider is deferred** and is needed before the first hosted environment.
 5. Node version. **Decided (DD-45): Node 24 everywhere.**
-6. Authentication in the Stage A prototype. **Decided (DD-43): real Supabase Auth in local Docker from Stage A.** DD-38 is withdrawn.
+6. Authentication in the Stage A prototype. **Decided (DD-43): real Supabase Auth in local Docker from Stage A.** DD-38 is withdrawn. **Re-decided 2026-10-30 (DD-50):** Stage A is fully static with a persona picker; real Supabase Auth moves to Stage B.
 7. Supplier self-registration via the API plus the Auth Admin invite. **Decided: proposed approach** (brief-compliant).
 8. Prototype behaviour. **Decided:** actions do not persist, and walkthrough screenshots are committed.
 9. The approval gate "Stage A approved". Due after the prototype is delivered.

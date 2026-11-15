@@ -1,6 +1,6 @@
 /**
  * Platform fixtures: every organization (tenant), tenant role, persona and membership of the demo world
- * (docs/plan/demo-storyline.md "Organizations" and "Personas"; architecture-plan §3.11; DD-43).
+ * (docs/plan/demo-storyline.md "Organizations" and "Personas"; architecture-plan §3.11; DD-50).
  *
  * - Tenants and personas use the natural keys of the storyline (slugs, `@tenderiq.local` emails), so every domain
  *   fixture can reference them. Ids are stable small integers.
@@ -8,10 +8,8 @@
  *   KWU role, "Opening witness", holds only the witness side of opening (`goitse.witness`).
  * - Effective permissions are NEVER listed per persona: `persona.ts` computes them from the roles, so the mock
  *   API's 403s follow the same catalog as Stage B.
- * - `npm run auth:personas` creates every persona below in local Supabase Auth (password `test1234`, local only).
- *   `former.officer` exists in Auth but is deactivated here, so the mock API answers 401 (AC-04).
- * - `UNMAPPED_AUTH_ACCOUNT` is a real Auth account with NO persona: it proves that a verified account without a
- *   fixture persona gets 401 (DD-43).
+ * - The SPA's persona picker signs in as any persona below (DD-50). `former.officer` is listed but deactivated here,
+ *   so the mock API answers 401 (AC-04).
  *
  * Static data: nothing here is ever mutated at runtime (the arrays are frozen).
  */
@@ -22,9 +20,6 @@ import type { PermissionCode, RoleTemplateCode } from '../../contracts/permissio
 
 /** The e-mail domain of every demo account. */
 export const PERSONA_EMAIL_DOMAIN = 'tenderiq.local';
-
-/** A real local Auth account that deliberately maps to no persona (401 proof, DD-43). */
-export const UNMAPPED_AUTH_ACCOUNT = { email: `unmapped.account@${PERSONA_EMAIL_DOMAIN}`, fullName: 'Unmapped Account' } as const;
 
 export interface FixtureTenant {
   readonly id: number;

@@ -1,6 +1,8 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { syncServerClock } from '../../../../lib/clock';
 
 import { installFetch, problem } from '../../../../test/fetchMock';
 import { LocationProbe, renderWithProviders } from '../../../../test/render';
@@ -54,6 +56,11 @@ async function fillRequired(): Promise<void> {
   await userEvent.type(screen.getByLabelText(/^Description of the change/), 'Moves the deadline.');
   await userEvent.type(screen.getByLabelText(/^Reason/), 'Supplier request.');
 }
+
+beforeEach(() => {
+  // The application clock at the session's server time, so deadlines are judged on the fixtures' dates, not today's.
+  syncServerClock('2026-09-29T08:00:00Z');
+});
 
 afterEach(() => {
   vi.unstubAllGlobals();

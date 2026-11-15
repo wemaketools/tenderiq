@@ -1,6 +1,6 @@
 /**
- * Requests domain handlers (05) under the real mock API: auto-discovery of `handlers/requests/index.ts` and REAL
- * local Supabase authentication (DD-43; needs `npm run supabase:start` and `npm run auth:personas`).
+ * Requests domain handlers (05) under the real mock API: every handler module of `HANDLER_MODULES` (including
+ * `handlers/requests/index.ts`) and the full authentication chain (prototype persona token, DD-50).
  */
 import { beforeAll, describe, expect, it } from 'vitest';
 

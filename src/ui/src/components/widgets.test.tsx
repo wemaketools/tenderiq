@@ -383,10 +383,13 @@ describe('DocumentList', () => {
           sha256: HASH,
         },
       }),
+      'GET /api/v1/files/61/71': () => ({ body: { file: 'specification' } }),
       'GET /api/v1/me/documents/61/versions': () => ({
         body: { items: [version(), version({ id: 70, versionNo: 1 })] },
       }),
     });
+    URL.createObjectURL = vi.fn(() => 'blob:local/61');
+    URL.revokeObjectURL = vi.fn();
     renderWithProviders(
       <DocumentList audience="buyer" relatedType="tender" relatedId={3} canUpload />,
       {
@@ -400,7 +403,9 @@ describe('DocumentList', () => {
     expect(screen.getByText('Participating suppliers')).toBeInTheDocument();
     expect(requests[0]?.search).toContain('relatedType=tender');
     await userEvent.click(screen.getByRole('button', { name: 'Download specification.pdf' }));
+    // A link the API serves itself is fetched through the API transport and saved as a file (DD-50).
     await waitFor(() => expect(click).toHaveBeenCalled());
+    expect(requests.some((request) => request.path === '/api/v1/files/61/71')).toBe(true);
     await userEvent.click(screen.getByRole('button', { name: 'History' }));
     const history = await screen.findByRole('dialog', {
       name: 'Version history of Technical specification',

@@ -1,21 +1,17 @@
 /**
- * Prototype shell journeys (architecture-plan §8, DD-43): real sign-in against local Supabase Auth, the mock API's
- * session context, the app shell, organization switching (COM-02), sign-out, and axe accessibility checks.
+ * Prototype shell journeys (architecture-plan §8, DD-50): sign-in with the persona picker, the in-browser mock
+ * API's session context, the app shell, organization switching (COM-02), sign-out, and axe accessibility checks.
  *
- * Prerequisites: the local Supabase stack is running and the demo accounts exist (`npm run auth:personas`).
- * Playwright starts the mock API and Vite on the prototype ports (playwright.config.ts).
+ * No prerequisites: Playwright starts Vite on the prototype port (playwright.config.ts), and the mock API runs in
+ * the page.
  */
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
-const PASSWORD = 'test1234';
-
 async function signIn(page: Page, localPart: string): Promise<void> {
   await page.goto('/signin');
-  await page.getByLabel('Email address').fill(`${localPart}@tenderiq.local`);
-  await page.getByLabel('Password').fill(PASSWORD);
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await page.locator(`[data-persona="${localPart}@tenderiq.local"]`).click();
 }
 
 async function expectNoAxeViolations(page: Page): Promise<void> {
@@ -27,19 +23,17 @@ async function expectNoAxeViolations(page: Page): Promise<void> {
 }
 
 test.describe('prototype shell', () => {
-  test('the sign-in page lists the demo accounts in development and passes axe', async ({ page }) => {
+  test('the sign-in page lists the demo personas without any password field and passes axe', async ({ page }) => {
     await page.goto('/signin');
-    await expect(page.getByRole('heading', { name: 'Sign in', level: 1 })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Demo accounts (local development only)' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Choose a demo persona', level: 1 })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Kalahari Water Utilities (Pilot)' })).toBeVisible();
+    await expect(page.locator('input[type="password"]')).toHaveCount(0);
     await expectNoAxeViolations(page);
   });
 
-  test('a wrong password shows one generic message', async ({ page }) => {
-    await page.goto('/signin');
-    await page.getByLabel('Email address').fill('tebogo.officer@tenderiq.local');
-    await page.getByLabel('Password').fill('not-the-password');
-    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-    await expect(page.getByRole('alert')).toContainText('We could not sign you in with those details');
+  test('a deactivated persona shows one generic message and stays on sign-in', async ({ page }) => {
+    await signIn(page, 'former.officer');
+    await expect(page.getByRole('alert')).toContainText('This persona cannot sign in');
     await expect(page).toHaveURL(/\/signin$/);
   });
 

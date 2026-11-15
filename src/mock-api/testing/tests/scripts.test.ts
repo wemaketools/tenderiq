@@ -1,10 +1,7 @@
 /**
- * Tests of the mock-platform scripts: the node:http bridge of serve-mock-api, the persona seeding guards, the
- * OpenAPI generator, and the CI scans (secrets, bundle, test-run floor).
+ * Tests of the platform scripts: the OpenAPI generator and the CI scans (secrets, bundle, test-run floor).
  */
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
-import { createServer } from 'node:http';
-import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -14,13 +11,9 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { defineEndpoint } from '../../../contracts/endpoint.js';
 import { getSessionContext, sessionEndpoints, updateTheme } from '../../../contracts/session.js';
 import { evaluateReport } from '../../../../scripts/ci/assert-test-run.js';
-import { bundleRules, checkProductionCsp, findDemoAccountsMarker, scanBundle, scanBundleText } from '../../../../scripts/ci/scan-bundle.js';
+import { bundleRules, checkProductionCsp, scanBundle, scanBundleText } from '../../../../scripts/ci/scan-bundle.js';
 import { scanText } from '../../../../scripts/ci/scan-secrets.js';
 import { buildOpenApiDocument, collectEndpoints, discoverContractEndpoints, endpointsOfModule } from '../../../../scripts/docs/generate-openapi.js';
-import { isLocalTarget, seedAccounts } from '../../../../scripts/dev/seed-auth-personas.js';
-import { loadLocalEnv, parseServeArgs, toFetchRequest, writeFetchResponse } from '../../../../scripts/dev/serve-mock-api.js';
-import { PERSONAS } from '../../fixtures/platform.js';
-import { createTestMockApp } from '../index.js';
 import { base64url } from '../../../server/tests/unit/platform-auth/jwt-helpers.js';
 
 let scratch: string;
@@ -31,74 +24,6 @@ beforeAll(() => {
 
 afterAll(() => {
   rmSync(scratch, { recursive: true, force: true });
-});
-
-describe('serve-mock-api', () => {
-  it('parses --port and --host in both spellings and rejects anything else', () => {
-    expect(parseServeArgs([])).toEqual({ port: 3001, host: '127.0.0.1' });
-    expect(parseServeArgs(['--port', '4101'])).toEqual({ port: 4101, host: '127.0.0.1' });
-    expect(parseServeArgs(['--port=4190', '--host=localhost'])).toEqual({ port: 4190, host: 'localhost' });
-    expect(() => parseServeArgs(['--port', '70000'])).toThrow(/--port/);
-    expect(() => parseServeArgs(['--verbose'])).toThrow(/Unknown argument/);
-  });
-
-  it('loads an env file only when it exists, so the plain `npx tsx` command works without --env-file', () => {
-    // Arrange
-    const present = join(scratch, 'present.env');
-    writeFileSync(present, '# no variables: loading must not change the test environment\n');
-
-    // Act + Assert
-    expect(loadLocalEnv(join(scratch, 'absent.env'))).toBe(false);
-    expect(loadLocalEnv(present)).toBe(true);
-  });
-
-  it('bridges node:http requests and responses to the Hono app, including bodies and headers', async () => {
-    // Arrange
-    const api = await createTestMockApp({ auth: 'fixture' });
-    const server = createServer((request, response) => {
-      void toFetchRequest(request, 'http://127.0.0.1')
-        .then((fetchRequest) => api.fetch(fetchRequest))
-        .then((fetchResponse) => writeFetchResponse(fetchResponse, response));
-    });
-    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
-    const { port } = server.address() as AddressInfo;
-
-    try {
-      // Act
-      const health = await fetch(`http://127.0.0.1:${port}/api/v1/health`, { headers: { 'x-correlation-id': 'bridge-1' } });
-      const theme = await fetch(`http://127.0.0.1:${port}/api/v1/me/theme`, {
-        method: 'PUT',
-        headers: { authorization: 'Bearer fixture-persona.tebogo.officer@tenderiq.local', 'content-type': 'application/json' },
-        body: JSON.stringify({ theme: 'dark' }),
-      });
-
-      // Assert
-      expect(health.status).toBe(200);
-      expect(health.headers.get('x-correlation-id')).toBe('bridge-1');
-      expect(await health.json()).toEqual({ status: 'ok', version: 'v1' });
-      expect(theme.status).toBe(200);
-      expect(await theme.json()).toEqual({ theme: 'dark' });
-    } finally {
-      await new Promise<void>((resolve) => server.close(() => resolve()));
-    }
-  });
-});
-
-describe('seed-auth-personas', () => {
-  it('refuses every target that is not the local stack', () => {
-    const local = { appEnv: 'local' as const, supabase: { url: 'http://127.0.0.1:54321' } };
-    expect(isLocalTarget(local as never)).toBe(true);
-    expect(isLocalTarget({ ...local, supabase: { url: 'http://localhost:54321' } } as never)).toBe(true);
-    expect(isLocalTarget({ ...local, supabase: { url: 'https://abc.supabase.co' } } as never)).toBe(false);
-    expect(isLocalTarget({ ...local, appEnv: 'dev', supabase: { url: 'http://127.0.0.1:54321' } } as never)).toBe(false);
-  });
-
-  it('provisions every persona plus the unmapped proof account, once each', () => {
-    const accounts = seedAccounts();
-    expect(accounts).toHaveLength(PERSONAS.length + 1);
-    expect(new Set(accounts.map((account) => account.email)).size).toBe(accounts.length);
-    expect(accounts.map((account) => account.email)).toContain('unmapped.account@tenderiq.local');
-  });
 });
 
 describe('generate-openapi', () => {
@@ -182,14 +107,12 @@ describe('scan-secrets', () => {
 });
 
 describe('scan-bundle', () => {
-  const inputs = { serviceRoleKey: 'super-secret-service-role-value', demoAccountsMarker: 'tiq-demo-accounts-dev-only-marker' };
+  const inputs = { serviceRoleKey: 'super-secret-service-role-value' };
 
   it.each([
-    ['a persona e-mail', 'const a="tebogo.officer@tenderiq.local"', 'mock-fixture'],
     ['a server variable name', 'const k="SUPABASE_SERVICE_ROLE_KEY"', 'server-env-name'],
     ['server code', 'throw new Error("Invalid server configuration")', 'server-code'],
     ['the configured service-role key', 'x="super-secret-service-role-value"', 'service-role-key'],
-    ['the demo-accounts marker', 'data-x="tiq-demo-accounts-dev-only-marker"', 'demo-accounts-marker'],
   ])('flags %s', (_label, text, rule) => {
     expect(scanBundleText('assets/index.js', text, bundleRules(inputs)).map((finding) => finding.rule)).toContain(rule);
   });
@@ -219,17 +142,14 @@ describe('scan-bundle', () => {
     expect(findings.map((finding) => [finding.file.replace(/\\/g, '/'), finding.rule])).toEqual([['assets/app.js', 'server-env-name']]);
   });
 
-  it('reads the DEMO_ACCOUNTS_MARKER declaration from the SPA auth sources', () => {
-    const authDir = join(scratch, 'auth');
-    mkdirSync(authDir, { recursive: true });
-    writeFileSync(join(authDir, 'DemoAccounts.tsx'), "export const DEMO_ACCOUNTS_MARKER = 'tiq-demo-accounts-0f3c';\n");
-    expect(findDemoAccountsMarker(authDir)).toBe('tiq-demo-accounts-0f3c');
-    expect(findDemoAccountsMarker(join(scratch, 'missing'))).toBeNull();
+  it('lets the Stage A prototype ship its mock API and persona e-mails (DD-50)', () => {
+    const text = 'const a="tebogo.officer@tenderiq.local";throw new Error("handler module skipped")';
+    expect(scanBundleText('assets/mock-api.js', text, bundleRules(inputs))).toEqual([]);
   });
 
   it('accepts the production CSP and rejects a missing, unfilled or dev-relaxed policy', () => {
     const page = (policy: string) => `<head><meta http-equiv="Content-Security-Policy" content="${policy}" /></head>`;
-    const production = "default-src 'self'; script-src 'self'; connect-src 'self' http://127.0.0.1:54321";
+    const production = "default-src 'self'; script-src 'self'; connect-src 'self'";
     expect(checkProductionCsp(page(production))).toEqual([]);
     expect(checkProductionCsp('<head></head>').map((finding) => finding.context)).toEqual(['no Content-Security-Policy meta tag']);
     expect(checkProductionCsp(page('__TENDERIQ_CONTENT_SECURITY_POLICY__')).map((finding) => finding.context)).toEqual([

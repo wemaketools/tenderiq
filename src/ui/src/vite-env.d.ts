@@ -1,11 +1,4 @@
 /// <reference types="vite/client" />
 
-/** The only browser-safe variables (brief §8.1): the Supabase URL and anon key for authentication. */
-interface ImportMetaEnv {
-  readonly VITE_SUPABASE_URL?: string;
-  readonly VITE_SUPABASE_ANON_KEY?: string;
-}
-
-interface ImportMeta {
-  readonly env: ImportMetaEnv;
-}
+// The Stage A prototype reads no custom environment variables (DD-50). Stage B declares the browser-safe Supabase
+// pair here (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, brief §8.1).

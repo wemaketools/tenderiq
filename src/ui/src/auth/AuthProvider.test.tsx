@@ -1,8 +1,6 @@
 import { act, render, screen, waitFor } from '@testing-library/react';
 import { Provider } from 'react-redux';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import { useAppSelector } from '../app/hooks';
 import { createAppStore } from '../app/store';
@@ -10,41 +8,10 @@ import { installFetch, problem } from '../test/fetchMock';
 import { makeContext, makeTenant, makeUser } from '../test/fixtures';
 import { useAuth } from './authContext';
 import { AuthProvider } from './AuthProvider';
+import { currentPersona } from './prototypeSession';
 
-type Listener = (event: AuthChangeEvent, session: Session | null) => void;
-
-const mocks = vi.hoisted(() => ({
-  listeners: [] as Array<(event: string, session: unknown) => void>,
-  signOut: vi.fn(),
-  signInWithPassword: vi.fn(),
-  resetPasswordForEmail: vi.fn(),
-  updateUser: vi.fn(),
-}));
-
-vi.mock('./supabase', () => ({
-  supabase: {
-    auth: {
-      onAuthStateChange: (listener: (event: string, session: unknown) => void) => {
-        mocks.listeners.push(listener);
-        return { data: { subscription: { unsubscribe: () => undefined } } };
-      },
-      signOut: mocks.signOut,
-      signInWithPassword: mocks.signInWithPassword,
-      resetPasswordForEmail: mocks.resetPasswordForEmail,
-      updateUser: mocks.updateUser,
-    },
-  },
-  currentAccessToken: () => Promise.resolve('jwt-from-session'),
-}));
-
-function emit(event: AuthChangeEvent, session: Session | null): void {
-  for (const listener of mocks.listeners as Listener[]) listener(event, session);
-}
-
-const session = {
-  access_token: 'jwt',
-  user: { id: 'auth-1', email: 'tebogo.officer@tenderiq.local' },
-} as unknown as Session;
+const TEBOGO = 'tebogo.officer@tenderiq.local';
+const STORAGE_KEY = 'tiq.prototype.persona';
 
 function Probe() {
   const auth = useAuth();
@@ -55,7 +22,7 @@ function Probe() {
         {status.authStatus} {status.contextStatus} {status.activeTenant?.name ?? 'none'}{' '}
         {status.signOutReason ?? '-'}
       </p>
-      <button type="button" onClick={() => void auth.signIn('a@b.c', 'pw')}>
+      <button type="button" onClick={() => auth.signIn(TEBOGO)}>
         sign in
       </button>
       <button type="button" onClick={() => void auth.signOut()}>
@@ -77,59 +44,67 @@ function renderProvider() {
   return store;
 }
 
-beforeEach(() => {
-  mocks.listeners.length = 0;
-  mocks.signOut.mockReset().mockImplementation(() => {
-    emit('SIGNED_OUT', null);
-    return Promise.resolve({ error: null });
+function contextRoutes() {
+  return installFetch({
+    'GET /api/v1/me/context': (request) => ({
+      body: makeContext({
+        user: makeUser({ theme: 'dark' }),
+        activeTenant: request.search.includes('tenantId=2') ? makeTenant() : null,
+      }),
+    }),
   });
-  mocks.signInWithPassword.mockReset().mockResolvedValue({ error: null });
+}
+
+beforeEach(() => {
+  window.sessionStorage.clear();
 });
 
-describe('AuthProvider', () => {
-  it('loads /me/context with the session token, enters the only organization and applies the theme', async () => {
-    const { requests } = installFetch({
-      'GET /api/v1/me/context': (request) => ({
-        body: makeContext({
-          user: makeUser({ theme: 'dark' }),
-          activeTenant: request.search.includes('tenantId=2') ? makeTenant() : null,
-        }),
-      }),
-    });
+describe('AuthProvider (prototype persona session, DD-50)', () => {
+  it('signs in as the chosen persona, sends it as the token, enters the only organization and applies the theme', async () => {
+    const { requests } = contextRoutes();
     renderProvider();
-    act(() => emit('INITIAL_SESSION', session));
+    expect(screen.getByTestId('status')).toHaveTextContent('signedOut');
+    act(() => screen.getByRole('button', { name: 'sign in' }).click());
     await waitFor(() =>
       expect(screen.getByTestId('status')).toHaveTextContent(
         'signedIn ready Kalahari Water Utilities (Pilot)',
       ),
     );
-    expect(requests[0]?.headers.authorization).toBe('Bearer jwt-from-session');
+    expect(requests[0]?.headers.authorization).toBe(`Bearer ${TEBOGO}`);
     expect(document.documentElement.dataset.theme).toBe('dark');
+    expect(window.sessionStorage.getItem(STORAGE_KEY)).toBe(TEBOGO);
   });
 
-  it('signs out an account the API does not know and says the sign-in was rejected', async () => {
+  it('restores the persona of this browser tab on load', async () => {
+    contextRoutes();
+    window.sessionStorage.setItem(STORAGE_KEY, TEBOGO);
+    renderProvider();
+    await waitFor(() =>
+      expect(screen.getByTestId('status')).toHaveTextContent(
+        'signedIn ready Kalahari Water Utilities (Pilot)',
+      ),
+    );
+  });
+
+  it('signs out a persona the API refuses and says the sign-in was rejected', async () => {
     installFetch({ 'GET /api/v1/me/context': () => problem(401, 'Unauthenticated') });
     renderProvider();
-    act(() => emit('SIGNED_IN', session));
-    await waitFor(() => expect(mocks.signOut).toHaveBeenCalledWith({ scope: 'local' }));
+    act(() => screen.getByRole('button', { name: 'sign in' }).click());
     await waitFor(() =>
       expect(screen.getByTestId('status')).toHaveTextContent('signedOut idle none rejected'),
     );
+    expect(currentPersona()).toBeNull();
   });
 
-  it('reports a failed sign-in as a single generic result and signs out on request', async () => {
-    installFetch({});
-    mocks.signInWithPassword.mockResolvedValue({ error: new Error('Invalid login credentials') });
+  it('ends the session on request and forgets the persona', async () => {
+    contextRoutes();
     renderProvider();
-    act(() => emit('INITIAL_SESSION', null));
-    expect(screen.getByTestId('status')).toHaveTextContent('signedOut');
     act(() => screen.getByRole('button', { name: 'sign in' }).click());
-    await waitFor(() =>
-      expect(mocks.signInWithPassword).toHaveBeenCalledWith({ email: 'a@b.c', password: 'pw' }),
-    );
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('signedIn ready'));
     act(() => screen.getByRole('button', { name: 'sign out' }).click());
     await waitFor(() =>
       expect(screen.getByTestId('status')).toHaveTextContent('signedOut idle none user'),
     );
+    expect(window.sessionStorage.getItem(STORAGE_KEY)).toBeNull();
   });
 });

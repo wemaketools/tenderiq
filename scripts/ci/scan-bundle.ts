@@ -1,17 +1,16 @@
 /**
- * Production bundle leak scan (architecture brief §8.4; architecture-plan §11 items 1 and 8; DD-43;
+ * Production bundle leak scan (architecture brief §8.4; architecture-plan §11 items 1 and 11; DD-50;
  * `npm run ci:security`).
  *
  * Builds the SPA (`npm run build:ui`; skip with `--no-build`) and fails if any file in `src/ui/dist` contains:
- * - mock API code or fixtures (persona e-mails `@tenderiq.local`, mock-api paths and messages);
  * - `src/server` code (paths and messages unique to the server platform modules);
  * - a server-only environment variable name (the keys of src/server/lib/config plus the Stage B catalog; the
  *   browser-safe `VITE_` names are allowed);
  * - the service-role key (the configured value, any `sb_secret_` key, or any JWT whose payload role is
- *   `service_role`);
- * - the marker string of the dev-only demo-accounts quick-pick, which renders only under `import.meta.env.DEV`
- *   (DD-43). The marker is read from `DEMO_ACCOUNTS_MARKER = '…'` in `src/ui/src/auth/**`; a missing declaration
- *   fails the scan, because the check could otherwise never fail.
+ *   `service_role`).
+ * In Stage A the static prototype IS the production build, so the mock API, its fixtures (persona e-mails) and the
+ * persona picker ship on purpose (DD-50); Stage B restores the mock-code, persona e-mail and dev-only demo-accounts
+ * checks when the mock API leaves the production build again.
  * It also checks that `index.html` carries the production Content-Security-Policy (DD-30) and that its script-src
  * has none of the dev-only relaxations (`'unsafe-inline'`, `'unsafe-eval'`, `ws:`).
  *
@@ -28,7 +27,6 @@ import { SERVER_ENV_KEYS, tryGetConfig } from '../../src/server/lib/config/index
 
 const repoRoot = fileURLToPath(new URL('../../', import.meta.url));
 export const DEFAULT_DIST = join(repoRoot, 'src', 'ui', 'dist');
-export const UI_AUTH_DIR = join(repoRoot, 'src', 'ui', 'src', 'auth');
 
 /** Server variables of later stages that must never reach the browser either (brief §8.1). */
 export const STAGE_B_SERVER_KEYS = [
@@ -51,8 +49,6 @@ export interface BundleRule {
 export interface BundleScanInputs {
   /** The configured service-role key, when available. */
   readonly serviceRoleKey: string | null;
-  /** The demo-accounts marker string, when declared. */
-  readonly demoAccountsMarker: string | null;
 }
 
 function escapeRegExp(value: string): string {
@@ -63,8 +59,6 @@ function escapeRegExp(value: string): string {
 export function bundleRules(inputs: BundleScanInputs): BundleRule[] {
   const serverKeys = [...new Set<string>([...SERVER_ENV_KEYS, ...STAGE_B_SERVER_KEYS])];
   const rules: BundleRule[] = [
-    { id: 'mock-fixture', description: 'mock API fixture data (persona e-mail)', pattern: /@tenderiq\.local\b/g },
-    { id: 'mock-code', description: 'mock API code', pattern: /mock-api[\\/]|handler module skipped|No fixture persona|fixture drift/g },
     {
       id: 'server-code',
       description: 'src/server code',
@@ -79,13 +73,6 @@ export function bundleRules(inputs: BundleScanInputs): BundleRule[] {
   ];
   if (inputs.serviceRoleKey !== null && inputs.serviceRoleKey.length >= 16) {
     rules.push({ id: 'service-role-key', description: 'the configured service-role key', pattern: new RegExp(escapeRegExp(inputs.serviceRoleKey), 'g') });
-  }
-  if (inputs.demoAccountsMarker !== null) {
-    rules.push({
-      id: 'demo-accounts-marker',
-      description: 'the dev-only demo-accounts quick-pick (DD-43)',
-      pattern: new RegExp(escapeRegExp(inputs.demoAccountsMarker), 'g'),
-    });
   }
   return rules;
 }
@@ -146,25 +133,6 @@ export function listFiles(dir: string): string[] {
     }
   }
   return out;
-}
-
-const MARKER_DECLARATION = /DEMO_ACCOUNTS_MARKER\s*(?::\s*[A-Za-z]+\s*)?=\s*(['"`])([^'"`]{8,})\1/;
-
-/** Reads the demo-accounts marker declared in the SPA auth sources (`null` when none is declared). */
-export function findDemoAccountsMarker(authDir: string = UI_AUTH_DIR): string | null {
-  if (!existsSync(authDir)) {
-    return null;
-  }
-  for (const file of listFiles(authDir)) {
-    if (!/\.(ts|tsx)$/.test(file) || /\.test\.tsx?$/.test(file)) {
-      continue;
-    }
-    const match = MARKER_DECLARATION.exec(readFileSync(file, 'utf8'));
-    if (match?.[2] !== undefined) {
-      return match[2];
-    }
-  }
-  return null;
 }
 
 /** Scans a dist directory. */
@@ -252,21 +220,11 @@ function main(): void {
     process.exitCode = 1;
     return;
   }
-  const demoAccountsMarker = findDemoAccountsMarker();
-  if (demoAccountsMarker === null) {
-    process.stderr.write(
-      'scan-bundle: no DEMO_ACCOUNTS_MARKER declaration found in src/ui/src/auth. The dev-only demo-accounts quick-pick ' +
-        'must declare its unique marker string (DD-43).\n',
-    );
-    process.exitCode = 1;
-    return;
-  }
   const configured = tryGetConfig();
   const indexHtml = join(dist, 'index.html');
   const findings = [
     ...scanBundle(dist, {
       serviceRoleKey: configured.ok ? configured.config.supabase.serviceRoleKey : null,
-      demoAccountsMarker,
     }),
     ...checkProductionCsp(existsSync(indexHtml) ? readFileSync(indexHtml, 'utf8') : ''),
   ];
@@ -278,7 +236,7 @@ function main(): void {
     process.exitCode = 1;
     return;
   }
-  process.stdout.write(`scan-bundle: ${dist} is clean (no mock API, server code, server variables, secrets or demo accounts).\n`);
+  process.stdout.write(`scan-bundle: ${dist} is clean (no server code, server variables or secrets).\n`);
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {

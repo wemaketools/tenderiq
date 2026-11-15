@@ -24,7 +24,8 @@ import { getResults } from '../../contracts/evaluation.js';
 import { getSessionContext } from '../../contracts/session.js';
 import { TENDERS_STATUS } from '../../contracts/enums.js';
 import { MockRouteCollector } from '../middleware/routes.js';
-import { discoverHandlerModules, registerModules } from '../registry.js';
+import { registerModules } from '../registry.js';
+import { discoverHandlerModules } from '../registry-discovery.js';
 import { createTestMockApp } from '../testing/index.js';
 import { ADDENDA, QUESTIONS, SESSIONS } from './clarifications/index.js';
 import { APPROVALS, AUTHORITY_LIMITS as WORKSPACE_LIMITS, DELEGATIONS as WORKSPACE_DELEGATIONS, WORKSPACE_AS_OF } from './approvals.js';
@@ -47,7 +48,7 @@ import {
   FIXTURE_AS_OF,
   TENDER_REFS,
 } from './org-admin/index.js';
-import { PERSONAS, TENANTS, UNMAPPED_AUTH_ACCOUNT } from './platform.js';
+import { PERSONAS, TENANTS } from './platform.js';
 import { CATEGORIES as PUBLICATION_CATALOG, TENDERS as NOTICES } from './publication.js';
 import { POLICY_CATEGORY_REFS } from './policy.js';
 import { QUALIFICATION_APPLICATIONS, QUALIFICATION_CATEGORIES } from './qualification/index.js';
@@ -205,7 +206,7 @@ describe('mock API registry', () => {
 
 describe('natural keys', () => {
   it('names only persona accounts that exist (emails of the demo world), besides the operator’s shared mailbox', () => {
-    const known = new Set([...PERSONAS.map((persona) => persona.email), UNMAPPED_AUTH_ACCOUNT.email, SERVICE_TEAM_EMAIL]);
+    const known = new Set([...PERSONAS.map((persona) => persona.email), SERVICE_TEAM_EMAIL]);
     const unknown = walked.strings
       .filter((entry) => /^[a-z0-9.-]+@tenderiq\.local$/.test(entry.value) && !known.has(entry.value))
       .map((entry) => `${entry.file}: ${entry.value}`);
@@ -467,7 +468,7 @@ describe('storyline agreement across domains', () => {
 
   it('reproduces the PRD §9.2 worked example on T-2026-0003 exactly (AC-19) and the awards draft follows it', async () => {
     // Arrange
-    const api = await createTestMockApp({ auth: 'fixture', now: () => new Date('2026-09-30T08:00:00Z') });
+    const api = await createTestMockApp({ now: () => new Date('2026-09-30T08:00:00Z') });
     const evaluation = EVALUATIONS.find((row) => row.tender.tenderId === 3 && row.lot === null);
     const supplierOf = (label: string) => evaluation?.bids.find((bid) => bid.label === label)?.supplierTenantId;
 
@@ -630,9 +631,9 @@ describe('one storyline clock', () => {
     expect(officialDate(DEMO_AS_OF, DEMO_TIME_ZONE)).toBe(DEMO_AS_OF_DATE);
   });
 
-  it('serves requests on the storyline clock and reports it to the SPA in /me/context and on every response', async () => {
+  it('serves requests at the frozen storyline "now" and reports it to the SPA in /me/context and on every response', async () => {
     // Arrange: the default clock of the mock API (no test clock).
-    const api = await createTestMockApp({ auth: 'fixture' });
+    const api = await createTestMockApp();
 
     // Act
     const context = await api.callAs('tebogo.officer@tenderiq.local', getSessionContext, { query: {} });
@@ -640,9 +641,9 @@ describe('one storyline clock', () => {
 
     // Assert
     const { serverTime } = getSessionContext.response.parse(context.body);
-    expect(serverTime >= DEMO_AS_OF).toBe(true);
-    expect(context.headers.get('x-server-time')).toBe(serverTime);
-    expect((health.headers.get('x-server-time') ?? '') >= DEMO_AS_OF).toBe(true);
+    expect(serverTime).toBe(DEMO_AS_OF);
+    expect(context.headers.get('x-server-time')).toBe(DEMO_AS_OF);
+    expect(health.headers.get('x-server-time')).toBe(DEMO_AS_OF);
     expect(storylineNow(new Date('2026-09-30T06:00:00Z')).toISOString()).toBe('2026-10-06T08:00:00.000Z');
     expect(storylineNow(new Date('2026-11-02T06:00:00Z')).toISOString()).toBe('2026-11-02T06:00:00.000Z');
   });

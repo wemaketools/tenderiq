@@ -41,7 +41,7 @@ const LIMPOPO = 'limpopo-env.admin@tenderiq.local';
 let api: TestMockApp;
 
 beforeAll(async () => {
-  api = await createTestMockApp({ auth: 'fixture', modules: [{ name: 'publication', register }], now: () => NOW });
+  api = await createTestMockApp({ modules: [{ name: 'publication', register }], now: () => NOW });
 });
 
 type QueryValue = string | number | boolean | ReadonlyArray<string | number | boolean>;

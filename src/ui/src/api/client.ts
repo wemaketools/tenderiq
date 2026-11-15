@@ -3,8 +3,8 @@
  *
  * `call(endpoint, { params, query, body }, options?)` builds the URL from the contract path under the relative base
  * `/api/v1`, and for every request:
- * - reads the access token PER REQUEST from the supabase-js session and sends `Authorization: Bearer` (not on
- *   public endpoints);
+ * - reads the access token PER REQUEST from the auth layer and sends `Authorization: Bearer` (not on public
+ *   endpoints); in the Stage A prototype the token is the chosen persona (DD-50);
  * - sends `X-Tenant-Id` according to the contract: the active tenant for buyer, supplier and ops endpoints, the
  *   ROW's tenant (`options.tenantId`) for `me` row actions, nothing for `me` reads and public endpoints (DD-21);
  * - sends an `Idempotency-Key` on idempotent commands (DD-39), generated unless the caller passes one;
@@ -13,7 +13,9 @@
  * - in development builds parses the body with the contract's response schema, so drift between the UI, the mock API
  *   and the backend fails loudly.
  *
- * The client never imports supabase-js or the store: AuthProvider installs the adapters (`configureApiClient`).
+ * The client never imports the auth layer or the store: AuthProvider installs the adapters (`configureApiClient`).
+ * Requests go through the transport (`configureApiTransport`): the browser's `fetch` by default; in the Stage A
+ * prototype, `main.tsx` installs the in-browser mock API (`prototypeTransport.ts`, DD-50).
  */
 import { PROBLEM_CONTENT_TYPE, Problem } from '@contracts/common';
 import type { FieldError } from '@contracts/common';
@@ -30,7 +32,7 @@ import { syncServerClock } from '../lib/clock';
 
 /** Hooks the client needs from the auth layer and the store. */
 export interface ApiClientAdapters {
-  /** The current access token, read per request (supabase-js refreshes it). `null` when signed out. */
+  /** The current access token, read per request. `null` when signed out. */
   getAccessToken(): Promise<string | null>;
   /** The active tenant id from the session slice, or `null`. */
   getActiveTenantId(): number | null;
@@ -53,6 +55,57 @@ export function configureApiClient(next: ApiClientAdapters): () => void {
   return () => {
     adapters = previous;
   };
+}
+
+/** Sends one HTTP request; the same shape as `fetch`. */
+export type ApiTransport = (url: string, init: RequestInit) => Promise<Response>;
+
+// `fetch` is looked up per request, so tests that stub the global fetch keep working.
+const networkTransport: ApiTransport = (url, init) => fetch(url, init);
+
+let transport: ApiTransport = networkTransport;
+
+/** Installs the transport (`main.tsx` does this once). Returns a function restoring the previous one. */
+export function configureApiTransport(next: ApiTransport): () => void {
+  const previous = transport;
+  transport = next;
+  return () => {
+    transport = previous;
+  };
+}
+
+/** True for a URL the API itself serves (same origin, under `/api/`), as opposed to a storage or external URL. */
+export function isApiUrl(url: string): boolean {
+  const resolved = new URL(url, window.location.origin);
+  return resolved.origin === window.location.origin && resolved.pathname.startsWith('/api/');
+}
+
+/**
+ * Fetches a file the API serves at a URL it handed out (for example a prototype download link) through the
+ * transport, so it also works when the API runs in the browser. Throws `ApiError` on failure.
+ */
+export async function fetchApiFile(url: string, endpointId: string): Promise<Blob> {
+  let response: Response;
+  try {
+    response = await transport(url, { method: 'GET', credentials: 'same-origin' });
+  } catch {
+    throw new ApiError({
+      kind: 'network',
+      status: 0,
+      title: 'The service could not be reached.',
+      endpointId,
+    });
+  }
+  if (!response.ok) {
+    throw new ApiError({
+      kind: kindOfStatus(response.status),
+      status: response.status,
+      title: response.statusText || `HTTP ${response.status}`,
+      correlationId: response.headers.get('x-correlation-id'),
+      endpointId,
+    });
+  }
+  return response.blob();
 }
 
 /** What went wrong, for rendering (restricted state, form errors, retry, sign-in). */
@@ -234,7 +287,7 @@ export async function call<E extends AnyEndpoint>(
 
   let response: Response;
   try {
-    response = await fetch(url, {
+    response = await transport(url, {
       method: endpoint.method,
       headers,
       body: payload,
