@@ -7,7 +7,7 @@
  * shows the same reference, title and organization as the record's own page. In-app links follow the feature routes
  * of the owning domains; the fixture tests match every link against the SPA route table.
  */
-import { createHash } from 'node:crypto';
+import { sha256Hex } from '../../sha256.js';
 
 import { CONTRACTS } from '../contracts/core.js';
 import { DEMO_AS_OF, DEMO_TIME_ZONE, storylineInstant, storylineNow } from '../demo-clock.js';
@@ -44,7 +44,7 @@ export function tid(slug: TenantSlug): number {
 
 /** A deterministic SHA-256 hex digest standing in for a content hash or file digest. */
 export function digest(seed: string): string {
-  return createHash('sha256').update(seed).digest('hex');
+  return sha256Hex(seed);
 }
 
 /** True when `dueAt` lies before the storyline "now". */

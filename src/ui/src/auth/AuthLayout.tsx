@@ -1,6 +1,6 @@
 /**
- * The centred auth surface (`.tiq-auth-page`): wordmark, one card, optional extra content below (the dev-only demo
- * accounts). Sign-in, forgot and reset password render outside the app shell.
+ * The centred auth surface (`.tiq-auth-page`): wordmark, one card, optional extra content below. The sign-in page
+ * renders outside the app shell.
  */
 import { useEffect } from 'react';
 import type { ReactNode } from 'react';

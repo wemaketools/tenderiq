@@ -147,3 +147,7 @@ Negative:
 - PRD §14.2, §14.3, §16, §18.2, COM-06, ADM-12, BR-41, BR-42, BR-43, AC-10.
 - Related documents: [Shared services data model](../03-data-model/03-shared-services.md), [Participation and clarifications data model](../03-data-model/07-participation-clarifications.md), [Background jobs](../08-background-jobs.md), [Key flows](../06-key-flows.md), [System context](../01-system-context.md), [Deployment and environments](../10-deployment-environments.md).
 - Related decisions: [ADR-0008](0008-partition-only-high-volume-tables.md) (`notifications` is partitioned), [ADR-0010](0010-no-icon-or-pdf-dependencies.md) (`nodemailer` as the single approved dependency exception), [ADR-0012](0012-supplier-registration-via-provisioned-accounts.md) (Supabase Auth email through the same SMTP path).
+
+## Amendments
+
+- Amended 2026-10-30 by DD-50: Stage A uses no Supabase and sends no email, so no Supabase Auth password-reset email reaches Mailpit in Stage A. Mailpit, Supabase Auth email and the `email` channel are introduced in Stage B. The decision of this record is unchanged.

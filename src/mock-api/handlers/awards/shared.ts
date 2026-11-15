@@ -2,7 +2,7 @@
  * Shared helpers of the awards mock handlers: tenant-scoped lookups, projections that join the fixtures, list
  * filtering and sorting. Pure functions over static fixtures; nothing is stored.
  */
-import { createHash } from 'node:crypto';
+import { sha256Hex } from '../../sha256.js';
 
 import { APPROVED_LOT_OUTCOME_STATUSES } from '../../../contracts/awards.js';
 import type {
@@ -196,7 +196,7 @@ export function lotOutcomeHash(outcome: LotOutcome): string {
     outcome.awardedValue === null ? '' : `${outcome.awardedValue.amount} ${outcome.awardedValue.currency}`,
     outcome.conditions ?? '',
   ].join('|');
-  return createHash('sha256').update(seed).digest('hex');
+  return sha256Hex(seed);
 }
 
 /**

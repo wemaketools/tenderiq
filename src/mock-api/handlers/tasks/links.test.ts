@@ -55,7 +55,7 @@ function permissionsOf(userId: number, tenantId: number): readonly string[] {
 let api: TestMockApp;
 
 beforeAll(async () => {
-  api = await createTestMockApp({ auth: 'fixture', modules: [{ name: 'evaluation', register: registerEvaluation }] });
+  api = await createTestMockApp({ modules: [{ name: 'evaluation', register: registerEvaluation }] });
 });
 
 describe('workspace links', () => {

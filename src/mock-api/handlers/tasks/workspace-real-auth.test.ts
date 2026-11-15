@@ -1,6 +1,6 @@
 /**
- * The workspace modules behind REAL local Supabase Auth (DD-43): a signed-in persona reaches its own inbox, and a
- * forged token is refused before any workspace handler runs. Needs `npm run supabase:start` + `npm run auth:personas`.
+ * The workspace modules behind the full authentication chain (prototype persona token, DD-50): a signed-in persona
+ * reaches its own inbox, and a token that names no persona is refused before any workspace handler runs.
  */
 import { beforeAll, describe, expect, it } from 'vitest';
 

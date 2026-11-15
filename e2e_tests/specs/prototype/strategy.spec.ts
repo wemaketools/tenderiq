@@ -4,7 +4,7 @@
  * in development builds and shows "does not match its API contract" when they disagree). Also covers the RFI rules
  * on the strategy form: the procedure follows the event type, and competition-only fields do not apply to an RFI.
  *
- * Prerequisites: the local Supabase stack is running and the demo accounts exist (`npm run auth:personas`).
+ * No prerequisites: Playwright starts Vite, and the mock API runs in the page (DD-50).
  * Playwright starts a fresh mock API and Vite on the prototype ports (playwright.config.ts).
  */
 import { expect, test } from '@playwright/test';
@@ -14,9 +14,7 @@ const LOAD_FAILURE = 'This could not be loaded';
 
 async function signInAsOfficer(page: Page): Promise<void> {
   await page.goto('/signin');
-  await page.getByLabel('Email address').fill('tebogo.officer@tenderiq.local');
-  await page.getByLabel('Password').fill('test1234');
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await page.locator('[data-persona="tebogo.officer@tenderiq.local"]').click();
   await expect(page).toHaveURL(/\/buyer/);
 }
 

@@ -7,8 +7,8 @@
  *   3. request log line (in a `finally`): method, route pattern, status, durationMs, userId, tenantId
  *   4. error boundary: `app.onError` turns every throw into problem+json (see `errorBoundary`)
  *   5. route resolution: an unknown route is a 404 BEFORE authentication (unknown routes never answer 401)
- *   6. authentication: REAL Supabase JWT verification (`src/server/lib/auth/verify.ts`), then the verified e-mail is
- *      mapped to its fixture persona; no persona or an inactive one → 401 (DD-43)
+ *   6. authentication: the prototype bearer token names a persona e-mail (`prototype-auth.ts`), which is mapped to its
+ *      fixture persona; a missing or malformed token, no persona or an inactive one → 401 (DD-50)
  *   7. tenant context: `X-Tenant-Id` against an active membership (or support grant), the tenant's active state and
  *      the kind the prefix requires; ONE identical 403 for every failure. `/me` reads and `/public` are exempt; a
  *      `/me` row action (`rowTenant`) must name the row's tenant.
@@ -21,9 +21,9 @@ import type { Context, MiddlewareHandler } from 'hono';
 import { AUDIENCE_TENANT_KIND, DEFAULT_PAGE_SIZE, paginate } from '../../contracts/common.js';
 import type { AnyEndpoint } from '../../contracts/endpoint.js';
 import { API_BASE, HEALTH_PATH, declaredErrorStatus, isPermitted, supportGrantAllows, tenantHeaderMode } from '../../contracts/endpoint.js';
-import { extractBearerToken } from '../../server/lib/auth/verify.js';
-import type { VerifyResult } from '../../server/lib/auth/verify.js';
-import type { AppEnvValue } from '../../server/lib/config/index.js';
+import type { AppEnv } from '../../contracts/session.js';
+import { extractBearerToken } from '../prototype-auth.js';
+import type { TokenVerifier } from '../prototype-auth.js';
 import {
   activeMemberships,
   findPersonaByEmail,
@@ -66,13 +66,13 @@ export interface MockVariables {
 }
 export type MockEnv = { Variables: MockVariables };
 
-export type TokenVerifier = (token: string | null) => Promise<VerifyResult>;
+export type { TokenVerifier } from '../prototype-auth.js';
 
 /** The body of `GET /api/v1/health`. */
 export const HEALTH_BODY = { status: 'ok', version: 'v1' } as const;
 
 /** 1. API security headers (HSTS only outside `APP_ENV=local`, brief §3.1, §14). */
-export function securityHeaders(appEnv: AppEnvValue): MiddlewareHandler<MockEnv> {
+export function securityHeaders(appEnv: AppEnv): MiddlewareHandler<MockEnv> {
   return async (c, next) => {
     await next();
     const headers = c.res.headers;
@@ -94,7 +94,7 @@ const CORRELATION_ID = /^[A-Za-z0-9._:-]{1,128}$/;
 export function requestContext(options: {
   sink: LogSink | undefined;
   level: 'debug' | 'info' | 'warn' | 'error';
-  appEnv: AppEnvValue;
+  appEnv: AppEnv;
   now: () => Date;
 }): MiddlewareHandler<MockEnv> {
   const root = createLogger({ sink: options.sink, level: options.level, env: options.appEnv });
@@ -172,7 +172,7 @@ export function resolveRoute(records: () => readonly MockRouteRecord[]): Middlew
   };
 }
 
-/** 6. Authentication (real JWT verification + persona mapping). Public endpoints and health pass through. */
+/** 6. Authentication (prototype persona token + persona mapping, DD-50). Public endpoints and health pass through. */
 export function authenticate(verifyToken: () => TokenVerifier): MiddlewareHandler<MockEnv> {
   return async (c, next) => {
     const route = c.get('route');
@@ -184,13 +184,12 @@ export function authenticate(verifyToken: () => TokenVerifier): MiddlewareHandle
     const token = extractBearerToken(c.req.header('authorization'));
     const result = await verifyToken()(token);
     if (!result.ok) {
-      const level = result.reason === 'jwks_unavailable' ? 'error' : 'info';
-      logger[level]('authentication rejected', { reason: result.reason, detail: result.detail });
+      logger.info('authentication rejected', { reason: result.reason, detail: result.detail });
       throw unauthenticatedError();
     }
-    const persona = findPersonaByEmail(result.token.email);
+    const persona = findPersonaByEmail(result.email);
     if (persona === undefined) {
-      logger.info('authentication rejected', { reason: 'unknown_account', authUserId: result.token.authUserId });
+      logger.info('authentication rejected', { reason: 'unknown_account' });
       throw unauthenticatedError();
     }
     if (!isPersonaActive(persona)) {
@@ -325,7 +324,7 @@ function fixtureHelpers(query: unknown, persona: Persona | null): FixtureHelpers
 const PLATFORM_CODES = new Set<string>(Object.keys(PLATFORM_ERRORS));
 
 /** 9. Parses the request with the contract, runs the handler and validates the response. */
-export function dispatch(appEnv: AppEnvValue): (c: Context<MockEnv>) => Promise<Response> {
+export function dispatch(appEnv: AppEnv): (c: Context<MockEnv>) => Promise<Response> {
   return async (c) => {
     const route = c.get('route');
     if (route === null) {

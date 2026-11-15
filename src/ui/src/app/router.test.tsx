@@ -88,7 +88,9 @@ describe('router', () => {
 
   it('sends a visitor from the root to sign-in when no public home is registered', async () => {
     const router = renderAt('/', { session: { ...initialSessionState, authStatus: 'signedOut' } });
-    expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Choose a demo persona' }),
+    ).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/signin');
   });
 

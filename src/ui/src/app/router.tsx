@@ -3,7 +3,7 @@
  *
  * - `/` + public feature routes inside PublicShell (PUB-01…07, `/register`, `/invite/:token`…). Without a public
  *   home route, `/` goes to sign-in.
- * - `/signin`, `/forgot-password`, `/reset-password`: auth pages outside any shell.
+ * - `/signin`: the persona picker of the Stage A prototype, outside any shell (DD-50).
  * - `/select-organization`: signed in (COM-02).
  * - `/buyer/*`, `/supplier/*`, `/ops/*` and `/me/*`: signed in with an active organization, inside AppShell; the area
  *   must match the organization's kind (`/me` matches every kind). Each feature route can require a permission.
@@ -16,8 +16,6 @@ import type { ComponentType, ReactNode } from 'react';
 import { Navigate, createBrowserRouter } from 'react-router';
 import type { RouteObject } from 'react-router';
 
-import { ForgotPasswordPage } from '../auth/ForgotPasswordPage';
-import { ResetPasswordPage } from '../auth/ResetPasswordPage';
 import { SignInPage } from '../auth/SignInPage';
 import { AppShell } from '../components/shell/AppShell';
 import { PublicShell } from '../components/shell/PublicShell';
@@ -100,8 +98,6 @@ export function buildRoutes(modules: readonly FeatureModule[]): RouteObject[] {
       children: [
         { path: '/', element: <PublicShell />, children: publicChildren },
         { path: '/signin', element: <SignInPage /> },
-        { path: '/forgot-password', element: <ForgotPasswordPage /> },
-        { path: '/reset-password', element: <ResetPasswordPage /> },
         {
           path: '/select-organization',
           element: (

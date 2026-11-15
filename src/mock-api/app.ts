@@ -1,9 +1,10 @@
 /**
- * The Stage A mock API (architecture-plan §3.11; docs/technical/07-api.md §11; DD-43).
+ * The Stage A mock API (architecture-plan §3.11; docs/technical/07-api.md §11; DD-50).
  *
  * `createMockApp()` builds a Hono app with the same `/api/v1` surface and the same middleware semantics as the real
- * API (see `middleware/chain.ts` for the order), mounts the routes of every handler module (auto-discovered by
- * `registry.ts`, or passed explicitly by tests), and serves `GET /api/v1/health`.
+ * API (see `middleware/chain.ts` for the order), mounts the routes of every handler module (the static list of
+ * `handler-modules.ts`, or modules passed explicitly by tests), and serves `GET /api/v1/health`. The same app runs in
+ * the browser prototype (`browser.ts`) and in Node tests, so it uses no Node or server modules.
  *
  * Handlers are pure functions over static fixtures. NOTHING is persisted between requests: a command validates its
  * input against the contract and returns a contract-valid static response.
@@ -18,9 +19,7 @@
  */
 import { Hono } from 'hono';
 
-import { verifyAccessToken } from '../server/lib/auth/verify.js';
-import { tryGetConfig } from '../server/lib/config/index.js';
-import type { AppEnvValue, LogLevel } from '../server/lib/config/index.js';
+import type { AppEnv } from '../contracts/session.js';
 import {
   authenticate,
   dispatch,
@@ -33,12 +32,15 @@ import {
   securityHeaders,
   tenantContext,
 } from './middleware/chain.js';
-import { storylineNow } from './fixtures/demo-clock.js';
-import type { MockEnv, TokenVerifier } from './middleware/chain.js';
+import { frozenStorylineNow } from './fixtures/demo-clock.js';
+import type { MockEnv } from './middleware/chain.js';
+import { HANDLER_MODULES } from './handler-modules.js';
 import { createLogger } from './middleware/logger.js';
-import type { LogSink } from './middleware/logger.js';
+import type { LogLevel, LogSink } from './middleware/logger.js';
 import { MockRouteCollector } from './middleware/routes.js';
-import { loadHandlerModules, registerModules } from './registry.js';
+import { personaTokenVerifier } from './prototype-auth.js';
+import type { TokenVerifier } from './prototype-auth.js';
+import { registerModules } from './registry.js';
 import type { HandlerModule, RegistryFailure } from './registry.js';
 
 export { mockRoute } from './middleware/routes.js';
@@ -49,27 +51,28 @@ export { HEALTH_BODY } from './middleware/chain.js';
 export type { HandlerModule, RegistryFailure } from './registry.js';
 
 export interface CreateMockAppOptions {
-  /** Token verification; defaults to the real `verifyAccessToken` (lib/auth/verify.ts, process config). */
+  /** Token verification; defaults to the prototype persona token (`prototype-auth.ts`, DD-50). */
   readonly verifyToken?: TokenVerifier;
-  /** Explicit handler modules (tests). When omitted, `handlers/` is auto-discovered. */
+  /** The handler modules to mount; defaults to every module of `handlers/` (`HANDLER_MODULES`). */
   readonly modules?: readonly HandlerModule[];
-  /** Directory to discover when `modules` is omitted (defaults to `src/mock-api/handlers`). */
-  readonly handlersDir?: string;
-  /** Log destination (defaults to stdout). */
+  /** Modules that could not be loaded before registration (discovery in tests); reported and logged. */
+  readonly moduleFailures?: readonly RegistryFailure[];
+  /** Log destination (defaults to the console). */
   readonly logSink?: LogSink;
+  /** Defaults to `info`. */
   readonly logLevel?: LogLevel;
-  /** Reported in `/me/context` `environment.appEnv`; defaults to the configured `APP_ENV`. */
-  readonly appEnv?: AppEnvValue;
+  /** Reported in `/me/context` `environment.appEnv`; defaults to `local`. */
+  readonly appEnv?: AppEnv;
   /**
-   * Clock (tests); defaults to the storyline clock: the system clock, never earlier than the demo "as of"
-   * (`fixtures/demo-clock.ts`), so handlers, `/me/context.serverTime` and the fixtures agree on "now".
+   * Clock (tests); defaults to the frozen storyline clock: always the demo "as of" instant
+   * (`fixtures/demo-clock.ts`), so handlers, `/me/context.serverTime` and the fixtures agree on "now" on any real date.
    */
   readonly now?: () => Date;
 }
 
 export interface MockApi {
   readonly app: Hono<MockEnv>;
-  /** Fetch-style entry point (the node:http bridge and tests call it). */
+  /** Fetch-style entry point (the browser transport and tests call it). */
   readonly fetch: (request: Request) => Promise<Response>;
   /** Loaded handler modules and the ones skipped with their reason. */
   readonly loaded: readonly string[];
@@ -79,32 +82,21 @@ export interface MockApi {
 }
 
 /** Builds the mock API. */
-export async function createMockApp(options: CreateMockAppOptions = {}): Promise<MockApi> {
-  const configured = tryGetConfig();
-  const appEnv: AppEnvValue = options.appEnv ?? (configured.ok ? configured.config.appEnv : 'local');
-  const logLevel: LogLevel = options.logLevel ?? (configured.ok ? configured.config.logLevel : 'info');
-  const now = options.now ?? (() => storylineNow(new Date()));
-  const verifyToken: TokenVerifier = options.verifyToken ?? verifyAccessToken;
+export function createMockApp(options: CreateMockAppOptions = {}): MockApi {
+  const appEnv: AppEnv = options.appEnv ?? 'local';
+  const logLevel: LogLevel = options.logLevel ?? 'info';
+  const now = options.now ?? frozenStorylineNow;
+  const verifyToken: TokenVerifier = options.verifyToken ?? personaTokenVerifier;
 
   const bootLogger = createLogger({ sink: options.logSink, level: logLevel, env: appEnv });
   const collector = new MockRouteCollector('mock-app');
-  let loaded: string[];
-  let failed: RegistryFailure[];
-  if (options.modules !== undefined) {
-    const result = registerModules(collector, options.modules);
-    loaded = result.loaded;
-    failed = result.failed;
-    for (const failure of failed) {
-      bootLogger.error('handler module skipped', { ...failure });
-    }
-  } else {
-    const result = await loadHandlerModules(collector, {
-      logger: bootLogger,
-      ...(options.handlersDir === undefined ? {} : { dir: options.handlersDir }),
-    });
-    loaded = result.loaded;
-    failed = result.failed;
+  const result = registerModules(collector, options.modules ?? HANDLER_MODULES);
+  const loaded = result.loaded;
+  const failed = [...(options.moduleFailures ?? []), ...result.failed];
+  for (const failure of failed) {
+    bootLogger.error('handler module skipped', { ...failure });
   }
+  bootLogger.info('handler modules loaded', { loaded, failed: failed.length });
   const records = collector.records;
 
   const app = new Hono<MockEnv>();

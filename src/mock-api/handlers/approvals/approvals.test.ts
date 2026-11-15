@@ -22,7 +22,7 @@ const TEBOGO = EMAIL('tebogo.officer');
 let api: TestMockApp;
 
 beforeAll(async () => {
-  api = await createTestMockApp({ auth: 'fixture', modules: [{ name: 'approvals', register }] });
+  api = await createTestMockApp({ modules: [{ name: 'approvals', register }] });
 });
 
 function detail(body: unknown): ApprovalDetail {

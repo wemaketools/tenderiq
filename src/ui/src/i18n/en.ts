@@ -114,51 +114,19 @@ export const shellCatalog = {
     },
   },
   auth: {
-    field: {
-      email: 'Email address',
-      password: 'Password',
-    },
-    backToSignIn: 'Back to sign-in',
     signIn: {
-      title: 'Sign in',
-      subtitle: 'Use your TenderIQ account.',
-      submit: 'Sign in',
+      title: 'Choose a demo persona',
+      subtitle:
+        'This prototype has no passwords. Sign in as any person of the demo world to see TenderIQ through their role.',
       signingIn: 'Signing in…',
       failed:
-        'We could not sign you in with those details. Check your email and password, or contact your organization administrator.',
-      expired: 'Your session ended. Sign in again to continue.',
+        'This persona cannot sign in: the account is deactivated or unknown. Choose another persona.',
+      expired: 'Your session ended. Choose a persona to continue.',
       contextFailed: 'Your account details could not be loaded.',
-      forgot: 'Forgot your password?',
       publicPortal: 'Public portal',
     },
     demo: {
-      title: 'Demo accounts (local development only)',
-      subtitle: 'Choose a persona to sign in with its local demo password ({password}).',
       pick: 'Sign in as {name}, {role}',
-    },
-    forgot: {
-      title: 'Reset your password',
-      subtitle:
-        'Enter the email address of your account. We will send you a link to choose a new password.',
-      submit: 'Send reset link',
-      sentTitle: 'Check your email',
-      sent: 'If an account exists for that address, a reset link is on its way. The link expires after a short time.',
-    },
-    reset: {
-      title: 'Choose a new password',
-      subtitle: 'Use at least {min} characters.',
-      newPassword: 'New password',
-      confirmPassword: 'Confirm the new password',
-      submit: 'Save the new password',
-      tooShort: 'Use at least {min} characters.',
-      mismatch: 'The two passwords do not match.',
-      failed: 'The password could not be changed. Request a new reset link and try again.',
-      savedTitle: 'Password changed',
-      saved: 'Your new password is saved.',
-      continue: 'Continue',
-      noSessionTitle: 'This reset link is not valid any more',
-      noSession: 'Open the latest reset email, or request a new link.',
-      requestNew: 'Request a new link',
     },
   },
   ui: {

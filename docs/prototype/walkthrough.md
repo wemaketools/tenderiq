@@ -2,7 +2,7 @@
 
 Screen-by-screen guide for the Stage A approval review. Every in-scope screen ID (118 screens: COM-01…09, PUB-01…07, SUP-01…24, BUY-01…35, EVA-01…06, CON-01…11, ADM-01…17, OPS-01…07, REP-01…02) appears below with the persona to sign in as, its URL, what it demonstrates, what to evaluate and a screenshot. How to start the prototype, the persona table and the approval checklist are in [README.md](README.md).
 
-- Every account's password is `test1234`. Sign in at http://localhost:5173/signin; the **Demo accounts** list on the sign-in page fills the fields for you.
+- There are no passwords (DD-50). Sign in at http://localhost:5173/signin by choosing the persona in the sign-in page's persona picker.
 - Addresses are `<persona>@tenderiq.local`. KWU = Kalahari Water Utilities (Pilot), the demo buyer.
 - The demo "now" is **6 Oct 2026, 08:00 UTC** (10:00 in Africa/Gaborone). Data is static: actions show their realistic result but nothing is saved.
 - Screenshots are taken by `e2e_tests/specs/prototype/walkthrough.spec.ts` at 1600 px width with the browser in Europe/London, so official deadlines also show a "your time" line. Long pages are cut at 3,200 px. Extra captures show the dark theme and key states.
@@ -28,13 +28,11 @@ Anyone, without an account. Open http://localhost:5173/ in a private window.
 | | |
 |---|---|
 | **Persona** | anonymous (no sign-in) |
-| **URL** | `/signin`<br>`/forgot-password` (password recovery) |
-| **Demonstrates** | FR-01. Real sign-in against local Supabase Auth (DD-43), one generic message for wrong credentials, password recovery by e-mail (Mailpit), the dev-only demo-account quick-pick. AC-04: `former.officer` is deactivated and cannot get in. |
-| **Evaluate** | Wording of the sign-in and recovery pages; that a wrong password never reveals whether the account exists; the demo-accounts panel is acceptable for local use (it is removed from production builds). |
+| **URL** | `/signin` |
+| **Demonstrates** | FR-01 as far as Stage A goes (DD-50): sign-in is a persona picker listing every demo persona by organization, with no password; a persona the API refuses gets one generic message. AC-04: `former.officer` is deactivated and cannot get in. Password sign-in, account recovery and invitation acceptance with real Supabase Auth arrive in Stage B. |
+| **Evaluate** | Wording of the sign-in page and its refusal message; that the persona list makes each role clear. |
 
 ![COM-01 Sign-in, invitation acceptance, and account recovery — public](screens/COM-01--public.jpg)
-
-![COM-01 password recovery — public](screens/COM-01--public--recovery.jpg)
 
 ### PUB-01 — Public procurement home
 

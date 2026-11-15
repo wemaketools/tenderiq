@@ -6,32 +6,29 @@ This folder is the owner's review pack for the **Stage A UI prototype**. Stage B
 |---|---|
 | `README.md` (this file) | How to run the prototype, who to sign in as, what is and is not real, a guided tour, acceptance scenarios, known limitations, and the approval checklist and feedback template |
 | [`walkthrough.md`](walkthrough.md) | Every in-scope screen ID (118 screens) with its persona, URL, what it demonstrates, what to evaluate, and a screenshot |
-| `screens/*.jpg` | 163 screenshots named `<SCREEN-ID>--<persona>[--<state>].jpg`, taken by `e2e_tests/specs/prototype/walkthrough.spec.ts` |
+| `screens/*.jpg` | 162 screenshots named `<SCREEN-ID>--<persona>[--<state>].jpg`, taken by `e2e_tests/specs/prototype/walkthrough.spec.ts` |
 
 ## 1. How to run it
 
-Prerequisites: Node 24, npm 11, **Docker Desktop running**. The full runbook is [`docs/local-development.md`](../local-development.md).
+Prerequisites: Node 24 and npm 11. The prototype is fully static (DD-50): no Docker, no Supabase, no database and no environment file. The full runbook is [`docs/local-development.md`](../local-development.md).
 
 ```bash
 npm install                 # once
-npm run supabase:start      # local Supabase stack in Docker (Auth, Postgres, Studio, Mailpit)
-npm run auth:personas       # creates or updates every demo account, password test1234
-npm run dev:prototype       # mock API on 127.0.0.1:3001 + SPA on http://localhost:5173
+npm run dev:prototype       # the SPA on http://localhost:5173; the mock API runs in the page
 ```
 
-On Windows, `.\run.ps1` does all of this in one step.
+On Windows, `.\run.ps1` does both in one step. The same static build can be deployed to Vercel (`vercel.json`); the owner creates the project and deploys.
 
 1. Open **http://localhost:5173**. The public portal opens without an account.
-2. Choose **Sign in**. The **Demo accounts** list on the sign-in page (local development only) fills in the email and password of any persona. Every password is `test1234`.
-3. **Password reset:** use "Forgot password" on the sign-in page, then open **Mailpit at http://127.0.0.1:54324** to read the email and follow its link. Emails never leave your machine.
-4. Switch persona with the account menu (bottom left) → **Sign out**, then sign in again. A person with several organizations (`sam.dual`) uses **Switch organization** in the same menu.
-5. Stop with Ctrl+C; `npm run supabase:stop` stops the Docker stack.
+2. Choose **Sign in**. The sign-in page lists every demo persona, grouped by organization; choose one to sign in as that person. There are no passwords.
+3. Switch persona with the account menu (bottom left) → **Sign out**, then choose another persona. A person with several organizations (`sam.dual`) uses **Switch organization** in the same menu.
+4. Stop with Ctrl+C.
 
-To regenerate the screenshots: `npm run test:e2e:prototype -- walkthrough.spec.ts`. It starts its own servers on the prototype ports and never touches 3001 or 5173.
+To regenerate the screenshots: `npm run test:e2e:prototype -- walkthrough.spec.ts`. It starts its own Vite server on the prototype port (5280) and never touches 5173.
 
 ## 2. Personas
 
-Every address ends in `@tenderiq.local`; every password is `test1234`. KWU = Kalahari Water Utilities (Pilot), the demo buyer (BWP, Africa/Gaborone).
+Every address ends in `@tenderiq.local`; the persona picker on the sign-in page lists them all. KWU = Kalahari Water Utilities (Pilot), the demo buyer (BWP, Africa/Gaborone).
 
 | Email (local part) | Organization | Role | What to try |
 |---|---|---|---|
@@ -66,8 +63,8 @@ Every address ends in `@tenderiq.local`; every password is `test1234`. KWU = Kal
 
 | Real | Static |
 |---|---|
-| Sign-in, sign-out, token refresh and password reset against the **local Supabase Auth** in Docker (DD-43) | All business data: fixtures in `src/mock-api/fixtures/**` built from the demo storyline (`docs/plan/demo-storyline.md`) |
-| The mock API checks the real JWT, maps the account to its persona, and enforces tenant isolation (one identical 403), permissions and response contracts | **Nothing persists.** Commands (approve, submit, publish, save…) are validated against the contract and return a realistic static outcome (for example a fixture receipt), shown in the UI; a reload shows the original data again |
+| The API contracts and their checks: the mock API runs in the browser (DD-50), maps the chosen persona to its fixture persona (an unknown or deactivated persona gets 401), and enforces tenant isolation (one identical 403), permissions and response contracts | All business data: fixtures in `src/mock-api/fixtures/**` built from the demo storyline (`docs/plan/demo-storyline.md`) |
+| Sign-in and sign-out as a persona (the persona picker; no passwords). Real Supabase Auth, password recovery and invitation acceptance arrive in Stage B (DD-50) | **Nothing persists.** Commands (approve, submit, publish, save…) are validated against the contract and return a realistic static outcome (for example a fixture receipt), shown in the UI; a reload shows the original data again |
 | Every screen, navigation entry, filter, form validation and confirmation dialog of the final product | The clock: the storyline "now" is **6 Oct 2026, 08:00 UTC** (10:00 in Gaborone), so deadlines and countdowns never move |
 | Light and dark themes, keyboard use and accessibility checks (axe) | Uploads and downloads use fixture documents |
 
@@ -146,12 +143,12 @@ The PRD §23 scenarios in scope (AC-01…AC-36 and AC-39). In Stage A each is **
 
 - **Nothing is saved.** Every action shows its realistic result (a receipt, an approval outcome, a toast), but the next page load shows the storyline data again. Multi-step flows therefore cannot be chained (for example, submitting and then seeing the new receipt in the list).
 - **The clock is frozen** at 6 Oct 2026, 08:00 UTC. Countdowns, overdue chips and waiting periods are computed against that instant.
-- **Emails:** only Supabase Auth's password-reset email is sent (to Mailpit). Invitation, registration and business notification emails arrive in Stage B, when the real API sends them (DD-44).
+- **Emails:** none are sent in Stage A. Password recovery, invitation, registration and business notification emails arrive in Stage B, with real Supabase Auth and the real API (DD-44, DD-50).
 - **Invitation links** (`/invite/:token`) and the claim link of a provisional supplier work only for the fixture invitations; no email delivers them in Stage A.
 - **Documents** are fixture files. Upload controls validate the file and return the static outcome; nothing is stored.
 - **Search** covers the fixture world only.
 - **Deferred extensions** (PRD §22): frameworks and call-offs (CON-12, AC-37), joint procurement, reverse auctions, assisted content review (AC-38) and construction-specific schedules are not in the product and have no links.
-- The **Demo accounts** list on the sign-in page exists only in local development builds; production builds never contain it.
+- **Sign-in** is a persona picker in every build, including a deployed one (DD-50); the data is fictional. There is no password and no password recovery; the chosen persona lasts for the browser tab.
 - Screenshots in `screens/` are cut at 3,200 px height for readability; open the live page to see very long pages in full.
 
 ## 7. Approval checklist

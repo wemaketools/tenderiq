@@ -2,22 +2,21 @@
 
 **Tender Intelligence**: a multi-organization tender management application. Buyer organizations plan and run procurements (requests, tenders, publication, clarifications, sealed submissions, opening, evaluation, award, contracts), suppliers discover opportunities and submit responses, and a platform operator runs the service. It belongs to the same product family as QuoteIQ.
 
-## Status: Stage A, UI prototype
+## Status: Stage A, static UI prototype
 
 TenderIQ is delivered in two stages with an owner approval gate between them (`docs/plan/architecture-plan.md` §0):
 
 | Stage | What it contains |
 |---|---|
-| **A: UI prototype** (current) | The complete single-page application, typed API contracts for every endpoint (`src/contracts`), and a **mock API** (`src/mock-api`) that serves **static demo data**. Sign-in is **real**: the local Supabase Auth stack runs in Docker. Nothing you do in the prototype is saved; actions return realistic static results, and a "Prototype — static demo data" banner is always shown. |
-| **B: Full backend** | Database schema, business logic, background jobs and file storage behind the same contracts. Starts only after the owner approves the prototype. |
+| **A: UI prototype** (current) | The complete single-page application, typed API contracts for every endpoint (`src/contracts`), and a **mock API** (`src/mock-api`) that serves **static demo data** and runs **in the browser** (DD-50). The prototype is a static site: no server, no database, no Docker, no Supabase. Sign-in is a persona picker with no passwords. Nothing you do in the prototype is saved; actions return realistic static results, and a "Prototype — static demo data" banner is always shown. |
+| **B: Full backend** | Database schema, business logic, background jobs, file storage and real Supabase Auth behind the same contracts. Starts only after the owner approves the prototype. |
 
 ## Prerequisites
 
 - **Node.js 24** (`.nvmrc`) with npm 11
-- **Docker Desktop**, running (for the local Supabase stack)
 - Windows, macOS or Linux. `run.ps1` is a one-command runner for Windows.
 
-The Supabase CLI is a pinned dev dependency; nothing else needs a global install.
+Nothing else: no Docker, no database, no environment file.
 
 ## Quick start
 
@@ -27,28 +26,14 @@ Step by step:
 
 ```bash
 npm install
-npm run supabase:start        # local Supabase stack in Docker (first run downloads the images)
-# write the root .env.local from `npx supabase status -o env` (see docs/local-development.md)
-npm run auth:personas         # create the demo accounts in local Supabase Auth
-npm run dev:prototype         # mock API on 127.0.0.1:3001 + SPA on http://localhost:5173
+npm run dev:prototype         # http://localhost:5173, with the mock API running in the page
 ```
 
-Open http://localhost:5173 and sign in. In local development builds the sign-in page lists the demo accounts for one-click sign-in (this list never exists in production builds). The full runbook, including `.env.local` and troubleshooting, is in [docs/local-development.md](docs/local-development.md).
-
-## Local services
-
-| Service | Address |
-|---|---|
-| SPA (Vite) | http://localhost:5173 |
-| Mock API (Stage A) | http://127.0.0.1:3001/api/v1 (proxied by Vite, so the browser uses `/api/v1`) |
-| Supabase API gateway (Auth) | http://127.0.0.1:54321 |
-| Postgres | 127.0.0.1:54322 (no application schema in Stage A) |
-| Supabase Studio | http://127.0.0.1:54323 |
-| Mailpit (password-reset emails) | http://127.0.0.1:54324 (SMTP 54325) |
+Open http://localhost:5173 and choose a demo persona. The full runbook, including troubleshooting, is in [docs/local-development.md](docs/local-development.md).
 
 ## Demo accounts
 
-Every account uses the password **`test1234`** and an `@tenderiq.local` email address. The organizations and their story are defined in [docs/plan/demo-storyline.md](docs/plan/demo-storyline.md).
+Every account has an `@tenderiq.local` email address and is chosen on the sign-in page; there are no passwords in the prototype. The organizations and their story are defined in [docs/plan/demo-storyline.md](docs/plan/demo-storyline.md).
 
 | Organization | Accounts |
 |---|---|
@@ -59,7 +44,7 @@ Every account uses the password **`test1234`** and an `@tenderiq.local` email ad
 | Suppliers: Makgadikgadi Civil Works, Limpopo Environmental Services | an administrator each |
 | Buyer and suppliers at once | `sam.dual`: evaluator at Kalahari Water Utilities and contributor at Tsodilo and Chobe (organization switching) |
 
-The complete account list, grouped by organization, is on the sign-in page's demo accounts panel and in `src/mock-api/fixtures/platform.ts`.
+The complete account list, grouped by organization, is on the sign-in page and in `src/mock-api/fixtures/platform.ts`.
 
 Good starting points: `tebogo.officer` (buyer procurement officer), `boitumelo.chair` (evaluation chair), `tsodilo.bidmanager` (supplier), `masego.contracts` (contract manager), `admin.kwu` (organization administrator), `ops.admin` (platform operator).
 
@@ -67,10 +52,7 @@ Good starting points: `tebogo.officer` (buyer procurement officer), `boitumelo.c
 
 | Command | Purpose |
 |---|---|
-| `npm run supabase:start` / `npm run supabase:stop` / `npm run supabase:status` | Start, stop or inspect the local Supabase stack |
-| `npm run auth:personas` | Create or update the demo accounts (local only, idempotent) |
-| `npm run dev:prototype` | Run the prototype: mock API + SPA |
-| `npm run dev:mock-api` | Run only the mock API on port 3001 |
+| `npm run dev:prototype` | Run the static prototype (Vite, with the mock API in the page) |
 | `npm run typecheck`, `npm run typecheck:ui` | Type-check the backend side (contracts, mock API, scripts) and the SPA |
 | `npm run lint`, `npm run lint:ui`, `npm run format:ui` | ESLint (backend side), ESLint + Prettier check (SPA), Prettier write (SPA) |
 | `npm run test`, `npm run test:unit`, `npm run test:ui` | Vitest: all root projects, the unit project, the SPA suite |
@@ -88,18 +70,18 @@ TypeScript (strict, ESM) everywhere. SPA: React 18, Vite, Redux Toolkit, React R
 
 ```
 src/contracts/   typed API contracts (zod), shared by the SPA, the mock API and the backend
-src/mock-api/    Stage A mock API (Hono) serving static fixtures; dev and test only, never deployed
-src/server/      backend; in Stage A only lib/config, lib/supabase and lib/auth/verify.ts
+src/mock-api/    Stage A mock API (Hono) serving static fixtures; runs in the browser in the prototype
+src/server/      backend; in Stage A only lib/config, lib/supabase and lib/auth/verify.ts (kept for Stage B)
 src/ui/          the SPA workspace (React + Vite)
 e2e_tests/       the Playwright workspace
-scripts/         dev servers, auth personas, OpenAPI generation, CI scans, signing-key helper
-supabase/        local Supabase stack configuration
+scripts/         OpenAPI generation and CI scans
+supabase/        local Supabase stack configuration (used from Stage B)
 docs/            requirements, plan, technical documentation
 ```
 
 ## Deployment
 
-Production runs on Vercel (static SPA plus Node functions) with hosted Supabase projects, configured from Stage B. The mock API is never deployed. In Stage A the prototype runs locally only.
+Stage A: the prototype deploys to Vercel as static files (`vercel.json`: build `npm run typecheck && npm run build:ui`, output `src/ui/dist`) with no environment variables; the mock API ships inside it (DD-50). From Stage B, production runs on Vercel (static SPA plus Node functions) with hosted Supabase projects, and the mock API leaves the production build.
 
 ## Documentation
 

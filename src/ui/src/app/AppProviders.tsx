@@ -1,6 +1,6 @@
 /**
- * The application providers, outermost first: the Redux store, authentication (supabase-js session, /me/context,
- * API client adapters, theme) and toasts. The router renders inside them.
+ * The application providers, outermost first: the Redux store, authentication (prototype persona session,
+ * /me/context, API client adapters, theme) and toasts. The router renders inside them.
  */
 import type { ReactNode } from 'react';
 import { Provider } from 'react-redux';

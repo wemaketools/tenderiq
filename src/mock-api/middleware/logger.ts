@@ -4,9 +4,9 @@
  * sensitive keys (token, authorization, password, secret, key, cookie, email…) and scrubs JWT-shaped substrings,
  * so tokens, keys and personal data never reach the log.
  */
-import type { LogLevel } from '../../server/lib/config/index.js';
-
-export type { LogLevel } from '../../server/lib/config/index.js';
+/** Log levels, in increasing severity (the values of `LOG_LEVEL`, brief §5.4). */
+export const LOG_LEVELS = ['debug', 'info', 'warn', 'error'] as const;
+export type LogLevel = (typeof LOG_LEVELS)[number];
 
 /** Receives one serialized log line (without the trailing newline). */
 export type LogSink = (line: string) => void;
@@ -52,9 +52,9 @@ export function redact(value: unknown, depth = 0): unknown {
   return value;
 }
 
-/** Writes each line to stdout (scripts and the dev server). */
-export const stdoutSink: LogSink = (line) => {
-  process.stdout.write(`${line}\n`);
+/** Writes each line to the console as a warning (the in-browser prototype logs at `warn` and above). */
+export const consoleSink: LogSink = (line) => {
+  console.warn(line);
 };
 
 export interface LoggerOptions {
@@ -64,9 +64,9 @@ export interface LoggerOptions {
   readonly bindings?: Record<string, unknown>;
 }
 
-/** Creates a logger (default sink: stdout, level `info`). */
+/** Creates a logger (default sink: the console, level `info`). */
 export function createLogger(options: LoggerOptions = {}): MockLogger {
-  const sink = options.sink ?? stdoutSink;
+  const sink = options.sink ?? consoleSink;
   const threshold = LEVEL_RANK[options.level ?? 'info'];
   const env = options.env ?? 'local';
   const bindings = options.bindings ?? {};

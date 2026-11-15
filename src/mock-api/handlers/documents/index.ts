@@ -10,7 +10,7 @@
  *   the confirm step can answer with the same document; nothing is added to the fixtures, and the next GET still
  *   returns them unchanged.
  */
-import { createHash } from 'node:crypto';
+import { sha256Hex } from '../../sha256.js';
 
 import type { DocumentSummary, DocumentVersion, MyDocumentItem, UploadEnvelope } from '../../../contracts/documents.js';
 import {
@@ -419,8 +419,8 @@ export function register(app: MockApp): void {
       expiresAt: windowEnd(now, PROTOTYPE_LINK_TTL_MS),
       fileName: prototypeCopyFileName(version.fileName),
       contentType: PROTOTYPE_COPY_CONTENT_TYPE,
-      sizeBytes: Buffer.byteLength(text, 'utf8'),
-      sha256: createHash('sha256').update(text).digest('hex'),
+      sizeBytes: new TextEncoder().encode(text).length,
+      sha256: sha256Hex(text),
     };
   });
 

@@ -12,7 +12,7 @@ An organization (the **buyer**) needs to buy something, for example new water pu
 
 ## 2. Who is involved
 
-| Role | Plain-language description | Demo account (password `test1234`) |
+| Role | Plain-language description | Demo account (chosen in the sign-in page's persona picker; no password) |
 |---|---|---|
 | Requester | The employee who needs something | `kagiso.requester@tenderiq.local` |
 | Budget owner | Confirms the money exists | `onalenna.budget@tenderiq.local` |
@@ -280,8 +280,8 @@ These happen only if the published rules allow them.
 
 ## 6. How to use this guide while reviewing the prototype
 
-1. Start the prototype (`docs/prototype/README.md`: `npm run supabase:start`, `npm run auth:personas`, `npm run dev:prototype`, then open http://localhost:5173).
-2. Follow the steps above in order, switching demo accounts with the quick-pick on the sign-in page.
+1. Start the prototype (`docs/prototype/README.md`: `npm run dev:prototype`, then open http://localhost:5173; no Docker or Supabase is needed, DD-50).
+2. Follow the steps above in order, switching demo accounts by signing out and choosing another persona on the sign-in page.
 3. For each step, ask:
    - Is it clear **who I am acting as** and **what happens next**?
    - Are the choices and exceptions described here visible on the screen?

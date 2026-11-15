@@ -3,7 +3,7 @@
  * and "Tender Intelligence"; navigation built from the feature registry for the active organization's kind and
  * permissions, grouped by section with a separator before the admin group; the user card and, in the icon rail
  * range, the toggle for the full sidebar at the bottom. Below 1280px it collapses to an icon rail, below 768px it is a
- * drawer (DD-36); the full sidebar can be chosen from 768 to 1279px (DD-50).
+ * drawer (DD-36); the full sidebar can be chosen from 768 to 1279px (DD-51).
  *
  * Sections (DD-48): a section with more than one destination has a heading that opens and closes it. The section of
  * the current page is always open (closing it lasts until the user moves to another page); the others remember what
@@ -38,7 +38,7 @@ export interface SidebarProps {
   readonly modules?: readonly FeatureModule[];
   /** True for the icon rail (1280px down to 768px): no section headings, every destination shown. */
   readonly rail?: boolean;
-  /** Given only from 768 to 1279px: the full-sidebar toggle at the bottom (DD-50). */
+  /** Given only from 768 to 1279px: the full-sidebar toggle at the bottom (DD-51). */
   readonly widthToggle?: { readonly expanded: boolean; readonly onToggle: () => void };
 }
 

@@ -462,7 +462,7 @@ describe('AppShell navigation drawer (below 768px)', () => {
   });
 });
 
-describe('AppShell full-sidebar toggle (768 to 1279px, DD-50)', () => {
+describe('AppShell full-sidebar toggle (768 to 1279px, DD-51)', () => {
   const sectioned: FeatureModule[] = [
     {
       id: 'sectioned',

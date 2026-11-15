@@ -1,6 +1,7 @@
 /**
- * The dev-only demo-accounts quick-pick of the SPA (src/ui/src/auth/demoAccountList.ts, DD-43) must list exactly the
- * fixture personas that can sign in. The SPA may not import the mock API, so this test compares the two from here.
+ * The persona picker of the SPA's sign-in page (src/ui/src/auth/demoAccountList.ts, DD-50) must list exactly the
+ * fixture personas. The SPA reaches the mock API only through its prototype transport, so this test compares the
+ * two from here.
  */
 import { fileURLToPath, pathToFileURL } from 'node:url';
 

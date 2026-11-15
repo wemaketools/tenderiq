@@ -21,7 +21,7 @@
  *   time; revision 1 stays effective (AC-13, BR-19).
  * - Bid 20 (Tsodilo, T-2026-0008): withdrawn with confirmation WDR-2026-000001 (AC-14 history).
  */
-import { createHash } from 'node:crypto';
+import { sha256Hex } from '../../sha256.js';
 
 import { mul, round } from '../../../contracts/decimal.js';
 import type {
@@ -922,7 +922,7 @@ const DECLARATION_OVERRIDES: Readonly<
 
 /** A deterministic SHA-256 hex digest for fixture content. */
 export function fixtureHash(seed: string): string {
-  return createHash('sha256').update(seed).digest('hex');
+  return sha256Hex(seed);
 }
 
 function tenderOf(id: number): FixtureBidTender {

@@ -142,3 +142,7 @@ Negative:
 - PRD §5.2 FR-02, §5.3 FR-03, COM-01, SUP-02, PUB-01, BR-03, BR-44.
 - Related documents: [Security model](../04-security-model.md), [Platform, identity and access data model](../03-data-model/01-platform-identity-access.md), [Suppliers and qualification data model](../03-data-model/04-suppliers-qualification.md), [Records, reporting and operations data model](../03-data-model/12-records-reporting-operations.md), [Key flows](../06-key-flows.md), [Deployment and environments](../10-deployment-environments.md).
 - Related decisions: [ADR-0001](0001-tenancy-equals-organization.md), [ADR-0006](0006-contracts-first-ui-prototype-stage.md), [ADR-0007](0007-in-app-formal-notices.md).
+
+## Amendments
+
+- Amended 2026-10-30 by DD-50: for Stage A, decision item 9 and the Stage A part of item 5 no longer apply. Stage A uses no Supabase: sign-in is a persona picker with no passwords, the password-reset pages are removed, and no Auth email is sent. The `/register` and `/invite/:token` screens still call their contract endpoints on the in-browser mock API and receive static responses. Supabase Auth sign-in, password reset, invitation set-password and Auth email through SMTP (Mailpit locally) arrive in Stage B. The registration design of this record is unchanged.

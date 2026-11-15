@@ -7,7 +7,7 @@
  * - Commands validate the business state the fixtures imply and answer with a static outcome (new ids from 9001);
  *   nothing is persisted.
  */
-import { createHash } from 'node:crypto';
+import { sha256Hex } from '../../sha256.js';
 
 import type { Money } from '../../../contracts/common.js';
 import { gt } from '../../../contracts/decimal.js';
@@ -143,7 +143,7 @@ function officialDate(at: string, timeZone: string): string {
 }
 
 function hashOf(...parts: ReadonlyArray<string | number>): string {
-  return createHash('sha256').update(parts.join('|')).digest('hex');
+  return sha256Hex(parts.join('|'));
 }
 
 function firstBlocker(blockers: readonly SelectionBlocker[]): SelectionBlocker | undefined {

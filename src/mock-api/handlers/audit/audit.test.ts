@@ -10,7 +10,7 @@ const MPHO = 'mpho.manager@tenderiq.local';
 let api: TestMockApp;
 
 beforeAll(async () => {
-  api = await createTestMockApp({ auth: 'fixture', modules: [{ name: 'audit', register }] });
+  api = await createTestMockApp({ modules: [{ name: 'audit', register }] });
 });
 
 describe('buyer.audit.entityHistory', () => {

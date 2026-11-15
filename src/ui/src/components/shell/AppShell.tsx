@@ -6,7 +6,7 @@
  * 768px the section action is an icon button and the sidebar is a drawer: closed, it is
  * hidden from focus and assistive technology (CSS visibility); opening it moves focus to the first nav link; Escape
  * or the scrim closes it and returns focus to the menu button. Between 768 and 1279px the sidebar is an icon rail
- * with a toggle for the full sidebar (DD-50), remembered per browser; the full sidebar pushes the content.
+ * with a toggle for the full sidebar (DD-51), remembered per browser; the full sidebar pushes the content.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Outlet, useLocation } from 'react-router';

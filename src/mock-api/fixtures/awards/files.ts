@@ -43,7 +43,7 @@ const FINAL_AWARD_DONE: readonly GateCheck[] = [
 ];
 
 /** The award files of the register. */
-export const AWARD_FILES: readonly AwardFileFixture[] = Object.freeze([
+export const AWARD_FILES: readonly AwardFileFixture[] = Object.freeze<AwardFileFixture[]>([
   {
     tenantId: TENANT_IDS.kwu,
     tenderId: 1,

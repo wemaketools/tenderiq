@@ -1,6 +1,6 @@
 /**
  * Consistency of the platform fixtures with docs/plan/demo-storyline.md and src/contracts/permissions.ts, and
- * contract validity of every persona's session context (served offline with `auth: 'fixture'`).
+ * contract validity of every persona's session context.
  */
 import { describe, expect, it } from 'vitest';
 
@@ -126,7 +126,7 @@ describe('platform fixtures', () => {
 describe('session context of every persona', () => {
   it('validates against the contract for every active persona and every membership tenant it may enter', async () => {
     // Arrange
-    const api = await createTestMockApp({ auth: 'fixture' });
+    const api = await createTestMockApp();
 
     // Act + Assert
     for (const persona of PERSONAS.filter((candidate) => candidate.status === 'active')) {
@@ -142,7 +142,7 @@ describe('session context of every persona', () => {
   });
 
   it('rejects the deactivated persona even with a verified identity', async () => {
-    const api = await createTestMockApp({ auth: 'fixture' });
+    const api = await createTestMockApp();
     const response = await api.callAs('former.officer@tenderiq.local', getSessionContext);
     expect(response.status).toBe(401);
   });

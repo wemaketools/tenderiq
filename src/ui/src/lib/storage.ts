@@ -1,6 +1,6 @@
 /**
  * localStorage for conveniences only (DD-36): the remembered active tenant per user, the last theme, the sidebar
- * width (DD-50) and the open sidebar sections (DD-48). Nothing here is trusted: the active tenant is re-validated by /me/context and the API
+ * width (DD-51) and the open sidebar sections (DD-48). Nothing here is trusted: the active tenant is re-validated by /me/context and the API
  * checks X-Tenant-Id on every call.
  * Every access is guarded, because storage can be unavailable (private mode, blocked site data).
  */

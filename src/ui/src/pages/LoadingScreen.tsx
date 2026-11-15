@@ -1,6 +1,6 @@
 /**
- * The full-page loading state while the session is being established (supabase-js session, /me/context, entering
- * the organization).
+ * The full-page loading state while the session is being established (persona session, /me/context, entering the
+ * organization).
  */
 import { Wordmark } from '../auth/AuthLayout';
 import { t } from '../lib/i18n';

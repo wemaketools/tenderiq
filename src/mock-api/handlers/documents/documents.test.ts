@@ -4,14 +4,15 @@ import { DocumentDetail, documentEndpoints } from '../../../contracts/documents.
 import { createHash } from 'node:crypto';
 
 import { RECORDS } from '../../fixtures/approvals/world.js';
+import { frozenStorylineNow } from '../../fixtures/demo-clock.js';
 import { allPersonas } from '../../persona.js';
-import { TEST_NOW, createTestMockApp } from '../../testing/index.js';
+import { createTestMockApp } from '../../testing/index.js';
 import type { TestMockApp } from '../../testing/index.js';
 import { register } from './index.js';
 import { PROTOTYPE_COPY_NOTICE, issueToken } from './prototype-storage.js';
 
-/** The mock app's clock (link expiry is judged on it). */
-const appNowMs = (): number => TEST_NOW.getTime();
+/** The mock app's clock: the frozen storyline "as of" (link expiry is judged on it). */
+const appNowMs = (): number => frozenStorylineNow().getTime();
 
 const EMAIL = (login: string): string => `${login}@tenderiq.local`;
 const HASH = 'c'.repeat(64);
@@ -19,7 +20,7 @@ const HASH = 'c'.repeat(64);
 let api: TestMockApp;
 
 beforeAll(async () => {
-  api = await createTestMockApp({ auth: 'fixture', modules: [{ name: 'documents', register }] });
+  api = await createTestMockApp({ modules: [{ name: 'documents', register }] });
 });
 
 async function open(login: string, documentId: number) {

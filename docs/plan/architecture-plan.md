@@ -1,8 +1,8 @@
 # TenderIQ — Architectural Plan (build contract)
 
-Status: APPROVED by the owner on 2026-09-29 (revision 3: prototype-first delivery; owner decisions of 2026-09-29 applied — real Supabase Auth in Stage A, Node 24, SMTP email channel via Mailpit locally). Awaiting owner approval before any application code is written.
+Status: APPROVED by the owner on 2026-09-29 (revision 3: prototype-first delivery; owner decisions of 2026-09-29 applied — real Supabase Auth in Stage A, Node 24, SMTP email channel via Mailpit locally). Awaiting owner approval before any application code is written. **Amended 2026-10-30 (DD-50, §11 item 11):** Stage A is a fully static prototype with no Supabase and no Docker; real Supabase Auth moves to Stage B.
 Inputs: `docs/PRD.md` (business), `docs/architecture-brief.md` (technical, followed literally), `docs/css` + `docs/screenshots` (visual style).
-Companions: `docs/plan/design-decisions.md` (decision log DD-01 … DD-50 (DD-38 withdrawn, superseded by DD-43); it amends this plan and the blueprint and wins on conflict), `docs/plan/schema-blueprint.md` (database), `docs/plan/demo-storyline.md` (demo dataset), `docs/technical/` (technical documentation), `docs/plan/tenderiq-prototype.workflow.js` (Stage A), `docs/plan/tenderiq-backend.workflow.js` (Stage B, draft).
+Companions: `docs/plan/design-decisions.md` (decision log DD-01 … DD-51 (DD-38 withdrawn, superseded by DD-43; DD-43 superseded for Stage A by DD-50); it amends this plan and the blueprint and wins on conflict), `docs/plan/schema-blueprint.md` (database), `docs/plan/demo-storyline.md` (demo dataset), `docs/technical/` (technical documentation), `docs/plan/tenderiq-prototype.workflow.js` (Stage A), `docs/plan/tenderiq-backend.workflow.js` (Stage B, draft).
 
 Every build agent reads this file first. Where this plan and the architecture brief disagree, the brief wins unless §11 lists an approved deviation.
 
@@ -14,13 +14,13 @@ TenderIQ is delivered in two stages. **A human approval sits between them.**
 
 | Stage | What is built | What is NOT built | Ends with |
 |---|---|---|---|
-| **A: UI prototype** | Repository skeleton; the complete SPA (every in-scope screen, navigation, design system, all states); **typed API contracts** for every endpoint the UI calls (`src/contracts`); a **mock API** (Hono, same URL surface) that serves **static fixture data** from the demo storyline; **real sign-in with Supabase Auth running in local Docker** (demo accounts created by a script; password-reset emails land in Mailpit; invite and registration emails arrive from Stage B, when the real API calls the Auth Admin invite); UI, contract and E2E tests; a screen walkthrough; technical docs synced to the as-built contracts | Database schema, migrations, Storage wiring, real business logic, jobs, seeds (Supabase Auth IS used) | A prototype you can click through with `npm run dev:prototype`, `docs/prototype/walkthrough.md` (screenshot per screen), and a **STOP**. |
+| **A: UI prototype** | Repository skeleton; the complete SPA (every in-scope screen, navigation, design system, all states); **typed API contracts** for every endpoint the UI calls (`src/contracts`); a **mock API** (Hono, same URL surface) that runs **in the browser** and serves **static fixture data** from the demo storyline; **sign-in by persona picker** (DD-50); UI, contract and E2E tests; a screen walkthrough; technical docs synced to the as-built contracts | Database schema, migrations, Storage wiring, real business logic, jobs, seeds, Supabase (including Auth) and Docker (DD-50) | A static prototype you can click through with `npm run dev:prototype` and deploy to Vercel as static files, `docs/prototype/walkthrough.md` (screenshot per screen), and a **STOP**. |
 | ⛔ **Approval gate** | The owner reviews the prototype and either approves or requests changes. Change requests run as a UI-iteration workflow. **Stage B is never launched without explicit written approval.** | — | "Stage A approved" |
-| **B: Full backend** | Schema from the blueprint, platform layer, shared services, real domain backends implementing the **same contracts**, the auth middleware and app-user resolution (on top of the Supabase Auth already running since Stage A, DD-43), the storage and job platform, demo seed, and full QA | — | A production-ready build passing `npm run build`, `npm run verify` and E2E |
+| **B: Full backend** | Schema from the blueprint, platform layer, shared services, real domain backends implementing the **same contracts**, the local Supabase stack and **real Supabase Auth** (introduced in Stage B, DD-50: the stack, `auth:personas`, supabase-js sign-in and recovery in the SPA, JWT verification), the auth middleware and app-user resolution, the storage and job platform, demo seed, and full QA | — | A production-ready build passing `npm run build`, `npm run verify` and E2E |
 
 Rules that make the gate meaningful:
 - **Contracts are the hand-off.** Stage B implements the Stage A contracts. A contract change in Stage B needs a recorded reason and a UI update in the same unit. The contract-conformance tests run the same zod response schemas against the mock and the real API.
-- **The mock API stays** after Stage B as a development and test tool (`npm run dev:prototype`, and Playwright visual tests). The production build and `api/` never include it.
+- **The mock API stays** after Stage B as a development and test tool (`npm run dev:prototype`, and Playwright visual tests). In Stage A the production build **is** the static prototype and includes it (DD-50). From Stage B, the production build and `api/` never include it.
 - **Static means static.** The mock API returns fixture data. It filters and paginates the fixtures per tenant, persona and query, but it **persists nothing**. Commands (approve, submit, publish…) validate the request against the contract and return a contract-valid static response, for example the fixture receipt for a submission. A visible **"Prototype — static demo data"** banner is always shown when the SPA is served by the mock API (the API reports its mode in `/api/v1/me/context`).
 
 ## 1. Product identity
@@ -133,10 +133,10 @@ Queues: `notifications` (fan-out + delivery) and `exports` (evidence packs, rece
 - Stage B routes parse input with the contract's schemas and type their responses with the contract's types. Contract-conformance tests call every implemented endpoint and validate the response against the contract.
 
 ### 3.11 Prototype mode (Stage A)
-- **Local Supabase stack from Stage A.** The Supabase CLI runs in Docker (Auth, Postgres, Studio, Mailpit). Stage A uses **Auth** only; no application schema exists yet. `npm run auth:personas` creates or updates every demo persona account in local Supabase Auth through the Admin API. It is idempotent and refuses to run against anything that is not local.
-- **Mock API** (`src/mock-api/`): a Hono app with the same `/api/v1` surface. Its middleware mirrors the real chain (correlation id, **real Supabase JWT verification** with the brief §5.7 checks via `src/server/lib/auth/verify.ts`, mapping the verified email to its fixture persona, identical-403 tenant validation, contract permission checks, problem+json errors, and response validation against the contract). It is served on `127.0.0.1:3001` by `scripts/dev/serve-mock-api.ts`, and Vite proxies to it exactly as it will to the real API. Per-domain handlers read typed fixtures (`src/mock-api/fixtures/<domain>.ts`) built from `docs/plan/demo-storyline.md`. Handlers filter by tenant, persona, and query, and never persist anything.
-- **Auth in the SPA** is supabase-js only, exactly as in production (sign-in, forgot/reset password, invitation set-password, refresh, sign-out). There is no mock auth and no `VITE_AUTH_MODE` (DD-43). In **local development builds only** (`import.meta.env.DEV`), the sign-in page shows a **demo accounts** quick-pick that fills the email and password of a persona. Vite removes it from production builds, and `scan-bundle` verifies this.
-- `npm run dev:prototype` = (local Supabase stack must be running: `npm run supabase:start`) mock API + Vite. Playwright's `prototype` project runs against it.
+- **Fully static, one deployable (DD-50).** Stage A is a single Vite SPA deployed to Vercel as static files. There are no `api/` functions, no database, no Docker and no Supabase in Stage A.
+- **Mock API in the browser** (`src/mock-api/`): a Hono app with the same `/api/v1` surface, run inside the SPA through a same-origin fetch adapter. Its middleware mirrors the real chain (correlation id, identical-403 tenant validation, contract permission checks, problem+json errors, response validation against the contract). JWT verification is not part of Stage A. Per-domain handlers read typed fixtures (`src/mock-api/fixtures/<domain>.ts`) built from `docs/plan/demo-storyline.md`, filter by tenant, persona and query, and never persist anything.
+- **Sign-in** is a persona picker (DD-50). No credentials are handled, and password-reset and invitation pages are removed in Stage A.
+- `npm run dev:prototype` runs Vite alone. The standalone mock-API server and `dev:mock-api` are removed. Handler modules are listed in `src/mock-api/handler-modules.ts` (the browser cannot discover them on disk), and mock API runtime code avoids Node APIs (lint rule `tenderiq/mock-api-browser-safe`).
 
 ## 4. Repository layout
 
@@ -148,7 +148,7 @@ The brief §2 layout is used verbatim. Additions are marked ★. Paths marked �
 ├── src/
 │   ├── contracts/ ★Ⓐ                        # common.ts enums.ts endpoint.ts <domain>.ts catalog.ts
 │   ├── mock-api/ ★Ⓐ                         # app.ts middleware/ handlers/<domain>.ts fixtures/<domain>.ts registry.ts
-│   ├── server/  Ⓑ (except lib/config, lib/supabase and lib/auth/verify.ts: Ⓐ, extended in Ⓑ, DD-43)
+│   ├── server/  Ⓑ (lib/config, lib/supabase and lib/auth/verify.ts were written in Ⓐ under DD-43; unused by the Stage A prototype since DD-50, kept for Ⓑ)
 │   │   ├── domains/
 │   │   │   ├── registry.ts ★                 # composes every domain router (Integration)
 │   │   │   ├── session/                      # /me/context, /me/theme (SPA boot)
@@ -166,12 +166,12 @@ The brief §2 layout is used verbatim. Additions are marked ★. Paths marked �
 │       └── src/
 │           ├── app/        store.ts hooks.ts router.tsx RouteGuard.tsx featureRegistry.ts★ slices/
 │           ├── api/        client.ts (call(endpoint…)) <domain>.ts
-│           ├── auth/       supabase.ts AuthProvider SignIn/Forgot/Reset pages, DemoAccounts★ (dev builds only), permissions.ts
+│           ├── auth/       Ⓐ persona picker and session (DD-50), permissions.ts; Ⓑ supabase.ts AuthProvider SignIn/Forgot/Reset pages
 │           ├── components/ shell/ ui/ charts/ approvals/ documents/ audit/
 │           ├── features/<feature>/  routes.tsx★ pages/ components/ *.test.tsx
 │           ├── pages/  theme/ (tokens.css components.css index.css, --tiq-)  lib/ (format, download)  test/
-├── supabase/ Ⓐ config.toml ([inbucket] smtp_port 54325)  Ⓑ migrations/ seed.sql schema.expected.sql
-├── scripts/  dev/ (Ⓐ serve-mock-api.ts, dev-prototype.mjs, seed-auth-personas.ts; Ⓑ serve-api.ts, dev.mjs)  docs/ ★Ⓐ (generate-openapi.ts)
+├── supabase/ Ⓑ config.toml ([inbucket] smtp_port 54325) migrations/ seed.sql schema.expected.sql (config.toml exists from Ⓐ, unused since DD-50)
+├── scripts/  dev/ (Ⓑ seed-auth-personas.ts, serve-api.ts, dev.mjs; Stage A has none since DD-50: `dev:prototype` runs Vite)  docs/ ★Ⓐ (generate-openapi.ts)
 │             db/ (Ⓐ ensure-signing-keys.mjs; Ⓑ everything else + demo/NN-<domain>.ts)  jobs/ Ⓑ  ci/ Ⓐ/Ⓑ
 ├── e2e_tests/ Ⓐ (projects: prototype, smoke, full)
 ├── docs/     technical/ ★ (architecture, ERDs, security, flows, API, ADRs…)  prototype/ ★Ⓐ (walkthrough + screens)
@@ -233,11 +233,11 @@ Agents run concurrently in one working tree. **Ownership is by path.** An agent 
 
 | Phase | Agent | Owns (writes) |
 |---|---|---|
-| B1 Foundation | `scaffold-b` | Stage B npm scripts, CI migrate job, docs; confirms the local Supabase stack from Stage A is running |
+| B1 Foundation | `scaffold-b` | Stage B npm scripts (including `supabase:*` and `auth:personas`), CI migrate job, docs; starts the local Supabase stack (first used in Stage B, DD-50) |
 | B1 | `schema-w1/w2/w3` → `schema-apply` | migrations, seed.sql, generated types, schema.expected.sql, type/validation scripts |
 | B1 | `platform-http` | lib/config (extends the Stage A module to every server variable), logging, errors, result, validation, decimal, router, `api/**`, `scripts/dev/{serve-api.ts,dev.mjs}`, `scripts/ci/**`, docs/environment-variables.md |
-| B1 | `platform-data-auth` | lib/db (not generated), supabase + auth (extends the Stage A modules: middleware, app-user resolution), tenancy, permissions, storage, audit, `domains/session`, `jobs/**`, `scripts/db/**` (not generate-types/validate), `scripts/jobs/**`, test helpers, demo `00-platform.ts` + runner |
-| B1 | `ui-live-api` | point the SPA at the real API for `npm run dev` (auth is already real). `dev:prototype` keeps serving the mock API. Real upload flows go into the shared document widgets |
+| B1 | `platform-data-auth` | lib/db (not generated), supabase + auth (extends the Stage A modules `lib/config`, `lib/supabase`, `lib/auth/verify.ts` and their local-stack tests: middleware, app-user resolution), tenancy, permissions, storage, audit, `domains/session`, `jobs/**`, `scripts/db/**` (not generate-types/validate), `scripts/jobs/**`, test helpers, demo `00-platform.ts` + runner |
+| B1 | `ui-live-api` | point the SPA at the real API for `npm run dev`, and bring in real auth: supabase-js sign-in, forgot/reset password and invitation set-password (PRD COM-01), the dev-only demo-accounts quick-pick and its `scan-bundle` check (DD-50). `dev:prototype` keeps serving the in-browser mock API with the persona picker. Real upload flows go into the shared document widgets |
 | B2 Shared | `svc-approvals`, `svc-notifications`, `svc-documents`, `svc-core` | domains/{approvals,notifications,documents,audit,lifecycle,sealing,time}. They implement the workspace contracts |
 | B3 Domains | per domain: API (implements the contract + contract tests + demo seed module) → UI hardening → review → fix | `src/server/domains/<d>/**`, `src/server/tests/**/<d>/**`, `scripts/db/demo/NN-<d>.ts`, `src/ui/src/features/<f>/**`, reserved migration slot `2026100310NN*` |
 | B4 Integration | `integrate` | server registries, cron/queue wiring, seed.sql, integration migrations, docs |
@@ -277,7 +277,7 @@ Agents run concurrently in one working tree. **Ownership is by path.** An agent 
 
 - **Stage A:**
   - Contract unit tests: schemas parse every fixture, every endpoint has a screen reference, and enums match the blueprint CHECK lists.
-  - Mock-API tests: real JWT verification (local Supabase Auth; forged, expired and unknown tokens rejected), persona mapping, identical 403s, permission enforcement, and tenant filtering, including that a supplier persona never receives another supplier's fixtures.
+  - Mock-API tests: persona mapping (unknown or inactive persona → 401; Stage A has no JWT, DD-50), identical 403s, permission enforcement, and tenant filtering, including that a supplier persona never receives another supplier's fixtures.
   - SPA tests with React Testing Library: every shared component, and at least one test per page covering permission-hidden navigation, readiness vs submitted, and official deadline rendering.
   - Playwright `prototype` project: every nav destination for each key persona, plus axe.
 - **Stage B:** everything in brief §11, plus:
@@ -290,7 +290,7 @@ Agents run concurrently in one working tree. **Ownership is by path.** An agent 
 
 ## 9. Build & verification commands
 
-- Stage A adds `supabase:start`/`supabase:stop` (local Docker stack), `auth:personas` (demo accounts in local Supabase Auth), `dev:prototype` (mock API + Vite), `dev:mock-api`, `docs:api` (OpenAPI generation), and `test:e2e:prototype`. `build` = `npm run typecheck && npm run build:ui` (Vercel's `buildCommand`). `verify` = typecheck → typecheck:ui → lint → lint:ui → test → test:ui → build:ui.
+- Stage A adds `dev:prototype` (Vite with the in-browser mock API, DD-50), `docs:api` (OpenAPI generation), and `test:e2e:prototype`. `build` = `npm run typecheck && npm run build:ui` (Vercel's `buildCommand`). `verify` = typecheck → typecheck:ui → lint → lint:ui → test → test:ui → build:ui.
 - Stage B adds the full brief §4.3 catalog, plus `db:migrate` (`supabase migration up --local --include-all`) and `db:sql:check` for safe additive migrations by parallel agents.
 
 ## 10. Demo data
@@ -321,7 +321,7 @@ Owner review of 2026-09-29. All items below are now **ACCEPTED** or **DECIDED**.
      - (b) **Node 22 everywhere.** This conforms to the brief, but Node 22 must be installed on this machine (for example with nvm-windows), which is a machine change done by the owner or with permission.
      - (c) The mixed range. Not recommended.
 7. **ACCEPTED — Git**: the existing repository is kept (not re-initialized). Work happens on branch `build/tenderiq-core` with one checkpoint commit per phase, **local only** (no remote). The first commit includes the owner's uncommitted docs changes.
-8. **DECIDED — Real Supabase Auth in local Docker from Stage A (option b).** No mock auth and no `VITE_AUTH_MODE`; DD-38 is withdrawn (DD-43). The analysis follows for the record.
+8. **SUPERSEDED by item 11 (DD-50, 2026-10-30).** Real Supabase Auth in local Docker from Stage A (DD-43) no longer applies to Stage A. Stage B keeps real Supabase Auth. The analysis follows for the record.
    - The mock sign-in (`VITE_AUTH_MODE`, persona switcher) existed only because Stage A was read as "no backend infrastructure at all". It would let the prototype run without Docker.
    - Supabase Auth runs locally in Docker, and the owner prefers a Docker-first architecture. So the alternative is:
      - (b) **Real Supabase Auth from Stage A.**
@@ -336,7 +336,18 @@ Owner review of 2026-09-29. All items below are now **ACCEPTED** or **DECIDED**.
 9. **ACCEPTED — Fonts**: Inter and JetBrains Mono (OFL) are self-hosted in `src/ui/public/fonts`, with no external font request (DD-35). The SPA document gets a CSP meta tag (DD-30).
 10. **ACCEPTED — Not in this release**: MFA/step-up sign-in (DD-29) and languages other than English. The system is **designed for localization**: every UI string goes through per-feature message catalogs (DD-37), dates, numbers and money are formatted by locale-aware helpers, and each user has a stored language preference. Adding a language is a translation task, not a refactor.
 
-**Other owner answers (2026-09-29):** the prototype is hosted **local only**; checkpoints stay **local only** (no remote); prototype actions show realistic results but **do not persist**; walkthrough screenshots **are committed**.
+11. **APPROVED by the owner 2026-10-30 — Stage A is static and runs without Supabase or Docker (DD-50).** Owner requirement: no Supabase, deployable to Vercel only, no further dependencies.
+   - **Brief §3.1 `vercel.json`:** Stage A drops the `/api/v1` rewrite and the `functions` block (there is no `api/` in Stage A) and keeps `framework`, `buildCommand`, `outputDirectory` and the SPA fallback rewrite. Stage B restores the brief's file. (No test pins `vercel.json` today; the "no `crons` key" test in `docs/technical/10-deployment-environments.md` is a Stage B item.)
+   - **Brief §5.7 authentication and PRD COM-01:** not implemented in Stage A. Sign-in, invitation acceptance and account recovery are replaced by the persona picker. Stage B implements them in full.
+   - **Brief §7 local development and §8 environment variables:** no Docker and no `SUPABASE_*` / `VITE_SUPABASE_*` values in Stage A. The CSP (DD-30) becomes `connect-src 'self'`.
+   - **Amends item 1:** in Stage A the SPA imports the mock API through **one** adapter module, and the production bundle includes the mock API and its fixtures. The SPA lint boundary allows `src/mock-api` from that module only (it still forbids `src/server`). `scan-bundle` keeps the secret and server-variable checks and drops the mock-code, persona-e-mail and demo-accounts-marker checks for Stage A; Stage B restores them.
+   - **Amends item 2:** `hono` is added to the SPA workspace's dependencies (`src/ui/package.json`). It is already an approved project dependency, so nothing new enters the project. No other dependency is added or removed. `@supabase/supabase-js` stays declared for Stage B and is not imported by Stage A code.
+   - **Amends item 5 and the hosting answer below:** the static prototype may be hosted on Vercel. Agents create no accounts and do not deploy: the owner creates the Vercel project and deploys (git stays local only unless the owner decides otherwise).
+   - **Browser compatibility of the mock API:** `registry.ts` discovers handlers with `node:fs` and becomes a static (build-time) registry; `node:crypto` `createHash` (seven files) is replaced by a synchronous pure-TypeScript hash with identical output; `Buffer` (two files) is replaced by `TextEncoder`/`Uint8Array`. Test-only helpers may keep Node APIs. The mock API loads as a lazy chunk so the first screen is not delayed by fixtures.
+   - **Tests and tooling:** the local-stack tests (`src/server/tests/unit/platform-auth/verify.local-stack.test.ts` and the mock-API `*real-auth*` / `*-auth` tests) leave the Stage A suites and return in Stage B. `npm run verify` must pass with Docker stopped. Playwright's `prototype` project starts Vite only.
+   - **Agent instructions:** `CLAUDE.md` (Stage A description, commands, Supabase rule, boundaries, ports) and `docs/local-development.md` are updated in the same change.
+
+**Other owner answers (2026-09-29):** the prototype is hosted **local only** (amended by item 11: Vercel static hosting is allowed); checkpoints stay **local only** (no remote); prototype actions show realistic results but **do not persist**; walkthrough screenshots **are committed**.
 
 ## 12. Resilience and resume (interruptions such as a power or internet outage)
 
@@ -347,4 +358,4 @@ The work is protected in four layers:
 3. **Git checkpoints.** One commit per completed phase on `build/tenderiq-core` gives a known-good baseline to diff or roll back to.
 4. **Outage circuit breaker.** If several agents in a row fail (for example the network is down), the workflow stops launching new agents and returns `status: "interrupted"` with the completed units, instead of cascading failures through later phases.
 
-On resume, the first action is always a verification gate: `npm run supabase:start` (Docker restarts after a power loss), typecheck and tests. That gate catches half-written files from agents that were interrupted mid-write. **Worst-case loss is the work of agents that were in flight at the moment of interruption.** Their units simply re-run.
+On resume, the first action is always a verification gate: typecheck and tests (in Stage B, first `npm run supabase:start`, because Docker restarts after a power loss). That gate catches half-written files from agents that were interrupted mid-write. **Worst-case loss is the work of agents that were in flight at the moment of interruption.** Their units simply re-run.
