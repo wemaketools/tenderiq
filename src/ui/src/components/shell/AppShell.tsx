@@ -5,7 +5,8 @@
  * the active sidebar destination (DD-46) on every page of that destination, except on the page it leads to. Below
  * 768px the section action is an icon button and the sidebar is a drawer: closed, it is
  * hidden from focus and assistive technology (CSS visibility); opening it moves focus to the first nav link; Escape
- * or the scrim closes it and returns focus to the menu button.
+ * or the scrim closes it and returns focus to the menu button. Between 768 and 1279px the sidebar is an icon rail
+ * with a toggle for the full sidebar (DD-50), remembered per browser; the full sidebar pushes the content.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Outlet, useLocation } from 'react-router';
@@ -14,6 +15,7 @@ import { activeNavItem, features, navGroupsFor } from '../../app/featureRegistry
 import type { FeatureModule, ResolvedSectionAction } from '../../app/featureRegistry';
 import { useActiveTenant } from '../../app/hooks';
 import { t } from '../../lib/i18n';
+import { readStoredSidebarExpanded, storeSidebarExpanded } from '../../lib/storage';
 import { DRAWER_QUERY, RAIL_QUERY, useMediaQuery } from '../../lib/useMediaQuery';
 import { MAIN_REGION_ID } from '../ui/focusReturn';
 import { PageSlotsContext } from '../ui/pageSlots';
@@ -37,13 +39,15 @@ export function AppShell({ modules = features }: { readonly modules?: readonly F
   const tenant = useActiveTenant();
   const location = useLocation();
   const drawerMode = useMediaQuery(DRAWER_QUERY);
-  const railMode = useMediaQuery(RAIL_QUERY) && !drawerMode;
+  const railMode = useMediaQuery(RAIL_QUERY);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [sidebarExpanded, setSidebarExpanded] = useState(readStoredSidebarExpanded);
   const [titleSlot, setTitleSlot] = useState<HTMLElement | null>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   useMeBadges();
 
   const open = drawerMode && drawerOpen;
+  const expanded = railMode && sidebarExpanded;
 
   useEffect(() => {
     if (!open) {
@@ -76,6 +80,12 @@ export function AppShell({ modules = features }: { readonly modules?: readonly F
   const classes = ['tiq-app'];
   if (drawerMode) classes.push('tiq-app--drawer');
   if (open) classes.push('tiq-app--drawer-open');
+  if (expanded) classes.push('tiq-app--sidebar-expanded');
+
+  const toggleSidebarWidth = (): void => {
+    storeSidebarExpanded(!sidebarExpanded);
+    setSidebarExpanded(!sidebarExpanded);
+  };
 
   const closeToMenuButton = (): void => {
     setDrawerOpen(false);
@@ -96,7 +106,8 @@ export function AppShell({ modules = features }: { readonly modules?: readonly F
           id={SIDEBAR_ID}
           tenant={tenant}
           modules={modules}
-          rail={railMode}
+          rail={railMode && !expanded}
+          widthToggle={railMode ? { expanded, onToggle: toggleSidebarWidth } : undefined}
           onNavigate={drawerMode ? closeAfterNavigation : undefined}
         />
         {open && (

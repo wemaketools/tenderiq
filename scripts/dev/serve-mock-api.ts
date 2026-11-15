@@ -1,8 +1,10 @@
 /**
  * Serves the Stage A mock API over node:http (architecture-plan §3.11; docs/technical/07-api.md §11).
  *
- * Usage: tsx scripts/dev/serve-mock-api.ts [--port 3001] [--host 127.0.0.1]
+ * Usage: tsx scripts/dev/serve-mock-api.ts [--port 3001] [--host 127.0.0.1] [--now 2026-10-06T08:00:00Z]
  *   (`npm run dev:mock-api` uses port 3001; agents and Playwright pass their own port.)
+ *   `--now` starts the server clock at that instant and lets it run on from there; Playwright uses it so deadlines and
+ *   grant windows in the fixtures do not pass as real time does (the SPA follows the server clock).
  *
  * - Loads the repository's `.env.local` itself when it exists (so the command works with or without tsx's
  *   `--env-file-if-exists`); variables already set in the environment win.
@@ -35,12 +37,15 @@ export function loadLocalEnv(path: string = ENV_LOCAL): boolean {
 export interface ServeOptions {
   readonly port: number;
   readonly host: string;
+  /** Offset to add to the real clock so the server clock reads `--now` at start; absent without `--now`. */
+  readonly clockOffsetMs?: number;
 }
 
-/** Parses `--port <n>` / `--port=<n>` and `--host <h>`. */
-export function parseServeArgs(argv: readonly string[]): ServeOptions {
+/** Parses `--port <n>` / `--port=<n>`, `--host <h>` and `--now <iso instant>`. */
+export function parseServeArgs(argv: readonly string[], realNow: number = Date.now()): ServeOptions {
   let port = 3001;
   let host = '127.0.0.1';
+  let clockOffsetMs: number | undefined;
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index] ?? '';
     const [flag, inline] = arg.includes('=') ? [arg.slice(0, arg.indexOf('=')), arg.slice(arg.indexOf('=') + 1)] : [arg, undefined];
@@ -58,11 +63,18 @@ export function parseServeArgs(argv: readonly string[]): ServeOptions {
       }
       host = value;
       if (inline === undefined) index += 1;
+    } else if (flag === '--now') {
+      const parsed = Date.parse(value ?? '');
+      if (Number.isNaN(parsed)) {
+        throw new Error(`--now must be an ISO 8601 instant, got "${value ?? ''}".`);
+      }
+      clockOffsetMs = parsed - realNow;
+      if (inline === undefined) index += 1;
     } else {
-      throw new Error(`Unknown argument "${arg}". Usage: serve-mock-api.ts [--port 3001] [--host 127.0.0.1]`);
+      throw new Error(`Unknown argument "${arg}". Usage: serve-mock-api.ts [--port 3001] [--host 127.0.0.1] [--now <instant>]`);
     }
   }
-  return { port, host };
+  return { port, host, ...(clockOffsetMs === undefined ? {} : { clockOffsetMs }) };
 }
 
 function readBody(request: IncomingMessage): Promise<Buffer> {
@@ -127,7 +139,8 @@ async function main(): Promise<void> {
     process.exitCode = 1;
     return;
   }
-  const api = await createMockApp();
+  const { clockOffsetMs } = options;
+  const api = await createMockApp(clockOffsetMs === undefined ? {} : { now: () => new Date(Date.now() + clockOffsetMs) });
   const origin = `http://${options.host.includes(':') ? `[${options.host}]` : options.host}:${options.port}`;
   const server = createServer((request, response) => {
     toFetchRequest(request, origin)

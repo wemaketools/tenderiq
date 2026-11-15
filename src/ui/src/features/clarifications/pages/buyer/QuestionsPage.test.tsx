@@ -83,7 +83,7 @@ describe('QuestionsPage (BUY-16)', () => {
     expect(within(table).getByText('Unassigned')).toBeInTheDocument();
     expect(within(table).getByText('Late · disposition needed')).toBeInTheDocument();
     expect(within(table).getAllByText('Not published')).toHaveLength(2);
-    expect(within(table).getByText('Overdue')).toBeInTheDocument();
+    expect(within(table).getAllByText('Overdue')).toHaveLength(2);
   });
 
   it('shows the workload KPIs from the tender overview', async () => {

@@ -4,15 +4,14 @@ import { DocumentDetail, documentEndpoints } from '../../../contracts/documents.
 import { createHash } from 'node:crypto';
 
 import { RECORDS } from '../../fixtures/approvals/world.js';
-import { storylineNow } from '../../fixtures/demo-clock.js';
 import { allPersonas } from '../../persona.js';
-import { createTestMockApp } from '../../testing/index.js';
+import { TEST_NOW, createTestMockApp } from '../../testing/index.js';
 import type { TestMockApp } from '../../testing/index.js';
 import { register } from './index.js';
 import { PROTOTYPE_COPY_NOTICE, issueToken } from './prototype-storage.js';
 
-/** The mock app's clock: the system clock, never earlier than the storyline "as of" (link expiry is judged on it). */
-const appNowMs = (): number => storylineNow(new Date()).getTime();
+/** The mock app's clock (link expiry is judged on it). */
+const appNowMs = (): number => TEST_NOW.getTime();
 
 const EMAIL = (login: string): string => `${login}@tenderiq.local`;
 const HASH = 'c'.repeat(64);

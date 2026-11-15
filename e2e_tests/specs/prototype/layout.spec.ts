@@ -139,6 +139,8 @@ test.describe('tab position within a section', () => {
   });
 
   test('keeps the tab list at the same height on every tab, with or without page buttons', async ({ page }) => {
+    // About 40 page loads, each waiting for network idle: 33 s locally, but ~3 s per load on CI runners (over the 60 s default).
+    test.setTimeout(240_000);
     const sections = ['/buyer/selection', '/buyer/tenders/5', '/buyer/tenders/9', '/buyer/clarifications', '/buyer/evaluation', '/buyer/awards'];
     let tabbed = 0;
     for (const start of sections) {

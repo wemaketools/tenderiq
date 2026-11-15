@@ -1,13 +1,14 @@
 /**
  * The sidebar (`overview.png`; docs/technical/09-frontend.md §5): the tenant label, the wordmark Tender + accent IQ
  * and "Tender Intelligence"; navigation built from the feature registry for the active organization's kind and
- * permissions, grouped by section with a separator before the admin group; the user card at the bottom.
- * Below 1280px it collapses to an icon rail, below 768px it is a drawer (DD-36).
+ * permissions, grouped by section with a separator before the admin group; the user card and, in the icon rail
+ * range, the toggle for the full sidebar at the bottom. Below 1280px it collapses to an icon rail, below 768px it is a
+ * drawer (DD-36); the full sidebar can be chosen from 768 to 1279px (DD-50).
  *
  * Sections (DD-48): a section with more than one destination has a heading that opens and closes it. The section of
  * the current page is always open (closing it lasts until the user moves to another page); the others remember what
  * the user chose, and "My work" starts open. A closed section shows the total of its badges on its heading. The icon
- * rail has no room for headings, so it shows every destination.
+ * rail has no room for headings, so it shows every destination; the full sidebar chosen in the rail range has them.
  */
 import { Fragment, useState } from 'react';
 import { NavLink, useLocation } from 'react-router';
@@ -37,6 +38,8 @@ export interface SidebarProps {
   readonly modules?: readonly FeatureModule[];
   /** True for the icon rail (1280px down to 768px): no section headings, every destination shown. */
   readonly rail?: boolean;
+  /** Given only from 768 to 1279px: the full-sidebar toggle at the bottom (DD-50). */
+  readonly widthToggle?: { readonly expanded: boolean; readonly onToggle: () => void };
 }
 
 /** Sections open until the user closes them. */
@@ -148,6 +151,7 @@ export function Sidebar({
   id,
   modules = features,
   rail = false,
+  widthToggle,
 }: SidebarProps) {
   const location = useLocation();
   const [stored, setStored] = useState<Record<string, boolean>>(readNavSections);
@@ -205,6 +209,18 @@ export function Sidebar({
         ))}
       </nav>
       <UserCard tenant={tenant} />
+      {widthToggle !== undefined && (
+        <button
+          type="button"
+          className="tiq-sidebar-toggle"
+          title={t('shell.sidebar.expand')}
+          aria-expanded={widthToggle.expanded}
+          onClick={widthToggle.onToggle}
+        >
+          <Icon name={widthToggle.expanded ? 'chevronsLeft' : 'chevronsRight'} />
+          <span className="tiq-sidebar-toggle-label">{t('shell.sidebar.expand')}</span>
+        </button>
+      )}
     </aside>
   );
 }
